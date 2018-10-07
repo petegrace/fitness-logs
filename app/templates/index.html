@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+	<h1>Welcome to Fitness Logs</h1>
+	<p>Logged in as {{ current_user.email }}</p>
+	<hr />
+	<h3>Your Exercise Log</h3>
+	<table class="table table-hover">
+		<tr>
+			<th>Date & Time</th>
+			<th>Type</th>
+			<th>Reps</th>
+		</tr>
+		{% for exercise in exercises %}
+			<tr>
+				<td>{{ exercise.exercise_datetime }}</td>
+				<td>{{ exercise.type.name }}</td>
+				<td>{{ exercise.reps }}</td>
+			</tr>
+		{% endfor %}
+	</table>
+
+	<p>
+		{% if prev_url %}
+			<a href="{{ prev_url }}">More recent activity</a>
+		{% endif %}
+		{% if next_url %}
+			<a href="{{ next_url }}">Older activity</a>
+		{% endif %}
+	</p>
+	
+	<hr />
+	<h3>Log Exercises</h3>
+	<ul>
+		<li><a href="{{ url_for('new_exercise') }}">New Exercise Type</a></li>
+		{% for exercise_type in exercise_types %}
+			<li><a href="{{ url_for('log_exercise', id=exercise_type.id) }}">{{ exercise_type.name }}</a></li>
+		{% endfor %}
+	</ul>
+{% endblock %}
