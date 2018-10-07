@@ -107,5 +107,6 @@ venv.bak/
 *.db
 *.sublime-project
 *.sublime-workspace
+.flaskenv
 config.py
 app.yaml
