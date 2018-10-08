@@ -1,5 +1,6 @@
 from datetime import datetime
 from flask_wtf import FlaskForm
+from flask_login import current_user
 from wtforms import StringField, PasswordField, DateTimeField, IntegerField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from app.models import User, ExerciseType
@@ -33,11 +34,11 @@ class LogNewExerciseTypeForm(FlaskForm):
 	reps = IntegerField("Reps")
 	submit = SubmitField("Log Exercise")
 
-	def validate_exercise_name(self, exercise_name):
-		exercise_type = ExerciseType.query.filter_by(name=name).first()
+	def validate_name(self, name):
+		exercise_type = ExerciseType.query.filter_by(name=name.data).filter_by(owner=current_user).first()
 		# Todo: need to limit this to only error if it's for the same user
 		if exercise_type is not None:
-			raise ValidationError("Exercise Name is already in use. We are working on allowing you to use a name that's already been used by another user.")
+			raise ValidationError("You already have an Exercise Type with that name.")
 
 		
 class EditExerciseForm(FlaskForm):

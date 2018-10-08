@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
 
 	def exercises(self):
 		return Exercise.query.join(ExerciseType,
-			(ExerciseType.id == Exercise.exercise_type_id)).order_by(Exercise.exercise_datetime.desc())
+			(ExerciseType.id == Exercise.exercise_type_id)).filter(ExerciseType.owner == self).order_by(Exercise.exercise_datetime.desc())
 		
 
 class ExerciseType(db.Model):
