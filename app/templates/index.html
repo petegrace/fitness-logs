@@ -10,10 +10,11 @@
 			<th>Date & Time</th>
 			<th>Type</th>
 			<th>Reps</th>
+			<th></th>
 		</tr>
 		{% for exercise in exercises %}
 			<tr>
-				<td>{{ exercise.exercise_datetime }}</td>
+				<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
 				<td>{{ exercise.type.name }}</td>
 				<td>{{ exercise.reps }}</td>
 				<td><a href="{{ url_for('edit_exercise', id=exercise.id) }}">Edit</a></td>

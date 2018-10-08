@@ -28,7 +28,7 @@ class LogNewExerciseTypeForm(FlaskForm):
 	# measured_by will be hardcoded to reps for now
 
 	# fields for the first exercise to be logged (reps will also serve as the default)
-	exercise_datetime = DateTimeField("Exercise Date & Time", format="%Y-%m-%d %H:%M:%S",
+	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
 	reps = IntegerField("Reps")
 	submit = SubmitField("Log Exercise")
@@ -42,7 +42,7 @@ class LogNewExerciseTypeForm(FlaskForm):
 		
 class EditExerciseForm(FlaskForm):
 	# fields for the first exercise to be logged (reps will also serve as the default)
-	exercise_datetime = DateTimeField("Exercise Date & Time", format="%Y-%m-%d %H:%M:%S",
+	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
 	reps = IntegerField("Reps")
 	submit = SubmitField("Update Exercise")
