@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, LogNewExerciseTypeForm
+from app.forms import LoginForm, RegistrationForm, LogNewExerciseTypeForm, EditExerciseForm
 from app.models import User, ExerciseType, Exercise
 
 @app.route("/")
@@ -78,6 +78,22 @@ def register():
 	return render_template("register.html", title="Register", form=form)
 
 
+@app.route("/log_exercise/<id>")
+@login_required
+def log_exercise(id):
+	exercise_type = ExerciseType.query.get(int(id))
+
+	# Log the exercise based on defaults
+	# TODO: This should be a function somewhere to avoid duplication with new_exercise, just not sure where yet!
+	exercise = Exercise(type=exercise_type,
+						exercise_datetime=datetime.utcnow(),
+						reps=exercise_type.default_reps)
+	db.session.add(exercise)
+	db.session.commit()
+	flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
+	return redirect(url_for("index"))
+
+
 @app.route("/new_exercise", methods=["GET", "POST"])
 @login_required
 def new_exercise():
@@ -101,17 +117,20 @@ def new_exercise():
 	#for the get...
 	return render_template("new_exercise.html", title="Log New Exercise Type", form=form)
 
-@app.route("/log_exercise/<id>")
-@login_required
-def log_exercise(id):
-	exercise_type = ExerciseType.query.get(int(id))
 
-	# Log the exercise based on defaults
-	# TODO: This should be a function somewhere to avoid duplication with new_exercise, just not sure where yet!
-	exercise = Exercise(type=exercise_type,
-						exercise_datetime=datetime.utcnow(),
-						reps=exercise_type.default_reps)
-	db.session.add(exercise)
-	db.session.commit()
-	flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
-	return redirect(url_for("index"))
+@app.route('/edit_exercise/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_exercise(id):
+    form = EditExerciseForm()
+    exercise = Exercise.query.get(int(id))
+
+    if form.validate_on_submit():
+        exercise.exercise_datetime = form.exercise_datetime.data
+        exercise.reps = form.reps.data
+        db.session.commit()
+        flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
+        return redirect(url_for("index"))
+    elif request.method == 'GET':
+        form.exercise_datetime.data = exercise.exercise_datetime
+        form.reps.data = exercise.reps
+    return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)

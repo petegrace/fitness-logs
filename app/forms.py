@@ -38,4 +38,11 @@ class LogNewExerciseTypeForm(FlaskForm):
 		# Todo: need to limit this to only error if it's for the same user
 		if exercise_type is not None:
 			raise ValidationError("Exercise Name is already in use. We are working on allowing you to use a name that's already been used by another user.")
+
 		
+class EditExerciseForm(FlaskForm):
+	# fields for the first exercise to be logged (reps will also serve as the default)
+	exercise_datetime = DateTimeField("Exercise Date & Time", format="%Y-%m-%d %H:%M:%S",
+										validators=[DataRequired()], default=datetime.utcnow)
+	reps = IntegerField("Reps")
+	submit = SubmitField("Update Exercise")
