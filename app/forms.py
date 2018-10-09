@@ -5,24 +5,6 @@ from wtforms import StringField, PasswordField, DateTimeField, IntegerField, Sub
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from app.models import User, ExerciseType
 
-class LoginForm(FlaskForm):
-	email = StringField("Email", validators=[DataRequired()])
-	password = PasswordField("Password", validators=[DataRequired()])
-	submit = SubmitField("Sign In")
-
-
-class RegistrationForm(FlaskForm):
-	email = StringField("Email", validators=[DataRequired(), Email()])
-	password = PasswordField("Password", validators=[DataRequired()])
-	password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
-	submit = SubmitField("Register")
-
-	# Check for duplicate email
-	def validate_email(self, email):
-		user = User.query.filter_by(email=email.data).first()
-		if user is not None:
-			raise ValidationError("Email address is already in use. Please use a different one.")
-
 
 class LogNewExerciseTypeForm(FlaskForm):
 	name = StringField("Exercise Name", validators=[DataRequired(), Length(min=1, max=100)])
