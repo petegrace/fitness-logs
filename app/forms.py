@@ -1,8 +1,8 @@
 from datetime import datetime
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, DateTimeField, IntegerField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from wtforms import StringField, PasswordField, DateTimeField, SelectField, IntegerField, SubmitField, HiddenField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional
 from app.models import User, ExerciseType
 
 
@@ -13,7 +13,9 @@ class LogNewExerciseTypeForm(FlaskForm):
 	# fields for the first exercise to be logged (reps will also serve as the default)
 	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
-	reps = IntegerField("Reps")
+	measured_by = SelectField( 'Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
+	reps = IntegerField("Reps", validators=[Optional()])
+	seconds = IntegerField("Seconds", validators=[Optional()])
 	submit = SubmitField("Log Exercise")
 
 	def validate_name(self, name):
@@ -27,5 +29,7 @@ class EditExerciseForm(FlaskForm):
 	# fields for the first exercise to be logged (reps will also serve as the default)
 	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
-	reps = IntegerField("Reps")
+	measured_by = HiddenField("measured_by")
+	reps = IntegerField("Reps", validators=[Optional()])
+	seconds = IntegerField("Seconds", validators=[Optional()])
 	submit = SubmitField("Update Exercise")

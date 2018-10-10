@@ -36,6 +36,7 @@ class ExerciseType(db.Model):
 	measured_by = db.Column(db.String(50))
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 	default_reps = db.Column(db.Integer)
+	default_seconds = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercises = db.relationship("Exercise", backref="type", lazy="dynamic")
 
@@ -48,6 +49,7 @@ class Exercise(db.Model):
 	exercise_type_id = db.Column(db.Integer, db.ForeignKey("exercise_type.id"))
 	exercise_datetime = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 	reps = db.Column(db.Integer)
+	seconds = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
 	def __repr__(self):

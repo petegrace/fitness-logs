@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		opt = $("#measured_by").val();
+
+		if (opt == "reps") {
+			$("#reps").show();
+			$("label[for='reps']").show();
+		   	$("#seconds").hide();
+			$("label[for='seconds']").hide();
+		}
+		else if (opt == "seconds") {
+		   	$("#reps").hide();
+			$("label[for='reps']").hide();
+		   	$("#seconds").show();
+			$("label[for='seconds']").show();
+		}
+	</script>
+{% endblock %}
+
 {% block app_content %}
 	<h1>Edit Exercise</h1>
 	<div class="row">

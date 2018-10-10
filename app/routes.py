@@ -28,7 +28,8 @@ def log_exercise(id):
 	# TODO: This should be a function somewhere to avoid duplication with new_exercise, just not sure where yet!
 	exercise = Exercise(type=exercise_type,
 						exercise_datetime=datetime.utcnow(),
-						reps=exercise_type.default_reps)
+						reps=exercise_type.default_reps,
+						seconds=exercise_type.default_seconds)
 	db.session.add(exercise)
 	db.session.commit()
 	flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
@@ -42,14 +43,22 @@ def new_exercise():
 
 	# for the post...
 	if form.validate_on_submit():
+		# Ensure that seconds and reps are none if the other is selected
+		if form.measured_by.data == "reps":
+			form.seconds.data = None
+		elif form.measured_by.data == "seconds":
+			form.reps.data = None
+
 		exercise_type = ExerciseType(name=form.name.data,
 									 owner=current_user,
-									 measured_by="reps",
-									 default_reps=form.reps.data)
+									 measured_by=form.measured_by.data,
+									 default_reps=form.reps.data,
+									 default_seconds=form.seconds.data)
 		db.session.add(exercise_type)
 		exercise = Exercise(type=exercise_type,
 							exercise_datetime=form.exercise_datetime.data,
-							reps=form.reps.data)		
+							reps=form.reps.data,
+							seconds=form.seconds.data)		
 		db.session.add(exercise)
 		db.session.commit()
 		flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
@@ -68,10 +77,13 @@ def edit_exercise(id):
     if form.validate_on_submit():
         exercise.exercise_datetime = form.exercise_datetime.data
         exercise.reps = form.reps.data
+        exercise.seconds = form.seconds.data
         db.session.commit()
         flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
         return redirect(url_for("index"))
     elif request.method == 'GET':
         form.exercise_datetime.data = exercise.exercise_datetime
+        form.measured_by.data = exercise.type.measured_by
         form.reps.data = exercise.reps
+        form.seconds.data = exercise.seconds
     return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)

@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#seconds").hide();
+		$("label[for='seconds']").hide(); 
+
+		$("#measured_by").change(function(){
+		    opt = $(this).val();
+
+		    if (opt == "reps") {
+		    	$("#reps").show();
+				$("label[for='reps']").show();
+		    	$("#seconds").hide();
+				$("label[for='seconds']").hide();
+			}
+			else if (opt == "seconds") {
+		    	$("#reps").hide();
+				$("label[for='reps']").hide();
+		    	$("#seconds").show();
+				$("label[for='seconds']").show();
+			}
+		});
+	</script>
+{% endblock %}
+
 {% block app_content %}
 	<h1>Log New Exercise Type</h1>
 	<div class="row">
@@ -9,3 +35,18 @@
 		</div>
 	</div>
 {% endblock %}
+
+<!--
+First, we assign an ID to the select control (mystuff)
+	<select id="measured_by">
+Then, we tell jQuery to watch for the value of that element to change:
+	$('#measured_by').change(function() {
+Next, we grab the value of teh currently selected item:
+	opt = $(this).val();
+Then, determine which option was selected
+	if (opt=="reps"){} //Note that are testing the VALUE, not the text, of the option
+Finally, inject some html into the DIV with id=msgbox
+	$('#msgbox').html('some html code');
+-->
+
+
