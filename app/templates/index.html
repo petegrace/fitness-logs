@@ -46,7 +46,7 @@
 				<br />
 				<small>
 					{% if exercise_type.measured_by == "reps" %}
-						[{{ exercise_type.defaultreps }} reps]
+						[{{ exercise_type.default_reps }} reps]
 					{% elif exercise_type.measured_by == "seconds" %}
 						[{{ exercise_type.default_seconds }} secs]
 					{% endif %}
