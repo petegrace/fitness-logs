@@ -1,4 +1,5 @@
 {% extends "bootstrap/base.html" %}
+{% import "bootstrap/google.html" as google %}
 
 {% block title %}
 		{% if title %}
@@ -10,8 +11,9 @@
 
 {% block scripts %}
 	{{ super() }}
+	{{ google.uanalytics("UA-127378589-1") }}
 	{{ moment.include_moment() }}
-	{{ moment.locale('en-gb') }}
+	{{ moment.locale("en-gb") }}
 {% endblock %}
 
 {% block styles %}

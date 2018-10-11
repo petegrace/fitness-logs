@@ -1,10 +1,33 @@
 from datetime import datetime
+import requests
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm
 from app.models import User, ExerciseType, Exercise
+
+# Helpers
+
+def track_event(category, action, label=None, value=0, userId="0"):
+    data = {
+        'v': '1',  # API Version.
+        'tid': app.config["GA_TRACKING_ID"],  # Tracking ID / Property ID.
+        # Anonymous Client Identifier. Ideally, this should be a UUID that
+        # is associated with particular user, device, or browser instance.
+        'cid': userId,
+        't': 'event',  # Event hit type.
+        'ec': category,  # Event category.
+        'ea': action,  # Event action.
+        'el': label,  # Event label.
+        'ev': value,  # Event value, must be an integer
+    }
+
+    response = requests.post(
+        'http://www.google-analytics.com/collect', data=data)
+
+
+# Routes
 
 @app.route("/")
 @app.route("/index")
@@ -22,6 +45,7 @@ def index():
 @app.route("/log_exercise/<id>")
 @login_required
 def log_exercise(id):
+	track_event(category="Exercises", action="Exercise logged", userId = str(current_user.id))
 	exercise_type = ExerciseType.query.get(int(id))
 
 	# Log the exercise based on defaults
@@ -43,6 +67,7 @@ def new_exercise():
 
 	# for the post...
 	if form.validate_on_submit():
+		track_event(category="Exercises", action="New Exercise created", userId = str(current_user.id))
 		# Ensure that seconds and reps are none if the other is selected
 		if form.measured_by.data == "reps":
 			form.seconds.data = None
@@ -65,25 +90,29 @@ def new_exercise():
 		return redirect(url_for("index"))
 
 	#for the get...
+	track_event(category="Exercises", action="New Exercise form loaded", userId = str(current_user.id))
 	return render_template("new_exercise.html", title="Log New Exercise Type", form=form)
 
 
 @app.route('/edit_exercise/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_exercise(id):
-    form = EditExerciseForm()
-    exercise = Exercise.query.get(int(id))
+	form = EditExerciseForm()
+	exercise = Exercise.query.get(int(id))
 
-    if form.validate_on_submit():
-        exercise.exercise_datetime = form.exercise_datetime.data
-        exercise.reps = form.reps.data
-        exercise.seconds = form.seconds.data
-        db.session.commit()
-        flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
-        return redirect(url_for("index"))
-    elif request.method == 'GET':
-        form.exercise_datetime.data = exercise.exercise_datetime
-        form.measured_by.data = exercise.type.measured_by
-        form.reps.data = exercise.reps
-        form.seconds.data = exercise.seconds
-    return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
+	if form.validate_on_submit():
+		track_event(category="Exercises", action="Exercise updated", userId = str(current_user.id))
+		exercise.exercise_datetime = form.exercise_datetime.data
+		exercise.reps = form.reps.data
+		exercise.seconds = form.seconds.data
+		db.session.commit()
+		flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
+		return redirect(url_for("index"))
+	elif request.method == 'GET':
+		form.exercise_datetime.data = exercise.exercise_datetime
+		form.measured_by.data = exercise.type.measured_by
+		form.reps.data = exercise.reps
+		form.seconds.data = exercise.seconds
+
+	track_event(category="Exercises", action="Edit Exercise form loaded", userId = str(current_user.id))
+	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
