@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from sqlalchemy import func, literal, desc
 from app import db
 from app import login
 
@@ -42,6 +43,49 @@ class ExerciseType(db.Model):
 
 	def __repr__(self):
 		return "<ExerciseType {name} for {user}>".format(name=self.name, user=self.owner.email)
+
+	def exercise_types_ordered(owner):		
+		exercise_types_last_7_days = db.session.query(
+					ExerciseType.id,
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					ExerciseType.default_reps,
+					ExerciseType.default_seconds,
+					func.count(Exercise.id).label("exercise_count"),
+					func.max(Exercise.exercise_datetime).label("max_datetime")
+				).join(ExerciseType.exercises
+				).filter(ExerciseType.owner == owner
+				).filter((Exercise.exercise_datetime >= datetime.utcnow() - timedelta(days=7))
+				).group_by(
+					ExerciseType.id,
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					ExerciseType.default_reps,
+					ExerciseType.default_seconds
+				).order_by(func.count(Exercise.id).desc())
+
+		exercise_types_other = db.session.query(
+					ExerciseType.id,
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					ExerciseType.default_reps,
+					ExerciseType.default_seconds,
+					literal(0).label("exercise_count"),
+					func.max(Exercise.exercise_datetime).label("max_datetime")
+				).join(ExerciseType.exercises
+				).filter(ExerciseType.owner == owner
+				).group_by(
+					ExerciseType.id,
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					ExerciseType.default_reps,
+					ExerciseType.default_seconds
+				).having((func.max(Exercise.exercise_datetime) < datetime.utcnow() - timedelta(days=7))
+				).order_by(func.max(Exercise.exercise_datetime).desc())
+
+		ordered_exercise_types = exercise_types_last_7_days.union(exercise_types_other).order_by(desc("exercise_count"), desc("max_datetime"))
+
+		return ordered_exercise_types
 
 
 class Exercise(db.Model):

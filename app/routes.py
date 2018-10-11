@@ -37,7 +37,9 @@ def index():
 	exercises = current_user.exercises().paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
 	next_url = url_for("index", page=exercises.next_num) if exercises.has_next else None
 	prev_url = url_for("index", page=exercises.prev_num) if exercises.has_prev else None
-	exercise_types = current_user.exercise_types
+
+	exercise_types = ExerciseType.exercise_types_ordered(current_user)
+
 	return render_template("index.html", title="Home", exercises=exercises.items, exercise_types=exercise_types,
 							next_url=next_url, prev_url=prev_url)
 
