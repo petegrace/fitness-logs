@@ -107,12 +107,21 @@ def edit_exercise(id):
 		exercise.seconds = form.seconds.data
 		db.session.commit()
 		flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
-		return redirect(url_for("index"))
-	elif request.method == 'GET':
-		form.exercise_datetime.data = exercise.exercise_datetime
-		form.measured_by.data = exercise.type.measured_by
-		form.reps.data = exercise.reps
-		form.seconds.data = exercise.seconds
 
+		if form.update_default.data:
+			track_event(category="Exercises", action="Exercise default reps/secs updated", userId = str(current_user.id))
+			exercise.type.default_reps = form.reps.data
+			exercise.type.default_seconds = form.seconds.data
+			db.session.commit()
+			flash("Updated default {measured_by} for {type}".format(type=exercise.type.name, measured_by=exercise.type.measured_by))
+
+		return redirect(url_for("index"))
+
+	# If it's a get...
+	form.exercise_datetime.data = exercise.exercise_datetime
+	form.measured_by.data = exercise.type.measured_by
+	form.reps.data = exercise.reps
+	form.seconds.data = exercise.seconds
+		
 	track_event(category="Exercises", action="Edit Exercise form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)

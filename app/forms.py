@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, DateTimeField, SelectField, IntegerField, SubmitField, HiddenField
+from wtforms import StringField, PasswordField, DateTimeField, SelectField, IntegerField, SubmitField, HiddenField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional
 from app.models import User, ExerciseType
 
@@ -32,4 +32,5 @@ class EditExerciseForm(FlaskForm):
 	measured_by = HiddenField("measured_by")
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])
+	update_default = BooleanField("Update default?")
 	submit = SubmitField("Update Exercise")
