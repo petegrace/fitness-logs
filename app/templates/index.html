@@ -34,12 +34,12 @@
 
 	<h3>Log Exercises</h3>
 	<div>
-		<a class="btn btn-primary" role="button" href="{{ url_for('new_exercise') }}">
+		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise') }}">
 			New Exercise Type
 			<br /><small>&nbsp;</small>
 		</a>
 		{% for exercise_type in exercise_types %}
-			<a class="btn btn-success" role="button" href="{{ url_for('log_exercise', id=exercise_type.id) }}">
+			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', id=exercise_type.id) }}">
 				{{ exercise_type.name }}
 				<br />
 				<small>
