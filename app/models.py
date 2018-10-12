@@ -4,6 +4,12 @@ from flask_login import UserMixin
 from sqlalchemy import func, literal, desc
 from app import db
 from app import login
+from itertools import groupby
+
+class ExerciseDateGroup:
+	def __init__(self, exercise_date, exercises):
+		self.exercise_date = exercise_date
+		self.exercises = exercises
 
 class User(UserMixin, db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -29,22 +35,14 @@ class User(UserMixin, db.Model):
 	def exercises(self):
 		return Exercise.query.join(ExerciseType,
 			(ExerciseType.id == Exercise.exercise_type_id)).filter(ExerciseType.owner == self).order_by(Exercise.exercise_datetime.desc())
-		
 
-class ExerciseType(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(100), index=True)
-	measured_by = db.Column(db.String(50))
-	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-	default_reps = db.Column(db.Integer)
-	default_seconds = db.Column(db.Integer)
-	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
-	exercises = db.relationship("Exercise", backref="type", lazy="dynamic")
+	def exercises_grouped_by_date(self):
+		exercise_date_groups = []
+		for exercise_date_key, exercises_group in groupby(self.exercises().all(), lambda exercise: exercise.exercise_date):
+   			exercise_date_groups.append(ExerciseDateGroup(exercise_date_key, list(exercises_group)))
+		return exercise_date_groups
 
-	def __repr__(self):
-		return "<ExerciseType {name} for {user}>".format(name=self.name, user=self.owner.email)
-
-	def exercise_types_ordered(owner):		
+	def exercise_types_ordered(self):		
 		exercise_types_last_7_days = db.session.query(
 					ExerciseType.id,
 					ExerciseType.name,
@@ -54,7 +52,7 @@ class ExerciseType(db.Model):
 					func.count(Exercise.id).label("exercise_count"),
 					func.max(Exercise.exercise_datetime).label("max_datetime")
 				).join(ExerciseType.exercises
-				).filter(ExerciseType.owner == owner
+				).filter(ExerciseType.owner == self
 				).filter((Exercise.exercise_datetime >= datetime.utcnow() - timedelta(days=7))
 				).group_by(
 					ExerciseType.id,
@@ -73,7 +71,7 @@ class ExerciseType(db.Model):
 					literal(0).label("exercise_count"),
 					func.max(Exercise.exercise_datetime).label("max_datetime")
 				).join(ExerciseType.exercises
-				).filter(ExerciseType.owner == owner
+				).filter(ExerciseType.owner == self
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,
@@ -86,6 +84,20 @@ class ExerciseType(db.Model):
 		ordered_exercise_types = exercise_types_last_7_days.union(exercise_types_other).order_by(desc("exercise_count"), desc("max_datetime"))
 
 		return ordered_exercise_types
+		
+
+class ExerciseType(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(100), index=True)
+	measured_by = db.Column(db.String(50))
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	default_reps = db.Column(db.Integer)
+	default_seconds = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	exercises = db.relationship("Exercise", backref="type", lazy="dynamic")
+
+	def __repr__(self):
+		return "<ExerciseType {name} for {user}>".format(name=self.name, user=self.owner.email)
 
 
 class Exercise(db.Model):
@@ -99,3 +111,7 @@ class Exercise(db.Model):
 	def __repr__(self):
 		return "<Exercise {name} for {user} at {time}>".format(
 			name=self.type.name, user=self.type.owner.email, time=self.exercise_datetime)
+
+	@property
+	def exercise_date(self):
+		return self.exercise_datetime.date()

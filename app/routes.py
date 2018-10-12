@@ -40,7 +40,7 @@ def index():
 	next_url = url_for("index", page=exercises.next_num) if exercises.has_next else None
 	prev_url = url_for("index", page=exercises.prev_num) if exercises.has_prev else None
 
-	exercise_types = ExerciseType.exercise_types_ordered(current_user)
+	exercise_types = current_user.exercise_types_ordered()
 
 	return render_template("index.html", title="Home", exercises=exercises.items, exercise_types=exercise_types,
 							next_url=next_url, prev_url=prev_url)
@@ -129,3 +129,12 @@ def edit_exercise(id):
 		
 	track_event(category="Exercises", action="Edit Exercise form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
+
+
+@app.route("/activity")
+@login_required
+def activity():
+	track_event(category="Analysis", action="Activity page opened or refreshed", userId = str(current_user.id))
+	exercise_date_groups = current_user.exercises_grouped_by_date()
+
+	return render_template("activity.html", title="Home", exercise_date_groups=exercise_date_groups)

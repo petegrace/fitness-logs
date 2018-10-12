@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+	<h2>Activity</h2>
+		{% for exercise_date_group in exercise_date_groups %}
+			<h5>{{ moment(exercise_date_group.exercise_date).format("dddd LL") }}: Completed {{ exercise_date_group.exercises|length }} exercises</h4>
+			<table class="table table-sm table-hover">
+				{% for exercise in exercise_date_group.exercises %}
+					<tr>
+						<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
+						<td>{{ exercise.type.name }}</td>
+						<td>
+							{% if exercise.type.measured_by == "reps" %}
+								{{ exercise.reps }} reps
+							{% elif exercise.type.measured_by == "seconds" %}
+								{{ exercise.seconds }} secs
+							{% endif %}
+						</td>
+						<td><a href="{{ url_for('edit_exercise', id=exercise.id) }}">Edit</a></td>
+					</tr>
+				{% endfor %}
+			</table>
+
+		{% endfor %}
+{% endblock %}
