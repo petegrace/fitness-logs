@@ -3,12 +3,6 @@
 {% block app_content %}
 	<h3>Recent Activity</h3>
 	<table class="table table-hover">
-		<tr>
-			<th>Date & Time</th>
-			<th>Type</th>
-			<th>Reps / Time</th>
-			<th></th>
-		</tr>
 		{% for exercise in exercises %}
 			<tr>
 				<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
