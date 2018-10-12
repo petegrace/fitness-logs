@@ -25,14 +25,18 @@
 		{% endfor %}
 	</table>
 
-	<p>
+	<ul class="nav">
 		{% if prev_url %}
-			<a href="{{ prev_url }}">More recent activity</a>
+			<li class="nav-item">
+				<a class="nav-link" href="{{ prev_url }}">More recent activity</a>
+			</li>
 		{% endif %}
 		{% if next_url %}
-			<a href="{{ next_url }}">Older activity</a>
+			<li class="nav-item">
+				<a class="nav-link" href="{{ next_url }}">Older activity</a>
+			</li>
 		{% endif %}
-	</p>
+	</ul>
 
 	<h3>Log Exercises</h3>
 	<div>
