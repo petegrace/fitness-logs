@@ -21,6 +21,7 @@ def track_event(category, action, label=None, value=0, userId="0"):
         'ea': action,  # Event action.
         'el': label,  # Event label.
         'ev': value,  # Event value, must be an integer
+        'userId': userId
     }
 
     response = requests.post(
@@ -33,6 +34,7 @@ def track_event(category, action, label=None, value=0, userId="0"):
 @app.route("/index")
 @login_required
 def index():
+	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
 	page = request.args.get("page", 1, type=int)
 	exercises = current_user.exercises().paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
 	next_url = url_for("index", page=exercises.next_num) if exercises.has_next else None
