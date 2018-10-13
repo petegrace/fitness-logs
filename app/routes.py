@@ -5,7 +5,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, EditScheduledExerciseForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise
 
 # Helpers
@@ -88,14 +88,18 @@ def log_exercise(scheduled, id):
 	return redirect(url_for("index"))
 
 
-@app.route("/new_exercise", methods=["GET", "POST"])
+@app.route("/new_exercise/<context>/<selected_day>", methods=["GET", "POST"])
+@app.route("/new_exercise/<context>", methods=["GET", "POST"])
 @login_required
-def new_exercise():
-	form = LogNewExerciseTypeForm()
+def new_exercise(context, selected_day=None):
+	if context == "logging":
+		form = LogNewExerciseTypeForm()
+	elif context == "scheduling":
+		form = ScheduleNewExerciseTypeForm()
 
 	# for the post...
 	if form.validate_on_submit():
-		track_event(category="Exercises", action="New Exercise created", userId = str(current_user.id))
+		track_event(category="Exercises", action="New Exercise created for {context}".format(context=context), userId = str(current_user.id))
 		# Ensure that seconds and reps are none if the other is selected
 		if form.measured_by.data == "reps":
 			form.seconds.data = None
@@ -108,17 +112,29 @@ def new_exercise():
 									 default_reps=form.reps.data,
 									 default_seconds=form.seconds.data)
 		db.session.add(exercise_type)
-		exercise = Exercise(type=exercise_type,
-							exercise_datetime=form.exercise_datetime.data,
-							reps=form.reps.data,
-							seconds=form.seconds.data)		
-		db.session.add(exercise)
-		db.session.commit()
-		flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
-		return redirect(url_for("index"))
+
+		if context == "logging":
+			exercise = Exercise(type=exercise_type,
+								exercise_datetime=form.exercise_datetime.data,
+								reps=form.reps.data,
+								seconds=form.seconds.data)		
+			db.session.add(exercise)
+			db.session.commit()
+			flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
+			return redirect(url_for("index"))
+		elif context == "scheduling":
+			scheduled_exercise = ScheduledExercise(type=exercise_type,
+												   scheduled_day=selected_day,
+												   sets=1,
+												   reps=form.reps.data,
+												   seconds=form.seconds.data)		
+			db.session.add(scheduled_exercise)
+			db.session.commit()
+			flash("Added {type} and scheduled for {scheduled_day}".format(type=exercise_type.name, scheduled_day=scheduled_exercise.scheduled_day))
+			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
 
 	#for the get...
-	track_event(category="Exercises", action="New Exercise form loaded", userId = str(current_user.id))
+	track_event(category="Exercises", action="New Exercise form loaded for {context}".format(context=context), userId = str(current_user.id))
 	return render_template("new_exercise.html", title="Log New Exercise Type", form=form)
 
 

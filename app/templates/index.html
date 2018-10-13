@@ -71,7 +71,7 @@
 
 	<h3>Log {% if scheduled_exercises or has_completed_schedule %}Other{% endif %} Exercises</h3>
 	<div>
-		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise') }}">
+		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
 			New Exercise Type
 			<br /><small>&nbsp;</small>
 		</a>

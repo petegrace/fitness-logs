@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from sqlalchemy import func, literal, desc, and_
+from sqlalchemy import func, literal, desc, and_, or_
 from app import db
 from app import login
 from itertools import groupby
@@ -111,7 +111,7 @@ class User(UserMixin, db.Model):
 					ExerciseType.default_seconds,
 					literal(0).label("exercise_count"),
 					func.max(Exercise.exercise_datetime).label("max_datetime")
-				).join(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercises
 				).filter(ExerciseType.owner == self
 				).group_by(
 					ExerciseType.id,
@@ -119,7 +119,8 @@ class User(UserMixin, db.Model):
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds
-				).having((func.max(Exercise.exercise_datetime) < datetime.utcnow() - timedelta(days=7))
+				).having(or_(func.max(Exercise.exercise_datetime) < datetime.utcnow() - timedelta(days=7),
+							 func.max(Exercise.exercise_datetime) == None)
 				).order_by(func.max(Exercise.exercise_datetime).desc())
 
 		ordered_exercise_types = exercise_types_last_7_days.union(exercise_types_other).order_by(desc("exercise_count"), desc("max_datetime"))

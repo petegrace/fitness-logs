@@ -37,7 +37,7 @@
 
 	<h3>Add to Schedule</h3>
 	<div>
-		<a class="btn btn-primary btn-sm" role="button" href="#">
+		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise', context='scheduling', selected_day=selected_day) }}">
 			New Exercise Type
 			<br /><small>&nbsp;</small>
 		</a>
