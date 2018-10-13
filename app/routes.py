@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, date
+import calendar
 import requests
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm
-from app.models import User, ExerciseType, Exercise
+from app.models import User, ExerciseType, Exercise, ScheduledExercise
 
 # Helpers
 
@@ -40,27 +41,47 @@ def index():
 	next_url = url_for("index", page=exercises.next_num) if exercises.has_next else None
 	prev_url = url_for("index", page=exercises.prev_num) if exercises.has_prev else None
 
+	today = date.today()
+	current_day = calendar.day_abbr[today.weekday()]
+	scheduled_exercises_remaining = current_user.scheduled_exercises_remaining(scheduled_day=current_day, exercise_date=today).all()
+
+	has_completed_schedule = False
+
+	if not scheduled_exercises_remaining:
+		if current_user.scheduled_exercises(scheduled_day=current_day):
+			has_completed_schedule = True
+			
 	exercise_types = current_user.exercise_types_ordered()
 
-	return render_template("index.html", title="Home", exercises=exercises.items, exercise_types=exercise_types,
-							next_url=next_url, prev_url=prev_url)
+	return render_template("index.html", title="Home", exercises=exercises.items, next_url=next_url, prev_url=prev_url,
+							exercise_types=exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)
 
 
-@app.route("/log_exercise/<id>")
+@app.route("/log_exercise/<scheduled>/<id>")
 @login_required
-def log_exercise(id):
-	track_event(category="Exercises", action="Exercise logged", userId = str(current_user.id))
-	exercise_type = ExerciseType.query.get(int(id))
+def log_exercise(scheduled, id):
+	if scheduled == "other":
+		track_event(category="Exercises", action="Exercise (non-scheduled) logged", userId = str(current_user.id))
+		exercise_type = ExerciseType.query.get(int(id))
 
-	# Log the exercise based on defaults
-	# TODO: This should be a function somewhere to avoid duplication with new_exercise, just not sure where yet!
-	exercise = Exercise(type=exercise_type,
-						exercise_datetime=datetime.utcnow(),
-						reps=exercise_type.default_reps,
-						seconds=exercise_type.default_seconds)
+		# Log the exercise based on defaults
+		exercise = Exercise(type=exercise_type,
+							exercise_datetime=datetime.utcnow(),
+							reps=exercise_type.default_reps,
+							seconds=exercise_type.default_seconds)
+	elif scheduled == "scheduled":
+		track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
+		scheduled_exercise = ScheduledExercise.query.get(int(id))
+
+		exercise = Exercise(type=scheduled_exercise.type,
+							scheduled_exercise=scheduled_exercise,
+							exercise_datetime=datetime.utcnow(),
+							reps=scheduled_exercise.reps,
+							seconds=scheduled_exercise.seconds)
 	db.session.add(exercise)
 	db.session.commit()
-	flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
+
+	flash("Added {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
 	return redirect(url_for("index"))
 
 
@@ -145,4 +166,38 @@ def activity(mode):
 	elif mode == "summary":
 		exercises = current_user.daily_exercise_summary().all()
 
-	return render_template("activity.html", title="Home", exercises=exercises, mode=mode)
+	return render_template("activity.html", title="Activity", exercises=exercises, mode=mode)
+
+
+@app.route("/schedule/<schedule_freq>/<selected_day>")
+@login_required
+def schedule(schedule_freq, selected_day):
+	track_event(category="Schedule", action="Schedule ({frequency}) page opened or refreshed".format(frequency=schedule_freq), userId = str(current_user.id))
+
+	if schedule_freq == "weekly":
+		days = list(calendar.day_abbr)
+
+	scheduled_exercises = current_user.scheduled_exercises(selected_day)
+
+	exercise_types = current_user.exercise_types_ordered()
+
+	return render_template("schedule.html", title="Schedule", schedule_days=days, schedule_freq=schedule_freq, selected_day=selected_day,
+				scheduled_exercises=scheduled_exercises, exercise_types=exercise_types)
+
+
+@app.route("/schedule_exercise/<id>/<selected_day>")
+@login_required
+def schedule_exercise(id, selected_day):
+	track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+	exercise_type = ExerciseType.query.get(int(id))
+
+	# Schedule the exercise based on defaults
+	scheduled_exercise = ScheduledExercise(type=exercise_type,
+										   scheduled_day=selected_day,
+										   sets=1,
+										   reps=exercise_type.default_reps,
+										   seconds=exercise_type.default_seconds)
+	db.session.add(scheduled_exercise)
+	db.session.commit()
+	flash("Added {type} to schedule for {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
+	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))

@@ -14,7 +14,10 @@
 		{% for exercise in exercises %}
 			<tr>
 				<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
-				<td>{{ exercise.type.name }}</td>
+				<td>
+					{% if exercise.scheduled_exercise %}<span class="badge badge-secondary">Scheduled</span>{% endif %} 
+					{{ exercise.type.name }}
+				</td>
 				<td>
 					{% if exercise.type.measured_by == "reps" %}
 						{{ exercise.reps }} reps
@@ -27,27 +30,40 @@
 		{% endfor %}
 	</table>
 
-	<ul class="nav">
-		{% if prev_url %}
-			<li class="nav-item">
-				<a class="nav-link" href="{{ prev_url }}">More recent activity</a>
-			</li>
+	{% if scheduled_exercises or has_completed_schedule %}
+		<h3>Log Scheduled Exercises</h3>
+		{% if has_completed_schedule %}
+			<div class="alert alert-success">
+				Great work! You've completed your scheduled exercises for today!
+			</div>
 		{% endif %}
-		{% if next_url %}
-			<li class="nav-item">
-				<a class="nav-link" href="{{ next_url }}">Older activity</a>
-			</li>
-		{% endif %}
-	</ul>
+		<div>
+			{% for scheduled_exercise in scheduled_exercises %}
+				<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
+					{{ scheduled_exercise.name }}
+					<br />
+					<small>
+						{% if scheduled_exercise.measured_by == "reps" %}
+							[{{ scheduled_exercise.reps }} reps]
+						{% elif scheduled_exercise.measured_by == "seconds" %}
+							[{{ scheduled_exercise.seconds }} secs]
+						{% endif %}
+						<br />
+						{{ (scheduled_exercise.sets - scheduled_exercise.completed_sets) }} set(s) to do
+					</small>
+				</a>
+			{% endfor %}
+		</div>
+	{% endif %}
 
-	<h3>Log Exercises</h3>
+	<h3>Log {% if scheduled_exercises %}Other{% endif %} Exercises</h3>
 	<div>
 		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise') }}">
 			New Exercise Type
 			<br /><small>&nbsp;</small>
 		</a>
 		{% for exercise_type in exercise_types %}
-			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', id=exercise_type.id) }}">
+			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
 				{{ exercise_type.name }}
 				<br />
 				<small>

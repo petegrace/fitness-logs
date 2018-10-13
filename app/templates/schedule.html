@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#schedule-nav").addClass("active");
+	</script>
+{% endblock %}
+
+{% block app_content %}
+	<h2>Schedule Exercises</h2>
+	<ul class="nav nav-tabs">
+		{% for day in schedule_days %}
+			<li class="nav-item">
+				<a class="nav-link {% if day == selected_day %} active {% endif %}" href="{{ url_for('schedule', schedule_freq='weekly', selected_day=day) }}">{{day}}</a>
+			</li>
+		{% endfor %}
+	</ul>
+
+	<table class="table table-sm table-hover">
+		{% for scheduled_exercise in scheduled_exercises %}
+			<tr>
+				<td>{{ scheduled_exercise.type.name }}</td>
+				<td>{{ scheduled_exercise.sets }} sets</td>
+				<td>
+					{% if scheduled_exercise.type.measured_by == "reps" %}
+						{{ scheduled_exercise.reps }} reps
+					{% elif scheduled_exercise.type.measured_by == "seconds" %}
+						{{ scheduled_exercise.seconds }} secs
+					{% endif %}
+				</td>
+				<td><a href="#">Edit</a></td>
+			</tr>
+		{% endfor %}
+	</table>
+
+	<h3>Add to Schedule</h3>
+	<div>
+		<a class="btn btn-primary btn-sm" role="button" href="#">
+			New Exercise Type
+			<br /><small>&nbsp;</small>
+		</a>
+		{% for exercise_type in exercise_types %}
+			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('schedule_exercise', id=exercise_type.id, selected_day=selected_day) }}">
+				{{ exercise_type.name }}
+				<br />
+				<small>
+					{% if exercise_type.measured_by == "reps" %}
+						[{{ exercise_type.default_reps }} reps]
+					{% elif exercise_type.measured_by == "seconds" %}
+						[{{ exercise_type.default_seconds }} secs]
+					{% endif %}
+				</small>
+			</a>
+		{% endfor %}
+	</div>
+{% endblock %}
