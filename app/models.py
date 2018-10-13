@@ -42,6 +42,23 @@ class User(UserMixin, db.Model):
    			exercise_date_groups.append(ExerciseDateGroup(exercise_date_key, list(exercises_group)))
 		return exercise_date_groups
 
+	def daily_exercise_summary(self):
+		daily_exercise_summary = db.session.query(
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					func.date(Exercise.exercise_datetime).label("exercise_date"),
+					func.sum(Exercise.reps).label("total_reps"),
+					func.sum(Exercise.seconds).label("total_seconds")
+				).join(ExerciseType.exercises
+				).filter(ExerciseType.owner == self
+				).group_by(
+					ExerciseType.name,
+					ExerciseType.measured_by,
+					func.date(Exercise.exercise_datetime)
+				)
+
+		return daily_exercise_summary
+
 	def exercise_types_ordered(self):		
 		exercise_types_last_7_days = db.session.query(
 					ExerciseType.id,

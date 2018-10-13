@@ -119,7 +119,11 @@ def edit_exercise(id):
 			db.session.commit()
 			flash("Updated default {measured_by} for {type}".format(type=exercise.type.name, measured_by=exercise.type.measured_by))
 
-		return redirect(url_for("index"))
+		# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
+		next_page = request.args.get("next")
+		if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
+			return redirect(url_for("index"))
+		return redirect(next_page)
 
 	# If it's a get...
 	form.exercise_datetime.data = exercise.exercise_datetime
@@ -131,10 +135,14 @@ def edit_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
 
 
-@app.route("/activity")
+@app.route("/activity/<mode>")
 @login_required
-def activity():
-	track_event(category="Analysis", action="Activity page opened or refreshed", userId = str(current_user.id))
-	exercise_date_groups = current_user.exercises_grouped_by_date()
+def activity(mode):
+	track_event(category="Analysis", action="Activity {mode} page opened or refreshed".format(mode=mode), userId = str(current_user.id))
 
-	return render_template("activity.html", title="Home", exercise_date_groups=exercise_date_groups)
+	if mode == "detail":
+		exercises = current_user.exercises().all()
+	elif mode == "summary":
+		exercises = current_user.daily_exercise_summary().all()
+
+	return render_template("activity.html", title="Home", exercises=exercises, mode=mode)
