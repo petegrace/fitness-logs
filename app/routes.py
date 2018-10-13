@@ -50,7 +50,7 @@ def index():
 	if not scheduled_exercises_remaining:
 		if current_user.scheduled_exercises(scheduled_day=current_day):
 			has_completed_schedule = True
-			
+
 	exercise_types = current_user.exercise_types_ordered()
 
 	return render_template("index.html", title="Home", exercises=exercises.items, next_url=next_url, prev_url=prev_url,
@@ -188,16 +188,25 @@ def schedule(schedule_freq, selected_day):
 @app.route("/schedule_exercise/<id>/<selected_day>")
 @login_required
 def schedule_exercise(id, selected_day):
-	track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
 	exercise_type = ExerciseType.query.get(int(id))
 
-	# Schedule the exercise based on defaults
-	scheduled_exercise = ScheduledExercise(type=exercise_type,
-										   scheduled_day=selected_day,
-										   sets=1,
-										   reps=exercise_type.default_reps,
-										   seconds=exercise_type.default_seconds)
-	db.session.add(scheduled_exercise)
+	scheduled_exercise = ScheduledExercise.query.filter_by(type=exercise_type).filter_by(scheduled_day=selected_day).first()
+
+	if scheduled_exercise:
+		track_event(category="Schedule", action="Sets incremented for scheduled exercise", userId = str(current_user.id))
+		scheduled_exercise.sets += 1
+		flash("Added extra set for {type} on {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
+	else:
+		track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+
+		# Schedule the exercise based on defaults
+		scheduled_exercise = ScheduledExercise(type=exercise_type,
+											   scheduled_day=selected_day,
+											   sets=1,
+											   reps=exercise_type.default_reps,
+											   seconds=exercise_type.default_seconds)
+		db.session.add(scheduled_exercise)
+		flash("Added {type} to schedule for {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
+
 	db.session.commit()
-	flash("Added {type} to schedule for {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
