@@ -21,7 +21,7 @@
 
 	{% for exercise_date_group in exercises|groupby("exercise_date")|reverse %}
 		<h5>{{ moment(exercise_date_group.grouper).format("dddd LL") }}:
-			Completed {{ exercise_date_group.exercises|length }} exercises</h5>
+			{{ exercise_date_group.list|length }} {% if mode == 'detail' %} sets of {% endif %} exercises</h5>
 		<table class="table table-sm table-hover">
 			{% if mode == "summary" %}
 				{% for exercise in exercise_date_group.list %}
