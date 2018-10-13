@@ -39,7 +39,10 @@
 			{% elif mode == "detail" %}
 				{% for exercise in exercise_date_group.list %}
 					<tr>
-						<td style="width: 50%">{{ exercise.type.name }}</td>
+						<td style="width: 50%">
+							{% if exercise.scheduled_exercise %}<span class="badge badge-secondary">Scheduled</span>{% endif %} 
+							{{ exercise.type.name }}
+						</td>
 						<td style="width: 15%">{{ moment(exercise.exercise_datetime).format("HH:mm:ss") }}</td>
 						<td style="width: 20%">
 							{% if exercise.type.measured_by == "reps" %}
