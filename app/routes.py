@@ -5,7 +5,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, EditScheduledExerciseForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise
 
 # Helpers
@@ -49,12 +49,15 @@ def index():
 
 	if not scheduled_exercises_remaining:
 		if current_user.scheduled_exercises(scheduled_day=current_day):
-			has_completed_schedule = True
+		   has_completed_schedule = True
 
-	exercise_types = current_user.exercise_types_ordered()
+	exercise_types = current_user.exercise_types_ordered().all()
+	scheduled_exercises_remaining_ids = [scheduled_exercise.id for scheduled_exercise in scheduled_exercises_remaining]
+
+	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_ids]
 
 	return render_template("index.html", title="Home", exercises=exercises.items, next_url=next_url, prev_url=prev_url,
-							exercise_types=exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)
+							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -210,3 +213,40 @@ def schedule_exercise(id, selected_day):
 
 	db.session.commit()
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
+
+
+@app.route('/edit_scheduled_exercise/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_scheduled_exercise(id):
+	form = EditScheduledExerciseForm()
+	scheduled_exercise = ScheduledExercise.query.get(int(id))
+
+	if form.validate_on_submit():
+		track_event(category="Schedule", action="Scheduled exercise updated", userId = str(current_user.id))
+		scheduled_exercise.sets = form.sets.data
+		scheduled_exercise.reps = form.reps.data
+		scheduled_exercise.seconds = form.seconds.data
+		db.session.commit()
+		flash("Updated {type} scheduled for {day}".format(type=scheduled_exercise.type.name, day=scheduled_exercise.scheduled_day))
+
+		if form.update_default.data:
+			track_event(category="Exercises", action="Exercise default reps/secs updated", userId = str(current_user.id))
+			scheduled_exercise.type.default_reps = form.reps.data
+			scheduled_exercise.type.default_seconds = form.seconds.data
+			db.session.commit()
+			flash("Updated default {measured_by} for {type}".format(type=scheduled_exercise.type.name, measured_by=scheduled_exercise.type.measured_by))
+
+		# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
+		next_page = request.args.get("next")
+		if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
+			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_exercise.scheduled_day))
+		return redirect(next_page)
+
+	# If it's a get...
+	form.sets.data = scheduled_exercise.sets
+	form.measured_by.data = scheduled_exercise.type.measured_by
+	form.reps.data = scheduled_exercise.reps
+	form.seconds.data = scheduled_exercise.seconds
+		
+	track_event(category="Schedule", action="Edit Scheduled Exercise form loaded", userId = str(current_user.id))
+	return render_template("edit_exercise.html", title="Edit Scheduled Exercise", form=form, exercise_name=scheduled_exercise.type.name)

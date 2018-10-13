@@ -23,7 +23,7 @@
 {% endblock %}
 
 {% block app_content %}
-	<h2>Edit Exercise</h2>
+	<h2>Edit {% if form.sets %} Scheduled {% endif %} Exercise</h2>
 	<div class="row">
 		<div class="col-md-4">
 			<p><label class="control-label">Exercise Name</label><br />{{ exercise_name }}</p>

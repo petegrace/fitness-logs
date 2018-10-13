@@ -34,3 +34,13 @@ class EditExerciseForm(FlaskForm):
 	seconds = IntegerField("Seconds", validators=[Optional()])
 	update_default = BooleanField("Update default?")
 	submit = SubmitField("Update Exercise")
+
+		
+class EditScheduledExerciseForm(FlaskForm):
+	# fields for the first exercise to be logged (reps will also serve as the default)
+	sets = IntegerField("Sets", validators=[DataRequired()])
+	measured_by = HiddenField("measured_by")
+	reps = IntegerField("Reps", validators=[Optional()])
+	seconds = IntegerField("Seconds", validators=[Optional()])
+	update_default = BooleanField("Update default?")
+	submit = SubmitField("Update Exercise")
