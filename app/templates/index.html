@@ -30,6 +30,19 @@
 		{% endfor %}
 	</table>
 
+	<ul class="nav">
+ 		{% if prev_url %}
+ 			<li class="nav-item">
+ 				<a class="nav-link" href="{{ prev_url }}">More recent activity</a>
+ 			</li>
+ 		{% endif %}
+ 		{% if next_url %}
+ 			<li class="nav-item">
+ 				<a class="nav-link" href="{{ next_url }}">Older activity</a>
+ 			</li>
+ 		{% endif %}
+ 	</ul>
+
 	{% if scheduled_exercises or has_completed_schedule %}
 		<h3>Log Scheduled Exercises</h3>
 		{% if has_completed_schedule %}
