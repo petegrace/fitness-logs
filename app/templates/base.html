@@ -30,6 +30,10 @@
 		h3 {
 			margin-top: 20px;
 		}
+
+		h5 {
+			margin-top: 20px;
+		}
 	</style>
 {% endblock %}
 
@@ -46,7 +50,8 @@
 	                	<li class=nav-item><a class="nav-link href="{{ url_for('auth.login') }}">Login</a></li>
 	                {% else %}
 	                	<li class="navbar-item"><span class="navbar-text">Logged in as {{ current_user.email }}</span></li>
-	                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('activity') }}">Activity</a></li>
+	                	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+	                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('activity') }}">Activity</a></li>
 	                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
 	                {% endif %}
 	            </ul>

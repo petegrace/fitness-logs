@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#home-nav").addClass("active");
+	</script>
+{% endblock %}
+
 {% block app_content %}
 	<h3>Recent Activity</h3>
 	<table class="table table-sm table-hover">
