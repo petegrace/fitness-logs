@@ -52,9 +52,9 @@ def index():
 		   has_completed_schedule = True
 
 	exercise_types = current_user.exercise_types_ordered().all()
-	scheduled_exercises_remaining_ids = [scheduled_exercise.id for scheduled_exercise in scheduled_exercises_remaining]
+	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in scheduled_exercises_remaining]
 
-	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_ids]
+	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
 	return render_template("index.html", title="Home", exercises=exercises.items, next_url=next_url, prev_url=prev_url,
 							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)

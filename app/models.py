@@ -43,6 +43,7 @@ class User(UserMixin, db.Model):
 	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
 		scheduled_exercises_remaining = db.session.query(
 					ScheduledExercise.id,
+					ExerciseType.id.label("exercise_type_id"),
 					ExerciseType.name,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
@@ -56,6 +57,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledExercise.scheduled_day == scheduled_day
 				).group_by(
 					ScheduledExercise.id,
+					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
