@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block app_content %}
-	<h2>Schedule Exercises</h2>
+	<h2>Training Plan</h2>
 	<ul class="nav nav-tabs">
 		{% for day in schedule_days %}
 			<li class="nav-item">
@@ -35,8 +35,8 @@
 		{% endfor %}
 	</table>
 
-	<h3>Add to Schedule</h3>
-	<div>
+	<h3>Add to Plan</h3>
+	<div class="exercise-buttons">
 		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise', context='scheduling', selected_day=selected_day) }}">
 			New Exercise Type
 			<br /><small>&nbsp;</small>

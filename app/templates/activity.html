@@ -40,7 +40,13 @@
 				{% for exercise in exercise_date_group.list %}
 					<tr>
 						<td style="width: 50%">
-							{% if exercise.scheduled_exercise %}<span class="badge badge-secondary">Scheduled</span>{% endif %} 
+							<span class="badge badge-secondary">
+								{% if exercise.scheduled_exercise %}
+									Planned
+								{% else %}
+									Adhoc
+								{% endif %}
+							</span> 
 							{{ exercise.type.name }}
 						</td>
 						<td style="width: 15%">{{ moment(exercise.exercise_datetime).format("HH:mm:ss") }}</td>

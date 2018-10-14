@@ -23,6 +23,15 @@
 		    margin: 2px 0px;
 		}
 
+		.exercise-buttons {
+			text-align: left;
+			/*background-color: #e0e0e0;
+			padding: 2px 0px;
+			border: solid;
+			border-width: 1px;
+			border-color: black;*/
+		}
+
 		h2 {
 			margin-top: 20px;
 		}
@@ -52,7 +61,7 @@
 	                	<li class="navbar-item"><span class="navbar-text">Logged in as {{ current_user.email }}</span></li>
 	                	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
 	                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('activity', mode='summary') }}">Activity</a></li>
-	                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly', selected_day='Mon') }}">Schedule</a></li>
+	                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly', selected_day='Mon') }}">Training Plan</a></li>
 	                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
 	                {% endif %}
 	            </ul>
