@@ -9,19 +9,33 @@
 {% endblock %}
 
 {% block app_content %}
-	<h3>Recent Activity</h3>
+	<div class="row align-items-end">
+		<div class="col-md">
+			<h3>Recent Activity</h3>
+		</div>
+		<div class="col-md">
+			<ul class="nav justify-content-end">
+		 		{% if prev_url %}
+		 			<li class="nav-item">
+		 				<a class="nav-link" href="{{ prev_url }}"><i class="fa fa-backward"></i> More recent activity</a>
+		 			</li>
+		 		{% endif %}
+		 		{% if next_url %}
+		 			<li class="nav-item">
+		 				<a class="nav-link" href="{{ next_url }}"><i class="fa fa-forward"></i> Older activity</a>
+		 			</li>
+		 		{% endif %}
+		 	</ul>
+	 	</div>
+ 	</div>
 	<table class="table table-sm table-hover">
 		{% for exercise in exercises %}
 			<tr>
 				<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
 				<td>
-					<span class="badge badge-secondary">
-						{% if exercise.scheduled_exercise %}
-							Planned
-						{% else %}
-							Adhoc
-						{% endif %}
-					</span>
+					{% if exercise.scheduled_exercise %}
+						<i class="fa fa-check-square-o"></i>
+					{% endif %}
 					{{ exercise.type.name }}
 				</td>
 				<td>
@@ -31,70 +45,65 @@
 						{{ exercise.seconds }} secs
 					{% endif %}
 				</td>
-				<td><a href="{{ url_for('edit_exercise', id=exercise.id) }}">Edit</a></td>
+				<td><a href="{{ url_for('edit_exercise', id=exercise.id) }}"><i class="fa fa-edit"></i> Edit</a></td>
 			</tr>
 		{% endfor %}
 	</table>
 
-	<ul class="nav">
- 		{% if prev_url %}
- 			<li class="nav-item">
- 				<a class="nav-link" href="{{ prev_url }}">More recent activity</a>
- 			</li>
- 		{% endif %}
- 		{% if next_url %}
- 			<li class="nav-item">
- 				<a class="nav-link" href="{{ next_url }}">Older activity</a>
- 			</li>
- 		{% endif %}
- 	</ul>
-
 	{% if scheduled_exercises or has_completed_schedule %}
-		<h3>Log Exercises from Plan</h3>
-		{% if has_completed_schedule %}
-			<div class="alert alert-success">
-				Great work! You've completed your scheduled exercises for today!
+		<div class="card">
+			<div class="card-header">
+				<h4>Log Exercises from Plan</h4>
 			</div>
-		{% endif %}
-		<div class="exercise-buttons">
-			{% for scheduled_exercise in scheduled_exercises %}
-				<a class="btn btn-sm {% if scheduled_exercise.category == 'Strength' %} btn-success {% elif scheduled_exercise.category == 'Stretch' %} btn-outline-success {% endif %}"
-							role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
-					{{ scheduled_exercise.name }}
+			<div class="card-body exercise-buttons">
+				{% if has_completed_schedule %}
+					<div class="alert alert-success">
+						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned exercises for today!
+					</div>
+				{% endif %}
+				{% for scheduled_exercise in scheduled_exercises %}
+					<a class="btn btn-sm {% if scheduled_exercise.category == 'Strength' %} btn-success {% elif scheduled_exercise.category == 'Stretch' %} btn-outline-success {% endif %}"
+								role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
+						<i class="fa fa-check-square-o"></i> {{ scheduled_exercise.name }}
+						<br />
+						<small>
+							{% if scheduled_exercise.measured_by == "reps" %}
+								[{{ scheduled_exercise.reps }} reps]
+							{% elif scheduled_exercise.measured_by == "seconds" %}
+								[{{ scheduled_exercise.seconds }} secs]
+							{% endif %}
+							<br />
+							{{ (scheduled_exercise.sets - scheduled_exercise.completed_sets) }} sets to do
+						</small>
+					</a>
+				{% endfor %}
+			</div>
+		</div>
+	{% endif %}
+
+	<div class="card">
+		<div class="card-header">
+			<h4>Log {% if scheduled_exercises or has_completed_schedule %}Adhoc{% endif %} Exercises</h4>
+		</div>
+		<div class="card-body exercise-buttons">
+			<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
+				<i class="fa fa-check"></i> New Exercise Type
+				<br /><small>&nbsp;</small>
+			</a>
+			{% for exercise_type in exercise_types %}
+				<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
+							role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
+					<i class="fa fa-check"></i> {{ exercise_type.name }}
 					<br />
 					<small>
-						{% if scheduled_exercise.measured_by == "reps" %}
-							[{{ scheduled_exercise.reps }} reps]
-						{% elif scheduled_exercise.measured_by == "seconds" %}
-							[{{ scheduled_exercise.seconds }} secs]
+						{% if exercise_type.measured_by == "reps" %}
+							[{{ exercise_type.default_reps }} reps]
+						{% elif exercise_type.measured_by == "seconds" %}
+							[{{ exercise_type.default_seconds }} secs]
 						{% endif %}
-						<br />
-						{{ (scheduled_exercise.sets - scheduled_exercise.completed_sets) }} sets to do
 					</small>
 				</a>
 			{% endfor %}
 		</div>
-	{% endif %}
-
-	<h3>Log {% if scheduled_exercises or has_completed_schedule %}Adhoc{% endif %} Exercises</h3>
-	<div class="exercise-buttons">
-		<a class="btn btn-primary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
-			New Exercise Type
-			<br /><small>&nbsp;</small>
-		</a>
-		{% for exercise_type in exercise_types %}
-			<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
-						role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
-				{{ exercise_type.name }}
-				<br />
-				<small>
-					{% if exercise_type.measured_by == "reps" %}
-						[{{ exercise_type.default_reps }} reps]
-					{% elif exercise_type.measured_by == "seconds" %}
-						[{{ exercise_type.default_seconds }} secs]
-					{% endif %}
-				</small>
-			</a>
-		{% endfor %}
 	</div>
 {% endblock %}
