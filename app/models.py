@@ -85,7 +85,7 @@ class User(UserMixin, db.Model):
 					ExerciseType.category,
 					ExerciseType.measured_by,
 					func.date(Exercise.exercise_datetime)
-				)
+				).order_by(ExerciseType.measured_by, func.sum(Exercise.reps).desc(), func.sum(Exercise.seconds).desc(), ExerciseType.name)
 
 		return daily_exercise_summary
 
