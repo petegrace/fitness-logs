@@ -42,7 +42,8 @@
 			<br /><small>&nbsp;</small>
 		</a>
 		{% for exercise_type in exercise_types %}
-			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('schedule_exercise', id=exercise_type.id, selected_day=selected_day) }}">
+			<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
+						role="button" href="{{ url_for('schedule_exercise', id=exercise_type.id, selected_day=selected_day) }}">
 				{{ exercise_type.name }}
 				<br />
 				<small>

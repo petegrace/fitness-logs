@@ -6,10 +6,10 @@
 
 	<script>
 		$("#seconds").hide();
-		$("label[for='seconds']").hide(); 
+		$("label[for='seconds']").hide();
 
-		$("#measured_by").change(function(){
-		    opt = $(this).val();
+		function switchRepsAndSecs() {
+			opt = $("#measured_by").val();
 
 		    if (opt == "reps") {
 		    	$("#reps").show();
@@ -23,6 +23,23 @@
 		    	$("#seconds").show();
 				$("label[for='seconds']").show();
 			}
+		}
+
+		$("#category").change(function() {
+		    opt = $(this).val();
+
+		    if (opt == "Stretch") {
+		    	$("#measured_by").val('seconds');
+		    	switchRepsAndSecs();
+
+		    	if ($("#seconds").val() == "") {
+		    		$("#seconds").val("30")
+		    	}
+			}
+		});
+
+		$("#measured_by").change(function(){
+		    switchRepsAndSecs();
 		});
 	</script>
 {% endblock %}

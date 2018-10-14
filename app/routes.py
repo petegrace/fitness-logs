@@ -108,6 +108,7 @@ def new_exercise(context, selected_day=None):
 
 		exercise_type = ExerciseType(name=form.name.data,
 									 owner=current_user,
+									 category=form.category.data,
 									 measured_by=form.measured_by.data,
 									 default_reps=form.reps.data,
 									 default_seconds=form.seconds.data)

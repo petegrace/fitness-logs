@@ -58,7 +58,8 @@
 		{% endif %}
 		<div class="exercise-buttons">
 			{% for scheduled_exercise in scheduled_exercises %}
-				<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
+				<a class="btn btn-sm {% if scheduled_exercise.category == 'Strength' %} btn-success {% elif scheduled_exercise.category == 'Stretch' %} btn-outline-success {% endif %}"
+							role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
 					{{ scheduled_exercise.name }}
 					<br />
 					<small>
@@ -82,7 +83,8 @@
 			<br /><small>&nbsp;</small>
 		</a>
 		{% for exercise_type in exercise_types %}
-			<a class="btn btn-success btn-sm" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
+			<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
+						role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
 				{{ exercise_type.name }}
 				<br />
 				<small>

@@ -13,6 +13,7 @@ class LogNewExerciseTypeForm(FlaskForm):
 	# fields for the first exercise to be logged (reps will also serve as the default)
 	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
+	category = SelectField('Category', choices=[('Strength', 'Strength'), ('Stretch', 'Stretch')])
 	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])
@@ -29,6 +30,7 @@ class ScheduleNewExerciseTypeForm(FlaskForm):
 	# measured_by will be hardcoded to reps for now
 
 	# fields for the scheduled exercise (reps will also serve as the default)
+	category = SelectField('Category', choices=[('Strength', 'Strength'), ('Stretch', 'Stretch')])
 	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])

@@ -45,6 +45,7 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.id,
 					ExerciseType.id.label("exercise_type_id"),
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
 					ScheduledExercise.reps,
@@ -59,6 +60,7 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.id,
 					ExerciseType.id,
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
 					ScheduledExercise.reps,
@@ -71,6 +73,7 @@ class User(UserMixin, db.Model):
 	def daily_exercise_summary(self):
 		daily_exercise_summary = db.session.query(
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					func.date(Exercise.exercise_datetime).label("exercise_date"),
 					func.sum(Exercise.reps).label("total_reps"),
@@ -89,6 +92,7 @@ class User(UserMixin, db.Model):
 		exercise_types_last_7_days = db.session.query(
 					ExerciseType.id,
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds,
@@ -100,6 +104,7 @@ class User(UserMixin, db.Model):
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds
@@ -108,6 +113,7 @@ class User(UserMixin, db.Model):
 		exercise_types_other = db.session.query(
 					ExerciseType.id,
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds,
@@ -118,6 +124,7 @@ class User(UserMixin, db.Model):
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds
@@ -133,6 +140,7 @@ class User(UserMixin, db.Model):
 class ExerciseType(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(100), index=True)
+	category = db.Column(db.String(50))
 	measured_by = db.Column(db.String(50))
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 	default_reps = db.Column(db.Integer)
