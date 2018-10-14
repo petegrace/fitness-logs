@@ -190,12 +190,17 @@ def activity(mode):
 
 
 @app.route("/schedule/<schedule_freq>/<selected_day>")
+@app.route("/schedule/<schedule_freq>")
 @login_required
-def schedule(schedule_freq, selected_day):
+def schedule(schedule_freq, selected_day=None):
 	track_event(category="Schedule", action="Schedule ({frequency}) page opened or refreshed".format(frequency=schedule_freq), userId = str(current_user.id))
 
 	if schedule_freq == "weekly":
 		days = list(calendar.day_abbr)
+
+	# Default to current day if not supplied in URL
+	if selected_day is None:
+		selected_day = calendar.day_abbr[date.today().weekday()]
 
 	scheduled_exercises = current_user.scheduled_exercises(selected_day)
 

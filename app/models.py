@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
-			(ExerciseType.id == ScheduledExercise.exercise_type_id)).filter(ExerciseType.owner == self).filter(ScheduledExercise.scheduled_day == scheduled_day)
+			(ExerciseType.id == ScheduledExercise.exercise_type_id)).filter(ExerciseType.owner == self).filter(ScheduledExercise.scheduled_day == scheduled_day).order_by(ExerciseType.name)
 
 	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
 		scheduled_exercises_remaining = db.session.query(
@@ -82,6 +82,7 @@ class User(UserMixin, db.Model):
 				).filter(ExerciseType.owner == self
 				).group_by(
 					ExerciseType.name,
+					ExerciseType.category,
 					ExerciseType.measured_by,
 					func.date(Exercise.exercise_datetime)
 				)
