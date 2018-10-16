@@ -48,7 +48,7 @@ def index():
 	has_completed_schedule = False
 
 	if not scheduled_exercises_remaining:
-		if current_user.scheduled_exercises(scheduled_day=current_day):
+		if current_user.scheduled_exercises(scheduled_day=current_day).all():
 		   has_completed_schedule = True
 
 	exercise_types = current_user.exercise_types_ordered().all()
