@@ -61,3 +61,15 @@ class EditScheduledExerciseForm(FlaskForm):
 	seconds = IntegerField("Seconds", validators=[Optional()])
 	update_default = BooleanField("Update default?")
 	submit = SubmitField("Update Exercise")
+
+		
+class ExerciseCategoriesForm(FlaskForm):
+	cat_green = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_green_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_blue = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_blue_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_red = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_red_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_yellow = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	cat_yellow_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
+	submit = SubmitField("Save Changes", render_kw={"class": "btn btn-light border border-secondary"})

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+	<h2>Exercise Categories</h2>
+	<p>Categories enable you to colour-code your exercises and segment them when tracking your activity.  Name your categories however you want to in order to suit the way that you train.</p>
+	<p>You can create up to 8 categories by entering their names into the boxes below.</p>
+	<form action="" method="post" novalidate>
+    	{{ form.hidden_tag() }}
+		<div class="row">
+			<div class="col-md-5">
+				<div class="p-3 mb-2 bg-success text-white border border-success">
+					{{ form.cat_green() }}
+					{% for error in form.cat_green.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+			<div class="col-md-5">
+				<div class="p-3 mb-2 border border-success">
+					{{ form.cat_green_outline() }}
+					{% for error in form.cat_green_outline.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-5">
+				<div class="p-3 mb-2 bg-primary text-white border border-primary">
+					{{ form.cat_blue() }}
+					{% for error in form.cat_blue.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+			<div class="col-md-5">
+				<div class="p-3 mb-2 border border-primary">
+					{{ form.cat_blue_outline() }}
+					{% for error in form.cat_blue_outline.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-5">
+				<div class="p-3 mb-2 bg-danger text-white border border-danger">
+					{{ form.cat_red() }}
+					{% for error in form.cat_red.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+			<div class="col-md-5">
+				<div class="p-3 mb-2 border border-danger">
+					{{ form.cat_red_outline() }}
+					{% for error in form.cat_red_outline.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-5">
+				<div class="p-3 mb-2 bg-warning text-white border border-warning">
+					{{ form.cat_yellow() }}
+					{% for error in form.cat_yellow.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+			<div class="col-md-5">
+				<div class="p-3 mb-2 border border-warning">
+					{{ form.cat_yellow_outline() }}
+					{% for error in form.cat_yellow_outline.errors %}
+		            	[{{ error }}]
+		            {% endfor %}
+				</div>
+			</div>
+		</div>
+		{{ form.submit() }}
+	</form>
+{% endblock %}

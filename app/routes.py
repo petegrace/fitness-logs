@@ -5,7 +5,7 @@ from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise
 
 # Helpers
@@ -272,3 +272,12 @@ def edit_scheduled_exercise(id):
 		
 	track_event(category="Schedule", action="Edit Scheduled Exercise form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise.html", title="Edit Scheduled Exercise", form=form, exercise_name=scheduled_exercise.type.name)
+
+
+@app.route("/categories", methods=['GET', 'POST'])
+def categories():
+	form = ExerciseCategoriesForm()
+	if form.validate_on_submit():
+		flash("Categories not yet saved. Just testing the UI")
+		redirect(url_for("index"))
+	return render_template("categories.html", title="Exercise Categories", form=form)
