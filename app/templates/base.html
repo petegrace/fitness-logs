@@ -63,7 +63,7 @@
 	                	<ul class="nav navbar-nav mr-auto mt-2 mt-lg-0">
 	                		<li class="navbar-item"><span class="navbar-text">Logged in as {{ current_user.email }}</span></li>
 	                	</ul>
-	                	<ul class="navbar-nav ml-md-auto d-none d-md-flex">
+	                	<ul class="navbar-nav ml-md-auto mt-2 mt-lg-0">
 		                	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa fa-home"></i> Home</a></li>
 		                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('activity', mode='summary') }}"><i class="fa fa-th-list"></i> Activity</a></li>
 		                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly') }}"><i class="fa fa-calendar"></i> Training Plan</a></li>
