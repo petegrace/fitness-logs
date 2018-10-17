@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
 	password_hash = db.Column(db.String(128))
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercise_types = db.relationship("ExerciseType", backref="owner", lazy="dynamic")
+	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -46,12 +47,15 @@ class User(UserMixin, db.Model):
 					ExerciseType.id.label("exercise_type_id"),
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
 					ScheduledExercise.reps,
 					ScheduledExercise.seconds,
 					func.count(Exercise.id).label("completed_sets")
 				).join(ExerciseType.scheduled_exercises
+				).outerjoin(ExerciseType.exercise_category
 				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
 										   (func.date(Exercise.exercise_datetime) == exercise_date))
 				).filter(ExerciseType.owner == self
@@ -61,6 +65,8 @@ class User(UserMixin, db.Model):
 					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ScheduledExercise.sets,
 					ScheduledExercise.reps,
@@ -94,18 +100,23 @@ class User(UserMixin, db.Model):
 					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds,
 					func.count(Exercise.id).label("exercise_count"),
 					func.max(Exercise.exercise_datetime).label("max_datetime")
 				).join(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercise_category
 				).filter(ExerciseType.owner == self
 				).filter((Exercise.exercise_datetime >= datetime.utcnow() - timedelta(days=7))
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds
@@ -115,17 +126,22 @@ class User(UserMixin, db.Model):
 					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds,
 					literal(0).label("exercise_count"),
 					func.max(Exercise.exercise_datetime).label("max_datetime")
 				).outerjoin(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercise_category
 				).filter(ExerciseType.owner == self
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.category,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
 					ExerciseType.measured_by,
 					ExerciseType.default_reps,
 					ExerciseType.default_seconds
@@ -136,6 +152,18 @@ class User(UserMixin, db.Model):
 		ordered_exercise_types = exercise_types_last_7_days.union(exercise_types_other).order_by(desc("exercise_count"), desc("max_datetime"))
 
 		return ordered_exercise_types
+
+
+class ExerciseCategory(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	category_key = db.Column(db.String(25))
+	category_name = db.Column(db.String(25))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	exercise_types = db.relationship("ExerciseType", backref="exercise_category", lazy="dynamic")
+
+	def __repr__(self):
+		return "<ExerciseCategory {name} for {user}>".format(name=self.category_name, user=self.owner.email)
 		
 
 class ExerciseType(db.Model):
@@ -144,6 +172,7 @@ class ExerciseType(db.Model):
 	category = db.Column(db.String(50))
 	measured_by = db.Column(db.String(50))
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	exercise_category_id = db.Column(db.Integer, db.ForeignKey("exercise_category.id"))
 	default_reps = db.Column(db.Integer)
 	default_seconds = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)

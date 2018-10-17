@@ -6,7 +6,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ExerciseCategoriesForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
 
 # Helpers
 
@@ -274,10 +274,40 @@ def edit_scheduled_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Scheduled Exercise", form=form, exercise_name=scheduled_exercise.type.name)
 
 
-@app.route("/categories", methods=['GET', 'POST'])
-def categories():
+@app.route("/manage_exercises", methods=['GET', 'POST'])
+def manage_exercises():
 	form = ExerciseCategoriesForm()
+	current_categories = current_user.exercise_categories
+
 	if form.validate_on_submit():
-		flash("Categories not yet saved. Just testing the UI")
-		redirect(url_for("index"))
+		track_event(category="Customisation", action="Category changes saved", userId = str(current_user.id))
+
+		category_keys = [field_name for field_name in dir(form) if field_name.startswith("cat_")]
+
+		for category_key in category_keys:
+			if form[category_key].data != "":
+				category = current_categories.filter_by(category_key=category_key).first()
+
+				if category:
+					category.category_name = form[category_key].data
+				else:
+					category = ExerciseCategory(owner=current_user,
+												category_key=category_key,
+												category_name=form[category_key].data)
+			elif form[category_key].data == "":
+				category = current_categories.filter_by(category_key=category_key).first()
+
+				if category:
+					db.session.delete(category)
+
+		db.session.commit()
+
+		flash("Changes to Exercise Categories have been saved.")
+		return redirect(url_for("index"))
+
+	# If it's a get...
+	for current_category in current_categories:
+		form[current_category.category_key].data = current_category.category_name
+
+	track_event(category="Customisation", action="Manage Exercises page loaded", userId = str(current_user.id))
 	return render_template("categories.html", title="Exercise Categories", form=form)

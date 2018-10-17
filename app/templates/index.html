@@ -62,8 +62,27 @@
 					</div>
 				{% endif %}
 				{% for scheduled_exercise in scheduled_exercises %}
-					<a class="btn btn-sm {% if scheduled_exercise.category == 'Strength' %} btn-success {% elif scheduled_exercise.category == 'Stretch' %} btn-outline-success {% endif %}"
-								role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
+					<a class="btn btn-sm
+					{% if exercise_type.category_key is none %}
+						btn-outline-secondary
+					{% elif exercise_type.category_key == 'cat_green' %}
+						btn-success
+					{% elif exercise_type.category_key == 'cat_green_outline' %}
+						btn-outline-success
+					{% elif exercise_type.category_key == 'cat_blue' %}
+						btn-primary
+					{% elif exercise_type.category_key == 'cat_blue_outline' %}
+						btn-outline-primary
+					{% elif exercise_type.category_key == 'cat_red' %}
+						btn-danger
+					{% elif exercise_type.category_key == 'cat_red_outline' %}
+						btn-outline-danger
+					{% elif exercise_type.category_key == 'cat_yellow' %}
+						btn-warning
+					{% elif exercise_type.category_key == 'cat_yellow_outline' %}
+						btn-outline-warning
+					{% endif %}
+					" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
 						<i class="fa fa-check-square-o"></i> {{ scheduled_exercise.name }}
 						<br />
 						<small>
@@ -91,8 +110,27 @@
 				<br /><small>&nbsp;</small>
 			</a>
 			{% for exercise_type in exercise_types %}
-				<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
-							role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
+				<a class="btn btn-sm
+				{% if exercise_type.category_key is none %}
+					btn-outline-secondary
+				{% elif exercise_type.category_key == 'cat_green' %}
+					btn-success
+				{% elif exercise_type.category_key == 'cat_green_outline' %}
+					btn-outline-success
+				{% elif exercise_type.category_key == 'cat_blue' %}
+					btn-primary
+				{% elif exercise_type.category_key == 'cat_blue_outline' %}
+					btn-outline-primary
+				{% elif exercise_type.category_key == 'cat_red' %}
+					btn-danger
+				{% elif exercise_type.category_key == 'cat_red_outline' %}
+					btn-outline-danger
+				{% elif exercise_type.category_key == 'cat_yellow' %}
+					btn-warning
+				{% elif exercise_type.category_key == 'cat_yellow_outline' %}
+					btn-outline-warning
+				{% endif %}
+				" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
 					<i class="fa fa-check"></i> {{ exercise_type.name }}
 					<br />
 					<small>
