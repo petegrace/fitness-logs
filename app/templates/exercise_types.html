@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#activity-nav").addClass("active");
+	</script>
+{% endblock %}
+
+{% block app_content %}
+	<h2>Manage Exercises</h2>
+	<ul class="nav nav-tabs mb-2">
+		<li class="nav-item"><a class="nav-link active" href="{{ url_for('exercise_types') }}">Exercise Types</a></li>
+		<li class="nav-item"><a class="nav-link" href="{{ url_for('categories') }}">Exercise Categories</a></li>
+	</ul>
+	<table class="table table-sm table-hover">
+		<tr>
+			<th style="width: 40%">Name</th>
+			<th style="width: 25%">Category</th>
+			<th style="width: 20%">Default</th>
+			<th style="width: 15%"></th>
+		</tr>
+		{% for exercise_type in exercise_types %}
+			<tr>
+				<td>{{ exercise_type.name }}</td>
+				<td>{{ exercise_type.exercise_category.category_name }}</td>
+				<td>
+					{% if exercise_type.measured_by == "reps" %}
+						{{ exercise_type.default_reps }} reps
+					{% elif exercise_type.measured_by == "seconds" %}
+						{{ exercise_type.default_seconds }} secs
+					{% endif %}
+				</td>
+				<td><a href="#"><i class="fa fa-edit"></i> Edit</a></td>
+			</tr>
+		{% endfor %}
+	</table>
+{% endblock %}

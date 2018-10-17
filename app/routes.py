@@ -274,27 +274,37 @@ def edit_scheduled_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Scheduled Exercise", form=form, exercise_name=scheduled_exercise.type.name)
 
 
-@app.route("/manage_exercises", methods=['GET', 'POST'])
-def manage_exercises():
-	form = ExerciseCategoriesForm()
+@app.route("/exercise_types")
+@login_required
+def exercise_types():
+	track_event(category="Manage", action="Exercise Types page loaded", userId = str(current_user.id))
+
+	exercise_types = current_user.exercise_types.order_by(ExerciseType.name).all()
+
+	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types)
+
+
+@app.route("/categories", methods=['GET', 'POST'])
+def categories():
+	categories_form = ExerciseCategoriesForm()
 	current_categories = current_user.exercise_categories
 
-	if form.validate_on_submit():
+	if categories_form.validate_on_submit():
 		track_event(category="Customisation", action="Category changes saved", userId = str(current_user.id))
 
-		category_keys = [field_name for field_name in dir(form) if field_name.startswith("cat_")]
+		category_keys = [field_name for field_name in dir(categories_form) if field_name.startswith("cat_")]
 
 		for category_key in category_keys:
-			if form[category_key].data != "":
+			if categories_form[category_key].data != "":
 				category = current_categories.filter_by(category_key=category_key).first()
 
 				if category:
-					category.category_name = form[category_key].data
+					category.category_name = categories_form[category_key].data
 				else:
 					category = ExerciseCategory(owner=current_user,
 												category_key=category_key,
-												category_name=form[category_key].data)
-			elif form[category_key].data == "":
+												category_name=categories_form[category_key].data)
+			elif categories_form[category_key].data == "":
 				category = current_categories.filter_by(category_key=category_key).first()
 
 				if category:
@@ -307,7 +317,7 @@ def manage_exercises():
 
 	# If it's a get...
 	for current_category in current_categories:
-		form[current_category.category_key].data = current_category.category_name
+		categories_form[current_category.category_key].data = current_category.category_name
 
-	track_event(category="Customisation", action="Manage Exercises page loaded", userId = str(current_user.id))
-	return render_template("categories.html", title="Exercise Categories", form=form)
+	track_event(category="Manage", action="Exercise Categories page loaded", userId = str(current_user.id))
+	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
