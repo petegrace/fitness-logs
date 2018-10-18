@@ -8,15 +8,14 @@ from app.models import User, ExerciseType
 
 class LogNewExerciseTypeForm(FlaskForm):
 	name = StringField("Exercise Name", validators=[DataRequired(), Length(min=1, max=100)])
-	# measured_by will be hardcoded to reps for now
-
+	user_categories_count = HiddenField("user_categories_count")
 	# fields for the first exercise to be logged (reps will also serve as the default)
 	exercise_datetime = DateTimeField("Exercise Date & Time (UTC)", format="%Y-%m-%d %H:%M:%S",
 										validators=[DataRequired()], default=datetime.utcnow)
-	category = SelectField('Category', choices=[('Strength', 'Strength'), ('Stretch', 'Stretch')])
 	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])
+	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
 	submit = SubmitField("Log Exercise")
 
 	def validate_name(self, name):
@@ -27,13 +26,12 @@ class LogNewExerciseTypeForm(FlaskForm):
 
 class ScheduleNewExerciseTypeForm(FlaskForm):
 	name = StringField("Exercise Name", validators=[DataRequired(), Length(min=1, max=100)])
-	# measured_by will be hardcoded to reps for now
-
+	user_categories_count = HiddenField("user_categories_count")
 	# fields for the scheduled exercise (reps will also serve as the default)
-	category = SelectField('Category', choices=[('Strength', 'Strength'), ('Stretch', 'Stretch')])
 	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])
+	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
 	submit = SubmitField("Schedule Exercise")
 
 	def validate_name(self, name):
@@ -61,6 +59,16 @@ class EditScheduledExerciseForm(FlaskForm):
 	seconds = IntegerField("Seconds", validators=[Optional()])
 	update_default = BooleanField("Update default?")
 	submit = SubmitField("Update Exercise")
+
+		
+class EditExerciseTypeForm(FlaskForm):
+	# TODO: Allowing editing of name will require some more advanced validation to allow the current name but not a separate name
+	user_categories_count = HiddenField("user_categories_count")
+	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
+	default_reps = IntegerField("Default Reps", validators=[Optional()])
+	default_seconds = IntegerField("Default Seconds", validators=[Optional()])
+	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
+	submit = SubmitField("Update Exercise Type")
 
 		
 class ExerciseCategoriesForm(FlaskForm):
