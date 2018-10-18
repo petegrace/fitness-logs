@@ -85,7 +85,6 @@ class User(UserMixin, db.Model):
 				).filter(ExerciseType.owner == self
 				).group_by(
 					ExerciseType.name,
-					ExerciseType.category,
 					ExerciseType.measured_by,
 					func.date(Exercise.exercise_datetime)
 				).order_by(ExerciseType.measured_by, func.sum(Exercise.reps).desc(), func.sum(Exercise.seconds).desc(), ExerciseType.name)

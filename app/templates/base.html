@@ -59,7 +59,7 @@
 		                	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa fa-home"></i> Home</a></li>
 		                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('activity', mode='summary') }}"><i class="fa fa-th-list"></i> Activity</a></li>
 		                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly') }}"><i class="fa fa-calendar"></i> Training Plan</a></li>
-		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('categories') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
+		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('exercise_types') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
 		                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="fa fa-window-close-o"></i> Logout</a></li>
 	                	</ul>
 	                {% endif %}
