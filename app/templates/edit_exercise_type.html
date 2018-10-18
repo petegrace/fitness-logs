@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		function switchRepsAndSecs() {
+			opt = $("#measured_by").val();
+
+		    if (opt == "reps") {
+		    	$("#default_reps").show();
+				$("label[for='default_reps']").show();
+		    	$("#default_seconds").hide();
+				$("label[for='default_seconds']").hide();
+			}
+			else if (opt == "seconds") {
+		    	$("#default_reps").hide();
+				$("label[for='default_reps']").hide();
+		    	$("#default_seconds").show();
+				$("label[for='default_seconds']").show();
+			}
+		}
+
+		$("#measured_by").change(function(){
+		    switchRepsAndSecs();
+		});
+
+		// Run this stuff on page load
+		switchRepsAndSecs();
+
+		if ($("#user_categories_count").val() == 0) {
+			$("#exercise_category_id").hide();
+			$("label[for='exercise_category_id']").hide();
+		}
+	</script>
+{% endblock %}
+
+{% block app_content %}
+	<h2>Edit Exercise Type</h2>
+	<div class="row">
+		<div class="col-md-4">
+			<p><label class="control-label">Exercise Name</label><br />{{ exercise_name }}</p>
+			{{ wtf.quick_form(form) }}
+		</div>
+	</div>
+{% endblock %}

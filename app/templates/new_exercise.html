@@ -41,11 +41,17 @@
 		$("#measured_by").change(function(){
 		    switchRepsAndSecs();
 		});
+
+		// Run this stuff on page load
+		if ($("#user_categories_count").val() == 0) {
+			$("#exercise_category_id").hide();
+			$("label[for='exercise_category_id']").hide();
+		}
 	</script>
 {% endblock %}
 
 {% block app_content %}
-	<h2>Log New Exercise Type</h2>
+	<h2>{% if context == "scheduling" %}Schedule {% else %} Log {% endif %} New Exercise Type</h2>
 	<div class="row">
 		<div class="col-md-4">
 			{{ wtf.quick_form(form) }}

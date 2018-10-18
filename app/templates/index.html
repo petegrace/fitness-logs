@@ -63,23 +63,23 @@
 				{% endif %}
 				{% for scheduled_exercise in scheduled_exercises %}
 					<a class="btn btn-sm
-					{% if exercise_type.category_key is none %}
+					{% if scheduled_exercise.category_key is none %}
 						btn-outline-secondary
-					{% elif exercise_type.category_key == 'cat_green' %}
+					{% elif scheduled_exercise.category_key == 'cat_green' %}
 						btn-success
-					{% elif exercise_type.category_key == 'cat_green_outline' %}
+					{% elif scheduled_exercise.category_key == 'cat_green_outline' %}
 						btn-outline-success
-					{% elif exercise_type.category_key == 'cat_blue' %}
+					{% elif scheduled_exercise.category_key == 'cat_blue' %}
 						btn-primary
-					{% elif exercise_type.category_key == 'cat_blue_outline' %}
+					{% elif scheduled_exercise.category_key == 'cat_blue_outline' %}
 						btn-outline-primary
-					{% elif exercise_type.category_key == 'cat_red' %}
+					{% elif scheduled_exercise.category_key == 'cat_red' %}
 						btn-danger
-					{% elif exercise_type.category_key == 'cat_red_outline' %}
+					{% elif scheduled_exercise.category_key == 'cat_red_outline' %}
 						btn-outline-danger
-					{% elif exercise_type.category_key == 'cat_yellow' %}
+					{% elif scheduled_exercise.category_key == 'cat_yellow' %}
 						btn-warning
-					{% elif exercise_type.category_key == 'cat_yellow_outline' %}
+					{% elif scheduled_exercise.category_key == 'cat_yellow_outline' %}
 						btn-outline-warning
 					{% endif %}
 					" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">

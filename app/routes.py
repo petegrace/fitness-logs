@@ -4,8 +4,9 @@ import requests
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
+from wtforms import HiddenField
 from app import app, db
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ExerciseCategoriesForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
 
 # Helpers
@@ -97,6 +98,9 @@ def new_exercise(context, selected_day=None):
 	elif context == "scheduling":
 		form = ScheduleNewExerciseTypeForm()
 
+	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.all()]
+	form.exercise_category_id.choices = category_choices
+
 	# for the post...
 	if form.validate_on_submit():
 		track_event(category="Exercises", action="New Exercise created for {context}".format(context=context), userId = str(current_user.id))
@@ -108,10 +112,11 @@ def new_exercise(context, selected_day=None):
 
 		exercise_type = ExerciseType(name=form.name.data,
 									 owner=current_user,
-									 category=form.category.data,
 									 measured_by=form.measured_by.data,
 									 default_reps=form.reps.data,
 									 default_seconds=form.seconds.data)
+		if form.exercise_category_id.data != "None": 
+			exercise_type.exercise_category_id = form.exercise_category_id.data		
 		db.session.add(exercise_type)
 
 		if context == "logging":
@@ -128,15 +133,16 @@ def new_exercise(context, selected_day=None):
 												   scheduled_day=selected_day,
 												   sets=1,
 												   reps=form.reps.data,
-												   seconds=form.seconds.data)		
+												   seconds=form.seconds.data)
 			db.session.add(scheduled_exercise)
 			db.session.commit()
 			flash("Added {type} and scheduled for {scheduled_day}".format(type=exercise_type.name, scheduled_day=scheduled_exercise.scheduled_day))
 			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
 
 	#for the get...
+	form.user_categories_count.data = len(category_choices)
 	track_event(category="Exercises", action="New Exercise form loaded for {context}".format(context=context), userId = str(current_user.id))
-	return render_template("new_exercise.html", title="Log New Exercise Type", form=form)
+	return render_template("new_exercise.html", title="Log New Exercise Type", form=form, context=context)
 
 
 @app.route('/edit_exercise/<id>', methods=['GET', 'POST'])
@@ -258,11 +264,7 @@ def edit_scheduled_exercise(id):
 			db.session.commit()
 			flash("Updated default {measured_by} for {type}".format(type=scheduled_exercise.type.name, measured_by=scheduled_exercise.type.measured_by))
 
-		# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
-		next_page = request.args.get("next")
-		if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_exercise.scheduled_day))
-		return redirect(next_page)
+		return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_exercise.scheduled_day))
 
 	# If it's a get...
 	form.sets.data = scheduled_exercise.sets
@@ -284,13 +286,52 @@ def exercise_types():
 	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types)
 
 
+@app.route('/edit_exercise_type/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_exercise_type(id):
+	form = EditExerciseTypeForm()
+	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.all()]
+	form.exercise_category_id.choices = category_choices
+
+	exercise_type = ExerciseType.query.get(int(id))
+
+	if form.validate_on_submit():
+		track_event(category="Manage", action="Exercise Type updated", userId = str(current_user.id))
+
+		# Ensure that seconds and reps are none if the other is selected
+		if form.measured_by.data == "reps":
+			form.default_seconds.data = None
+		elif form.measured_by.data == "seconds":
+			form.default_reps.data = None
+
+		exercise_type.measured_by = form.measured_by.data
+		exercise_type.default_reps = form.default_reps.data
+		exercise_type.default_seconds = form.default_seconds.data
+		if form.exercise_category_id.data != "None": 
+			exercise_type.exercise_category_id = form.exercise_category_id.data
+		db.session.commit()
+		flash("Updated {name}".format(name=exercise_type.name))
+
+		return redirect(url_for("exercise_types"))
+
+	# If it's a get...
+	form.user_categories_count.data = len(category_choices)
+	form.measured_by.data = exercise_type.measured_by
+	form.default_reps.data = exercise_type.default_reps
+	form.default_seconds.data = exercise_type.default_seconds
+	form.exercise_category_id.data = exercise_type.exercise_category_id
+		
+	track_event(category="Manage", action="Edit Exercise Type form loaded", userId = str(current_user.id))
+	return render_template("edit_exercise_type.html", title="Edit Exercise Type", form=form, exercise_name=exercise_type.name)
+
+
 @app.route("/categories", methods=['GET', 'POST'])
 def categories():
 	categories_form = ExerciseCategoriesForm()
 	current_categories = current_user.exercise_categories
 
 	if categories_form.validate_on_submit():
-		track_event(category="Customisation", action="Category changes saved", userId = str(current_user.id))
+		track_event(category="Manage", action="Category changes saved", userId = str(current_user.id))
 
 		category_keys = [field_name for field_name in dir(categories_form) if field_name.startswith("cat_")]
 
@@ -313,7 +354,7 @@ def categories():
 		db.session.commit()
 
 		flash("Changes to Exercise Categories have been saved.")
-		return redirect(url_for("index"))
+		return redirect(url_for("exercise_types"))
 
 	# If it's a get...
 	for current_category in current_categories:

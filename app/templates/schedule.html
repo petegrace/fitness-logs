@@ -45,8 +45,27 @@
 				<br /><small>&nbsp;</small>
 			</a>
 			{% for exercise_type in exercise_types %}
-				<a class="btn btn-sm {% if exercise_type.category == 'Strength' %} btn-success {% elif exercise_type.category == 'Stretch' %} btn-outline-success {% endif %}"
-							role="button" href="{{ url_for('schedule_exercise', id=exercise_type.id, selected_day=selected_day) }}">
+				<a class="btn btn-sm 
+				{% if exercise_type.category_key is none %}
+					btn-outline-secondary
+				{% elif exercise_type.category_key == 'cat_green' %}
+					btn-success
+				{% elif exercise_type.category_key == 'cat_green_outline' %}
+					btn-outline-success
+				{% elif exercise_type.category_key == 'cat_blue' %}
+					btn-primary
+				{% elif exercise_type.category_key == 'cat_blue_outline' %}
+					btn-outline-primary
+				{% elif exercise_type.category_key == 'cat_red' %}
+					btn-danger
+				{% elif exercise_type.category_key == 'cat_red_outline' %}
+					btn-outline-danger
+				{% elif exercise_type.category_key == 'cat_yellow' %}
+					btn-warning
+				{% elif exercise_type.category_key == 'cat_yellow_outline' %}
+					btn-outline-warning
+				{% endif %}
+				" role="button" href="{{ url_for('schedule_exercise', id=exercise_type.id, selected_day=selected_day) }}">
 					<i class="fa fa-calendar-plus-o"></i> {{ exercise_type.name }}
 					<br />
 					<small>
