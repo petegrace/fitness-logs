@@ -108,5 +108,6 @@ venv.bak/
 *.sublime-project
 *.sublime-workspace
 .flaskenv
+.cloudignore
 config.py
 app.yaml
