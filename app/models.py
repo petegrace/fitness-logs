@@ -91,6 +91,45 @@ class User(UserMixin, db.Model):
 
 		return daily_exercise_summary
 
+
+	def exercises_by_category_and_day(self):
+		exercises_by_category_and_day = db.session.query(
+					func.date(Exercise.exercise_datetime).label("exercise_date"),
+					func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+					func.count(Exercise.id).label("exercise_sets_count"),
+					func.sum(Exercise.reps).label("total_reps"),
+					func.sum(Exercise.seconds).label("total_seconds")
+				).join(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercise_category
+				).filter(ExerciseType.owner == self
+				).group_by(
+					func.date(Exercise.exercise_datetime).label("exercise_date"),
+					ExerciseCategory.category_name,
+					ExerciseCategory.category_key
+				)
+
+		return exercises_by_category_and_day
+
+
+	def exercises_by_type(self):
+		exercises_by_category_and_day = db.session.query(
+					ExerciseType.name.label("exercise_type"),
+					func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+					func.count(Exercise.id).label("exercise_sets_count"),
+					func.sum(Exercise.reps).label("total_reps"),
+					func.sum(Exercise.seconds).label("total_seconds")
+				).join(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercise_category
+				).filter(ExerciseType.owner == self
+				).group_by(
+					ExerciseType.name,
+					ExerciseCategory.category_name,
+					ExerciseCategory.category_key
+				)
+
+		return exercises_by_category_and_day
+
+
 	def exercise_types_ordered(self):		
 		exercise_types_last_7_days = db.session.query(
 					ExerciseType.id,

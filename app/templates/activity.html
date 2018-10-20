@@ -6,11 +6,17 @@
 	<script>
 		$("#activity-nav").addClass("active");
 	</script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+    {{ plot_by_day_script|safe }}
 {% endblock %}
 
 {% block app_content %}
 	<h2>Activity</h2>
-	<ul class="nav nav-tabs">
+	<h5>Completed Exercise Sets by Day</h5>
+	{{ plot_by_day_div|safe }}
+
+	<ul class="nav nav-tabs mt-4">
 		<li class="nav-item">
 			<a class="nav-link {% if mode == 'summary' %} active {% endif %}" href="{{ url_for('activity', mode='summary') }}">Summary</a>
 		</li>

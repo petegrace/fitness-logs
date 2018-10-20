@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#manage-exercises-nav").addClass("active");
+	</script>
+{% endblock %}
+
 {% block app_content %}
 	<h2>Manage Exercises</h2>
 	<ul class="nav nav-tabs mb-2">
