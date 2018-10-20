@@ -1,11 +1,8 @@
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import HoverTool, FactorRange, Plot, LinearAxis, Grid, Range1d #TODO: Review which of these we actually use
-from bokeh.models.glyphs import VBar
+from bokeh.models import HoverTool, Plot, DatetimeTickFormatter
 from bokeh.plotting import figure
-import bokeh.layouts #import sizing_mode
-from bokeh.embed import components
-from bokeh.models.sources import ColumnDataSource
+import bokeh.layouts
 
 def generate_stacked_bar_for_categories(dataset_query, user_categories, dimension, measure, dimension_type, plot_height, bar_direction):
 	# Colour mappings
@@ -35,10 +32,13 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 		names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
 
 	if dimension_type == "datetime":
-		plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None, tools="",)
+		hover_tool = HoverTool(tooltips="@{dimension}{{%F}}: @$name completed sets".format(dimension=dimension),
+							   formatters={dimension : "datetime"})
+		plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None, tools=[hover_tool])
 		bar_width = 50000000 # specified in ms
+		plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b")
 	else:
-		plot = figure(x_range=dimension_list, plot_height=plot_height, toolbar_location=None, tools="")
+		plot = figure(x_range=dimension_list, plot_height=plot_height, toolbar_location=None)
 		bar_width = 0.7 # specified as a proportion
 
 	if bar_direction == "vertical":

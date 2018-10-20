@@ -6,13 +6,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField
 import pandas as pd
-from bokeh.core.properties import value
-from bokeh.models import HoverTool, FactorRange, Plot, LinearAxis, Grid, Range1d #TODO: Review which of these we actually use
-from bokeh.models.glyphs import VBar
-from bokeh.plotting import figure
-import bokeh.layouts #import sizing_mode
 from bokeh.embed import components
-from bokeh.models.sources import ColumnDataSource
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
@@ -202,7 +196,7 @@ def activity(mode):
 	user_categories = current_user.exercise_categories.all()	
 
 	plot_by_day = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=100, bar_direction="vertical")
+		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=150, bar_direction="vertical")
 	plot_by_day_script, plot_by_day_div = components(plot_by_day)
 
 	if mode == "detail":
@@ -383,7 +377,13 @@ def categories():
 	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
 
 
-# def generate_stacked_bar_for_categories(dataset_query, user_categories, dimension, measure, dimension_type, plot_height, bar_direction):
+# @app.route("/charts")
+# @login_required
+# def chart():
+# 	exercises_by_category_and_day = current_user.exercises_by_category_and_day()
+# 	exercises_by_type = current_user.exercises_by_type()
+# 	user_categories = current_user.exercise_categories.all()
+
 # 	# Colour mappings
 # 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
 # 	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
@@ -391,120 +391,48 @@ def categories():
 # 	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
 # 	category_name_mappings.append(("Uncategorised", "Uncategorised"))
 
-# 	# Reshape the data
-# 	df = pd.read_sql(dataset_query.statement, dataset_query.session.bind)
-# 	pivot_df = df.pivot(index=dimension, columns="category_key", values=measure)
-# 	pivot_df = pivot_df.fillna(value=0)
-# 	categories = df["category_key"].unique()
-# 	dimension_list = pivot_df.index.values
+# 	# Prepare the by type plot
+# 	by_type_df = pd.read_sql(exercises_by_type.statement, exercises_by_type.session.bind)
+# 	by_type_pivot_df = by_type_df.pivot(index="exercise_type", columns="category_key", values="exercise_sets_count")
+# 	by_type_pivot_df = by_type_pivot_df.fillna(value=0)
+# 	by_type_categories = by_type_df["category_key"].unique()
+# 	types = by_type_pivot_df.index.values
 
-# 	data = {dimension : dimension_list}
-# 	colors = []
-# 	line_colors = []
-# 	names = []
+# 	by_type_data = {'exercise_type' : types}
+# 	by_type_colors = []
+# 	by_type_line_colors = []
+# 	by_type_names = []
 
-# 	for category in categories:
-# 		data[category] = pivot_df[category].values
+# 	for category in by_type_categories:
+# 		by_type_data[category] = by_type_pivot_df[category].values
 # 		category_index =  available_categories.index(category)
-# 		colors.append(available_colors[category_index])
-# 		line_colors.append(available_line_colors[category_index])
-# 		names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
+# 		by_type_colors.append(available_colors[category_index])
+# 		by_type_line_colors.append(available_line_colors[category_index])
+# 		by_type_names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
 
-# 	if dimension_type == "datetime":
-# 		plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None, tools="",)
-# 		bar_width = 50000000 # specified in ms
-# 	else:
-# 		plot = figure(x_range=dimension_list, plot_height=plot_height, toolbar_location=None, tools="")
-# 		bar_width = 0.7 # specified as a proportion
-
-# 	if bar_direction == "vertical":
-# 		plot.vbar_stack(categories, x=dimension, width=bar_width, color=colors, source=data, line_color=line_colors, line_width=1.5,
-# 	             			legend=[value(name) for name in names])
-# 		if dimension_type != "datetime":
-# 			plot.x_range = dimension_list
-
-# 	elif bar_direction == "horizontal":
-# 		plot.hbar_stack(categories, y=dimension, height=bar_width, color=colors, source=data, line_color=line_colors, line_width=1.5,
-# 	             			legend=[value(name) for name in names])
-# 		if dimension_type != "datetime":
-# 			plot.y_range = dimension_list
-
-# 	# Formatting
-# 	plot.y_range.start = 0
-# 	plot.xgrid.grid_line_color = None
-# 	plot.axis.minor_tick_line_color = None
-# 	plot.axis.axis_line_color = "#999999"
-# 	plot.axis.major_label_text_color = "#666666"
-# 	plot.axis.major_label_text_font_size = "7pt"
-# 	plot.axis.major_tick_line_color = None
-# 	plot.outline_line_color = None
-# 	plot.legend.padding = 5
-# 	plot.legend.label_text_font = "sans-serif"
-# 	plot.legend.label_text_color = "#666666"
-# 	plot.legend.label_text_font_size = "7pt"
-# 	plot.legend.location = "top_left"
-# 	plot.legend.orientation = "horizontal"
-# 	plot.sizing_mode = "scale_width"
-
-# 	return plot
+# 	plot_by_type = figure(y_range=types, plot_height=300, toolbar_location=None, tools="")
+# 	plot_by_type.hbar_stack(by_type_categories, y='exercise_type', height=0.7, color=by_type_colors, source=by_type_data, line_color=by_type_line_colors, line_width=1.5)
 
 
-@app.route("/charts")
-@login_required
-def chart():
-	exercises_by_category_and_day = current_user.exercises_by_category_and_day()
-	exercises_by_type = current_user.exercises_by_type()
-	user_categories = current_user.exercise_categories.all()
+# 	plot_by_type.x_range.start = 0
+# 	#plot_by_type.y_range.range_padding = 0.1
+# 	plot_by_type.ygrid.grid_line_color = None
+# 	plot_by_type.axis.minor_tick_line_color = None
+# 	plot_by_type.axis.axis_line_color = "#999999"
+# 	plot_by_type.axis.major_label_text_color = "#666666"
+# 	plot_by_type.axis.major_label_text_font_size = "7pt"
+# 	plot_by_type.axis.major_tick_line_color = None
+# 	plot_by_type.outline_line_color = None
+# 	plot_by_type.sizing_mode = "scale_width"
+# 	plot_by_type.title.text_font = "sans-serif"
+# 	plot_by_type.title.text_font_style = "normal"
 
-	# Colour mappings
-	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
-	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
-	available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
-	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
-	category_name_mappings.append(("Uncategorised", "Uncategorised"))
+# 	plot_by_day = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
+# 		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=200, bar_direction="vertical")
 
-	# Prepare the by type plot
-	by_type_df = pd.read_sql(exercises_by_type.statement, exercises_by_type.session.bind)
-	by_type_pivot_df = by_type_df.pivot(index="exercise_type", columns="category_key", values="exercise_sets_count")
-	by_type_pivot_df = by_type_pivot_df.fillna(value=0)
-	by_type_categories = by_type_df["category_key"].unique()
-	types = by_type_pivot_df.index.values
+# 	# SPlit the plot components to pass into the template
+# 	plot_by_day_script, plot_by_day_div = components(plot_by_day)
+# 	plot_by_type_script, plot_by_type_div = components(plot_by_type)
 
-	by_type_data = {'exercise_type' : types}
-	by_type_colors = []
-	by_type_line_colors = []
-	by_type_names = []
-
-	for category in by_type_categories:
-		by_type_data[category] = by_type_pivot_df[category].values
-		category_index =  available_categories.index(category)
-		by_type_colors.append(available_colors[category_index])
-		by_type_line_colors.append(available_line_colors[category_index])
-		by_type_names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
-
-	plot_by_type = figure(y_range=types, plot_height=300, toolbar_location=None, tools="")
-	plot_by_type.hbar_stack(by_type_categories, y='exercise_type', height=0.7, color=by_type_colors, source=by_type_data, line_color=by_type_line_colors, line_width=1.5)
-
-
-	plot_by_type.x_range.start = 0
-	#plot_by_type.y_range.range_padding = 0.1
-	plot_by_type.ygrid.grid_line_color = None
-	plot_by_type.axis.minor_tick_line_color = None
-	plot_by_type.axis.axis_line_color = "#999999"
-	plot_by_type.axis.major_label_text_color = "#666666"
-	plot_by_type.axis.major_label_text_font_size = "7pt"
-	plot_by_type.axis.major_tick_line_color = None
-	plot_by_type.outline_line_color = None
-	plot_by_type.sizing_mode = "scale_width"
-	plot_by_type.title.text_font = "sans-serif"
-	plot_by_type.title.text_font_style = "normal"
-
-	plot_by_day = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=200, bar_direction="vertical")
-
-	# SPlit the plot components to pass into the template
-	plot_by_day_script, plot_by_day_div = components(plot_by_day)
-	plot_by_type_script, plot_by_type_div = components(plot_by_type)
-
-	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
-		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script, plot_by_type_div=plot_by_type_div, plot_by_type_script=plot_by_type_script)
+# 	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
+# 		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script, plot_by_type_div=plot_by_type_div, plot_by_type_script=plot_by_type_script)
