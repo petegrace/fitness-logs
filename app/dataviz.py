@@ -1,6 +1,7 @@
+from flask import redirect, flash
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import HoverTool, Plot, DatetimeTickFormatter
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL
 from bokeh.plotting import figure
 import bokeh.layouts
 
@@ -42,8 +43,8 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 		bar_width = 0.7 # specified as a proportion
 
 	if bar_direction == "vertical":
-		plot.vbar_stack(categories, x=dimension, width=bar_width, color=colors, source=data, line_color=line_colors, line_width=1.5,
-	             			legend=[value(name) for name in names])
+		plot.vbar_stack(categories, x=dimension, width=bar_width, color=colors, source=data, line_color=line_colors, line_width=1.5, fill_alpha=0.8,
+							hover_alpha=1, hover_fill_color=colors, hover_line_color="#333333", legend=[value(name) for name in names])
 		if dimension_type != "datetime":
 			plot.x_range = dimension_list
 
@@ -69,5 +70,11 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	plot.legend.location = "top_left"
 	plot.legend.orientation = "horizontal"
 	plot.sizing_mode = "scale_width"
+
+	# TODO: means for using the chart as navigation, we'd probably need to use some custom JS to open in the same tab
+	# REMEMBER TO ADD "tap" to the tools
+	# url = "/index?date=@{dimension}".format(dimension=dimension)
+	# tap_tool = plot.select(type=TapTool)
+	# tap_tool.callback = OpenURL(url=url)
 
 	return plot

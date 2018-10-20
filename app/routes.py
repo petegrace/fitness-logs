@@ -10,7 +10,7 @@ from bokeh.embed import components
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
-from app.dataviz import generate_stacked_bar_for_categories
+from app.dataviz import generate_stacked_bar_for_categories, select_test
 
 
 # Helpers
@@ -377,9 +377,14 @@ def categories():
 	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
 
 
-# @app.route("/charts")
-# @login_required
-# def chart():
+@app.route("/charts")
+@login_required
+def chart():
+	plot_by_day = select_test()
+	plot_by_day_script, plot_by_day_div = components(plot_by_day)
+
+	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
+ 		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script)
 # 	exercises_by_category_and_day = current_user.exercises_by_category_and_day()
 # 	exercises_by_type = current_user.exercises_by_type()
 # 	user_categories = current_user.exercise_categories.all()

@@ -2,16 +2,16 @@
 
 {% block styles %}
 	{{ super() }}
-
-	<script>
-		$("#activity-nav").addClass("active");
-	</script>
     <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css" rel="stylesheet" />
     <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.0.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block scripts %}
 	{{ super() }}
+
+	<script>
+		$("#activity-nav").addClass("active");
+	</script>
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
     <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
     {{ plot_by_day_script|safe }}
@@ -24,10 +24,6 @@
 		<div class="col-7">
 			<h5>Completed Exercise Sets by Day</h5>
 			{{ plot_by_day_div|safe }}
-		</div>
-		<div class="col-5">
-			<h5>Completed Exercise Sets by Type</h5>
-			{{ plot_by_type_div|safe }}
 		</div>
 	</div>
 	<ul class="nav nav-tabs mt-4">
