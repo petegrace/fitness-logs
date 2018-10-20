@@ -63,6 +63,7 @@ class User(UserMixin, db.Model):
 										   (func.date(Exercise.exercise_datetime) == exercise_date))
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.scheduled_day == scheduled_day
+				).filter(ScheduledExercise.is_removed == False
 				).group_by(
 					ScheduledExercise.id,
 					ExerciseType.id,
