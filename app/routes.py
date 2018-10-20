@@ -10,8 +10,7 @@ from bokeh.embed import components
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
-from app.dataviz import generate_stacked_bar_for_categories, select_test
-
+from app.dataviz import generate_stacked_bar_for_categories
 
 # Helpers
 
@@ -266,6 +265,7 @@ def edit_scheduled_exercise(id):
 		scheduled_exercise.sets = form.sets.data
 		scheduled_exercise.reps = form.reps.data
 		scheduled_exercise.seconds = form.seconds.data
+		scheduled_exercise.is_removed = False
 		db.session.commit()
 		flash("Updated {type} scheduled for {day}".format(type=scheduled_exercise.type.name, day=scheduled_exercise.scheduled_day))
 
@@ -286,6 +286,19 @@ def edit_scheduled_exercise(id):
 		
 	track_event(category="Schedule", action="Edit Scheduled Exercise form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise.html", title="Edit Scheduled Exercise", form=form, exercise_name=scheduled_exercise.type.name)
+
+
+@app.route('/remove_scheduled_exercise/<id>')
+@login_required
+def remove_scheduled_exercise(id):
+	scheduled_exercise = ScheduledExercise.query.get(int(id))
+	track_event(category="Schedule", action="Scheduled exercise removed", userId = str(current_user.id))
+
+	scheduled_exercise.is_removed = True
+	db.session.commit()
+	flash("Removed exercise {exercise} from schedule for {day}".format(exercise=scheduled_exercise.type.name, day=scheduled_exercise.scheduled_day))
+
+	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_exercise.scheduled_day))
 
 
 @app.route("/exercise_types")

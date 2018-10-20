@@ -39,7 +39,11 @@ class User(UserMixin, db.Model):
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
-			(ExerciseType.id == ScheduledExercise.exercise_type_id)).filter(ExerciseType.owner == self).filter(ScheduledExercise.scheduled_day == scheduled_day).order_by(ExerciseType.name)
+			(ExerciseType.id == ScheduledExercise.exercise_type_id)
+			).filter(ExerciseType.owner == self
+			).filter(ScheduledExercise.is_removed == False
+			).filter(ScheduledExercise.scheduled_day == scheduled_day
+			).order_by(ExerciseType.name)
 
 	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
 		scheduled_exercises_remaining = db.session.query(
@@ -239,6 +243,7 @@ class ScheduledExercise(db.Model):
 	reps = db.Column(db.Integer)
 	seconds = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	is_removed = db.Column(db.Boolean, default=False)
 	exercises = db.relationship("Exercise", backref="scheduled_exercise", lazy="dynamic")
 
 	def __repr__(self):
