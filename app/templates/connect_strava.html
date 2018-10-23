@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+	{{ super() }}
+{% endblock %}
+
+{% block app_content %}
+	<h2>Connect to Strava</h2>
+	<a href="{{ url_for('connect_strava', action='authorize') }}"><img src="/static/img/btn_strava_connectwith_orange.png" /></a>
+{% endblock %}

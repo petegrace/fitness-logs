@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+	{{ super() }}
+{% endblock %}
+
+{% block app_content %}
+	<h2>Strava Activity</h2>
+	<table>
+		<tr>
+			<th>id</th>
+			<th>name</th>
+			<th>start_date</th>
+			<th>type</th>
+			<!--<th>workout_type</th>-->
+			<th>distance</th>
+			<th>moving_time</th>
+			<!--<th>average_speed</th>
+			<th>average_cadence</th>
+			<th>average_heartrate</th>-->
+		</tr>
+		{% for activity in activities %}
+			<tr>
+				<td>{{ activity.id }}</td>
+				<td>{% if activity.workout_type == "1" %}<i class="fa fa-flag-checkered"></i>{% endif %} {{ activity.name }} </td>
+				<td>{{ activity.start_date }}</td>
+				<td>{{ activity.type }}</td>
+				<!--<td>{{ activity.workout_type }}</td>-->
+				<td>{{ activity.distance}}</td>
+				<td>{{ activity.moving_time }}</td>
+				<!--<td>{{ activity.average_speed }}</td>
+				<td>{{ activity.average_cadence }}</td>
+				<td>{{ activity.average_heartrate }}</td>-->
+			</tr>
+		{% endfor %}
+	</table>
+	<p><img src="/static/img/api_logo_pwrdBy_strava_horiz_light.png" /></p>
+{% endblock %}

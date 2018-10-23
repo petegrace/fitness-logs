@@ -1,7 +1,8 @@
 from datetime import datetime, date
 import calendar
 import requests
-from flask import render_template, flash, redirect, url_for, request
+import statistics
+from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField
@@ -11,6 +12,8 @@ from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
 from app.dataviz import generate_stacked_bar_for_categories
+from stravalib.client import Client
+from requests_oauth2.services import OAuth2
 
 # Helpers
 
@@ -388,6 +391,107 @@ def categories():
 
 	track_event(category="Manage", action="Exercise Categories page loaded", userId = str(current_user.id))
 	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
+
+
+@app.route("/strava_activity")
+@login_required
+def strava_activity():
+	strava_client = Client()
+
+	if not session.get("strava_access_token"):
+		return redirect(url_for("connect_strava", action="prompt"))
+
+	access_token = session["strava_access_token"]
+	strava_client.access_token = access_token
+	athlete = strava_client.get_athlete()
+
+	activities = strava_client.get_activities(after = "2018-08-01T00:00:00Z")
+
+	return render_template("strava_activity.html", title="Strava Activity", activities=activities)
+
+
+@app.route("/analyse_strava_activity/<id>")
+@login_required
+def analyse_strava_activity(id):
+	strava_client = Client()
+
+	if not session.get("strava_access_token"):
+		redirect(url_for("connect_strava", action="prompt"))
+
+	access_token = session["strava_access_token"]
+	strava_client.access_token = access_token
+
+	stream_types = ["time", "cadence"]
+	activity_streams = strava_client.get_activity_streams(id, types=stream_types)
+
+	cadence_records = []
+	cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
+	dp_ind = 0
+	df_ind = 0
+
+	# construct a dictionary 
+	for cadence_data_point in activity_streams["cadence"].data:
+		if cadence_data_point > 0 and dp_ind > 1:
+			cadence_records.append({"cadence": cadence_data_point,
+									"start_time": activity_streams["time"].data[dp_ind-1],
+									"duration": activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1]})
+			cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1]]
+			df_ind += 1
+		dp_ind += 1
+
+	cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
+
+	cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
+
+	cadence_data_desc = cadence_data
+	cadence_data_desc.reverse()
+
+	running_total = 0
+	above_cadence_data = []
+
+	for cadence_group in cadence_data_desc:
+		running_total += cadence_group[1]
+		above_cadence_data.append((cadence_group[0], running_total))
+
+
+	flash("Median cadence for this activity was {cadence}".format(cadence=cadence_df["cadence"].median()))
+
+	return render_template("analyse_strava_activity.html", title="Analyse Strava Activity", cadence_data=cadence_data, above_cadence_data=above_cadence_data)
+
+
+@app.route("/connect_strava/<action>")
+@login_required
+def connect_strava(action="prompt"):
+	code = request.args.get("code")
+	error = request.args.get("error")
+
+	if error:
+		flash(error)
+		return redirect(url_for("connect_strava", action="prompt"))
+
+	if action == "authorize":
+		# Do the Strava bit
+		strava_auth = OAuth2(
+			client_id = app.config["STRAVA_OAUTH2_CLIENT_ID"],
+			client_secret = app.config["STRAVA_OAUTH2_CLIENT_SECRET"],
+			site = "https://www.strava.com",
+			redirect_uri = app.config["STRAVA_OAUTH2_REDIRECT_URI"],
+			authorization_url = '/oauth/authorize',
+			token_url = '/oauth/token',
+			revoke_url = '/oauth2/deauthorize',
+			scope_sep = ","
+		)
+
+		if not code:
+			return redirect(strava_auth.authorize_url(scope=["activity:read"], response_type="code"))
+
+		data = strava_auth.get_token(code=code, grant_type="authorization_code")
+		session["strava_access_token"] = data.get("access_token")
+		flash("Successfully logged into Strava")
+		return redirect(url_for("strava_activity"))
+
+	return render_template("connect_strava.html", title="Connect to Strava")
+
 
 
 @app.route("/charts")

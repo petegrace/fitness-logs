@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+	{{ super() }}
+{% endblock %}
+
+{% block app_content %}
+	<h2>Strava Activity</h2>
+	<h5>Time Spent at Cadence</h5>
+	<ul>
+		{% for item in cadence_data %}
+			<li>{{ item }}</li>
+		{% endfor %}
+	</ul>
+	<h5>Time Spent at or above Cadence</h5>
+	<ul>
+		{% for item in above_cadence_data %}
+			<li>{{ item }}</li>
+		{% endfor %}
+	</ul>
+	<p><img src="/static/img/api_logo_pwrdBy_strava_horiz_light.png" /></p>
+{% endblock %}
