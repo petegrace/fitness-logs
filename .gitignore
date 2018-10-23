@@ -111,3 +111,4 @@ venv.bak/
 .gcloudignore
 config.py
 app.yaml
+strava_testing.py
