@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from sqlalchemy import func, literal, desc, and_, or_
+from sqlalchemy import func, literal, desc, and_, or_, null
 from app import db
 from app import login
 from itertools import groupby
@@ -19,6 +19,7 @@ class User(UserMixin, db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercise_types = db.relationship("ExerciseType", backref="owner", lazy="dynamic")
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
+	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -29,6 +30,13 @@ class User(UserMixin, db.Model):
 	def check_password(self, password):
 		return check_password_hash(self.password_hash, password)
 
+	def most_recent_strava_activity_datetime(self):
+		most_recent_strava_activity_datetime_result = db.session.query(
+					func.max(Activity.start_datetime).label("max_date")
+				).filter(Activity.owner == self
+				).filter(Activity.external_source == "Strava").first()
+		return most_recent_strava_activity_datetime_result.max_date
+
 	@login.user_loader
 	def load_user(id):
 		return User.query.get(int(id))
@@ -36,6 +44,41 @@ class User(UserMixin, db.Model):
 	def exercises(self):
 		return Exercise.query.join(ExerciseType,
 			(ExerciseType.id == Exercise.exercise_type_id)).filter(ExerciseType.owner == self).order_by(Exercise.exercise_datetime.desc())
+
+	def recent_activities(self):
+		exercises = db.session.query(
+						Exercise.id,
+						literal("Exercise").label("source"),
+						Exercise.created_datetime.label("created_datetime"),
+						Exercise.exercise_datetime.label("activity_datetime"),
+						ExerciseType.name,
+						Exercise.scheduled_exercise_id,
+						null().label("is_race"),
+						Exercise.reps,
+						Exercise.seconds,
+						null().label("distance"),
+						ExerciseType.measured_by,
+						null().label("external_id")
+				).join(ExerciseType, (ExerciseType.id == Exercise.exercise_type_id)
+				).filter(ExerciseType.owner == self)
+
+		activities = db.session.query(
+						Activity.id,
+						func.coalesce(Activity.external_source, "Activity").label("source"),
+						Activity.created_datetime.label("created_datetime"),
+						Activity.start_datetime.label("activity_datetime"),
+						Activity.name,
+						null().label("scheduled_exercise_id"),
+						Activity.is_race,
+						null().label("reps"),
+						null().label("seconds"),
+						Activity.distance,
+						literal("distance").label("measured_by"),
+						Activity.external_id
+				).filter(Activity.owner == self)
+
+		exercises_and_activities = exercises.union(activities).order_by(desc("created_datetime"), desc("activity_datetime"))
+		return exercises_and_activities
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
@@ -216,6 +259,27 @@ class ExerciseType(db.Model):
 
 	def __repr__(self):
 		return "<ExerciseType {name} for {user}>".format(name=self.name, user=self.owner.email)
+
+
+class Activity(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	external_source = db.Column(db.String(50))
+	external_id = db.Column(db.String(50)) # string in case we ever use anyting other than Strava
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	name = db.Column(db.String(200))
+	start_datetime = db.Column(db.DateTime)
+	activity_type = db.Column(db.String(50))
+	is_race = db.Column(db.Boolean, default=False)
+	distance = db.Column(db.Numeric())
+	elapsed_time = db.Column(db.Interval())
+	moving_time = db.Column(db.Interval())
+	average_speed = db.Column(db.Numeric())
+	average_cadence = db.Column(db.Numeric())
+	average_heartrate = db.Column(db.Numeric())
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<Activity {name} with external ID of {external_id}>".format(name=self.name, external_id=self.external_id)
 
 
 class Exercise(db.Model):

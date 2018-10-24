@@ -10,7 +10,7 @@ import pandas as pd
 from bokeh.embed import components
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity
 from app.dataviz import generate_stacked_bar_for_categories
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
@@ -44,9 +44,9 @@ def track_event(category, action, label=None, value=0, userId="0"):
 def index():
 	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
 	page = request.args.get("page", 1, type=int)
-	exercises = current_user.exercises().paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
-	next_url = url_for("index", page=exercises.next_num) if exercises.has_next else None
-	prev_url = url_for("index", page=exercises.prev_num) if exercises.has_prev else None
+	recent_activities = current_user.recent_activities().paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
+	next_url = url_for("index", page=recent_activities.next_num) if recent_activities.has_next else None
+	prev_url = url_for("index", page=recent_activities.prev_num) if recent_activities.has_prev else None
 
 	today = date.today()
 	current_day = calendar.day_abbr[today.weekday()]
@@ -63,7 +63,7 @@ def index():
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
-	return render_template("index.html", title="Home", exercises=exercises.items, next_url=next_url, prev_url=prev_url,
+	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
 							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)
 
 
@@ -393,9 +393,10 @@ def categories():
 	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
 
 
-@app.route("/strava_activity")
+@app.route("/import_strava_activity")
 @login_required
-def strava_activity():
+def import_strava_activity():
+	track_event(category="Strava", action="Starting import of Strava activity", userId = str(current_user.id))
 	strava_client = Client()
 
 	if not session.get("strava_access_token"):
@@ -403,11 +404,40 @@ def strava_activity():
 
 	access_token = session["strava_access_token"]
 	strava_client.access_token = access_token
-	athlete = strava_client.get_athlete()
 
-	activities = strava_client.get_activities(after = "2018-08-01T00:00:00Z")
+	try:
+		athlete = strava_client.get_athlete()
+	except:
+		return redirect(url_for("connect_strava", action="prompt"))
 
-	return render_template("strava_activity.html", title="Strava Activity", activities=activities)
+	most_recent_strava_activity_datetime = current_user.most_recent_strava_activity_datetime()
+	activities = strava_client.get_activities(before = "2018-10-12T00:00:00Z",	# TODO: remove the before param once we're done with testing
+											  after = most_recent_strava_activity_datetime)
+
+	new_activity_count = 0
+	for strava_activity in activities:
+		activity = Activity(external_source = "Strava",
+							external_id = strava_activity.id,
+							owner = current_user,
+							name = strava_activity.name,
+							start_datetime = strava_activity.start_date,
+							activity_type = strava_activity.type,
+							is_race = True if strava_activity.workout_type == "1" else False,
+							distance = strava_activity.distance.num,
+							elapsed_time =strava_activity.elapsed_time,
+							moving_time = strava_activity.moving_time,
+							average_speed = strava_activity.average_speed.num,
+							average_cadence = strava_activity.average_cadence,
+							average_heartrate = strava_activity.average_heartrate)
+
+		db.session.add(activity)
+		new_activity_count += 1
+
+	flash("Added {count} new activities from Strava!".format(count=new_activity_count))
+	track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
+	db.session.commit()
+
+	return redirect(url_for("index"))
 
 
 @app.route("/analyse_strava_activity/<id>")
@@ -466,7 +496,7 @@ def connect_strava(action="prompt"):
 	error = request.args.get("error")
 
 	if error:
-		flash(error)
+		track_event(category="Strava", action="Error during Strava authorizaion", userId = str(current_user.id))
 		return redirect(url_for("connect_strava", action="prompt"))
 
 	if action == "authorize":
@@ -487,9 +517,11 @@ def connect_strava(action="prompt"):
 
 		data = strava_auth.get_token(code=code, grant_type="authorization_code")
 		session["strava_access_token"] = data.get("access_token")
-		flash("Successfully logged into Strava")
-		return redirect(url_for("strava_activity"))
+		track_event(category="Strava", action="Strava authorization successful", userId = str(current_user.id))
+		return redirect(url_for("import_strava_activity"))
 
+	# Shouldn' reach here any more as we're passing people to this route directly
+	track_event(category="Strava", action="Login page for Strava", userId = str(current_user.id))
 	return render_template("connect_strava.html", title="Connect to Strava")
 
 

@@ -11,7 +11,7 @@
 {% block app_content %}
 	<div class="row align-items-end">
 		<div class="col-md">
-			<h3>Recent Activity</h3>
+			<h3>Recently added activity</h3>
 		</div>
 		<div class="col-md">
 			<ul class="nav justify-content-end">
@@ -29,23 +29,33 @@
 	 	</div>
  	</div>
 	<table class="table table-sm table-hover">
-		{% for exercise in exercises %}
+		{% for activity in recent_activities %}
 			<tr>
-				<td>{{ moment(exercise.exercise_datetime).calendar() }}</td>
+				<td>{{ moment(activity.created_datetime).calendar() }}</td>
 				<td>
-					{% if exercise.scheduled_exercise %}
+					{% if activity.scheduled_exercise_id %}
 						<i class="fa fa-check-square-o"></i>
+					{% elif activity.is_race %}
+						<i class="fa fa-flag-checkered"></i>
 					{% endif %}
-					{{ exercise.type.name }}
+					{{ activity.name }}
 				</td>
 				<td>
-					{% if exercise.type.measured_by == "reps" %}
-						{{ exercise.reps }} reps
-					{% elif exercise.type.measured_by == "seconds" %}
-						{{ exercise.seconds }} secs
+					{% if activity.measured_by == "reps" %}
+						{{ activity.reps }} reps
+					{% elif activity.measured_by == "seconds" %}
+						{{ activity.seconds }} secs
+					{% elif activity.measured_by == "distance" %}
+						{{ activity.distance }} m
 					{% endif %}
 				</td>
-				<td><a href="{{ url_for('edit_exercise', id=exercise.id) }}"><i class="fa fa-edit"></i> Edit</a></td>
+				<td>
+					{% if activity.source == "Exercise" %}
+						<a href="{{ url_for('edit_exercise', id=activity.id) }}"><i class="fa fa-edit"></i> Edit</a>
+					{% elif activity.source == "Strava" %}
+						<a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a>
+					{% endif %}
+				</td>
 			</tr>
 		{% endfor %}
 	</table>
@@ -53,7 +63,7 @@
 	{% if scheduled_exercises or has_completed_schedule %}
 		<div class="card">
 			<div class="card-header">
-				<h4>Log Exercises from Plan</h4>
+				<h4>Log exercises from Training Plan</h4>
 			</div>
 			<div class="card-body exercise-buttons">
 				{% if has_completed_schedule %}
@@ -101,8 +111,17 @@
 	{% endif %}
 
 	<div class="card">
+			<div class="card-header">
+				<h4>Import new activities from Strava</h4>
+			</div>
+			<div class="card-body exercise-buttons">
+				<a href="{{ url_for('connect_strava', action='authorize') }}"><img src="/static/img/btn_strava_connectwith_orange.png" /></a>
+			</div>
+		</div>
+
+	<div class="card">
 		<div class="card-header">
-			<h4>Log {% if scheduled_exercises or has_completed_schedule %}Adhoc{% endif %} Exercises</h4>
+			<h4>Log {% if scheduled_exercises or has_completed_schedule %}adhoc{% endif %} exercises</h4>
 		</div>
 		<div class="card-body exercise-buttons">
 			<a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
