@@ -447,10 +447,12 @@ def import_strava_activity():
 @app.route("/activity_analysis/<id>")
 @login_required
 def activity_analysis(id):
+	track_event(category="Strava", action="Activity Analysis page loaded", userId = str(current_user.id))
 	activity = Activity.query.get(int(id))
 
 	# Grab the cadence data from Strava if we don't already have it
 	if activity.median_cadence is None:
+		track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
 		strava_client = Client()
 
 		if not session.get("strava_access_token"):
@@ -515,7 +517,7 @@ def activity_analysis(id):
 	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=200, dimension_name="cadence", measure_name="total_seconds_above_cadence")
 	above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
-	return render_template("activity_analysis.html", title="Analyse Activity: {name}".format(name=activity.name), activity=activity,
+	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
 		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div)
 
