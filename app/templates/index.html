@@ -38,7 +38,11 @@
 					{% elif activity.is_race %}
 						<i class="fa fa-flag-checkered"></i>
 					{% endif %}
-					{{ activity.name }}
+					{% if activity.source == "Strava" %}
+						<a href="{{ url_for('activity_analysis', id=activity.id) }}">{{ activity.name }}</a>
+					{% else %}
+						{{ activity.name }}
+					{% endif %}
 				</td>
 				<td>
 					{% if activity.measured_by == "reps" %}
