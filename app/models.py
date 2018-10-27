@@ -51,6 +51,7 @@ class User(UserMixin, db.Model):
 						literal("Exercise").label("source"),
 						Exercise.created_datetime.label("created_datetime"),
 						Exercise.exercise_datetime.label("activity_datetime"),
+						func.date(Exercise.exercise_datetime).label("activity_date"),
 						ExerciseType.name,
 						Exercise.scheduled_exercise_id,
 						null().label("is_race"),
@@ -67,6 +68,7 @@ class User(UserMixin, db.Model):
 						func.coalesce(Activity.external_source, "Activity").label("source"),
 						Activity.created_datetime.label("created_datetime"),
 						Activity.start_datetime.label("activity_datetime"),
+						func.date(Activity.start_datetime).label("activity_date"),
 						Activity.name,
 						null().label("scheduled_exercise_id"),
 						Activity.is_race,
@@ -77,7 +79,7 @@ class User(UserMixin, db.Model):
 						Activity.external_id
 				).filter(Activity.owner == self)
 
-		exercises_and_activities = exercises.union(activities).order_by(desc("created_datetime"), desc("activity_datetime"))
+		exercises_and_activities = exercises.union(activities)
 		return exercises_and_activities
 
 	def scheduled_exercises(self, scheduled_day):
@@ -122,22 +124,42 @@ class User(UserMixin, db.Model):
 		return scheduled_exercises_remaining
 
 
-	def daily_exercise_summary(self):
+	def daily_activity_summary(self):
 		daily_exercise_summary = db.session.query(
+					ExerciseType.id,
 					ExerciseType.name,
+					literal("Exercise").label("source"),
 					ExerciseType.measured_by,
-					func.date(Exercise.exercise_datetime).label("exercise_date"),
+					func.date(Exercise.exercise_datetime).label("activity_date"),
+					null().label("is_race"),
 					func.sum(Exercise.reps).label("total_reps"),
-					func.sum(Exercise.seconds).label("total_seconds")
+					func.sum(Exercise.seconds).label("total_seconds"),
+					null().label("total_distance"),
+					null().label("external_id")
 				).join(ExerciseType.exercises
 				).filter(ExerciseType.owner == self
 				).group_by(
+					ExerciseType.id,
 					ExerciseType.name,
 					ExerciseType.measured_by,
 					func.date(Exercise.exercise_datetime)
 				).order_by(ExerciseType.measured_by, func.sum(Exercise.reps).desc(), func.sum(Exercise.seconds).desc(), ExerciseType.name)
 
-		return daily_exercise_summary
+		activities = db.session.query(
+						Activity.id,
+						Activity.name,
+						func.coalesce(Activity.external_source, "Activity").label("source"),
+						literal("distance").label("measured_by"),
+						func.date(Activity.start_datetime).label("activity_date"),
+						Activity.is_race,
+						null().label("total_reps"),
+						null().label("total_seconds"),
+						Activity.distance.label("total_distance"),
+						Activity.external_id
+				).filter(Activity.owner == self)
+
+		daily_activity_summary = daily_exercise_summary.union(activities)
+		return daily_activity_summary
 
 
 	def exercises_by_category_and_day(self):
@@ -275,11 +297,29 @@ class Activity(db.Model):
 	moving_time = db.Column(db.Interval())
 	average_speed = db.Column(db.Numeric())
 	average_cadence = db.Column(db.Numeric())
+	median_cadence = db.Column(db.Numeric())
 	average_heartrate = db.Column(db.Numeric())
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	activity_cadence_aggregates = db.relationship("ActivityCadenceAggregate", backref="activity", lazy="dynamic")
 
 	def __repr__(self):
 		return "<Activity {name} with external ID of {external_id}>".format(name=self.name, external_id=self.external_id)
+
+	@property
+	def activity_date(self):
+		return self.start_datetime.date()
+
+
+class ActivityCadenceAggregate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"))
+	cadence = db.Column(db.Integer)
+	total_seconds_at_cadence = db.Column(db.Integer)
+	total_seconds_above_cadence = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ActivityCadenceAggregate for {cadence} on {name}>".format(cadence=self.cadence, name=self.activity.name)
 
 
 class Exercise(db.Model):

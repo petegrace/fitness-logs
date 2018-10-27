@@ -10,8 +10,8 @@ import pandas as pd
 from bokeh.embed import components
 from app import app, db
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity
-from app.dataviz import generate_stacked_bar_for_categories
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate
+from app.dataviz import generate_stacked_bar_for_categories, generate_bar
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
 from sqlalchemy import desc, and_, or_, null
@@ -427,7 +427,7 @@ def import_strava_activity():
 							elapsed_time =strava_activity.elapsed_time,
 							moving_time = strava_activity.moving_time,
 							average_speed = strava_activity.average_speed.num,
-							average_cadence = strava_activity.average_cadence,
+							average_cadence = (strava_activity.average_cadence * 2) if strava.activity_type == "Run" else strava_activity.average_cadence,
 							average_heartrate = strava_activity.average_heartrate)
 
 		db.session.add(activity)
@@ -448,54 +448,76 @@ def import_strava_activity():
 @login_required
 def activity_analysis(id):
 	activity = Activity.query.get(int(id))
-	strava_client = Client()
 
-	if not session.get("strava_access_token"):
-		redirect(url_for("connect_strava", action="prompt"))
+	# Grab the cadence data from Strava if we don't already have it
+	if activity.median_cadence is None:
+		strava_client = Client()
 
-	access_token = session["strava_access_token"]
-	strava_client.access_token = access_token
+		if not session.get("strava_access_token"):
+			redirect(url_for("connect_strava", action="prompt"))
 
-	stream_types = ["time", "cadence"]
+		access_token = session["strava_access_token"]
+		strava_client.access_token = access_token
 
-	try:
-		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
-	except:
-		return redirect(url_for("connect_strava", action="prompt", next="/activity_analysis/{id}".format(id=id)))
+		stream_types = ["time", "cadence"]
 
-	cadence_records = []
-	cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
-	dp_ind = 0
-	df_ind = 0
+		try:
+			activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
+		except:
+			return redirect(url_for("connect_strava", action="prompt", next="/activity_analysis/{id}".format(id=id)))
 
-	# construct a dictionary 
-	for cadence_data_point in activity_streams["cadence"].data:
-		if cadence_data_point > 0 and dp_ind > 1:
-			cadence_records.append({"cadence": cadence_data_point,
-									"start_time": activity_streams["time"].data[dp_ind-1],
-									"duration": activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1]})
-			cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1]]
-			df_ind += 1
-		dp_ind += 1
+		cadence_records = []
+		cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
+		dp_ind = 0
+		df_ind = 0
 
-	cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
+		# construct a dictionary 
+		for cadence_data_point in activity_streams["cadence"].data:
+			if cadence_data_point > 0 and dp_ind > 1:
+				duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])
 
-	cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
+				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
+					#cadence_records.append({"cadence": cadence_data_point,
+					#						"start_time": activity_streams["time"].data[dp_ind-1],
+					#						"duration": duration})
+					cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], duration]
+					df_ind += 1
+			dp_ind += 1
 
-	cadence_data_desc = cadence_data
-	cadence_data_desc.reverse()
+		cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
+		cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
+		cadence_data_desc = cadence_data
+		cadence_data_desc.reverse()
 
-	running_total = 0
-	above_cadence_data = []
+		running_total = 0
+		this_aggregate_total = 0
+		#above_cadence_data = []
 
-	for cadence_group in cadence_data_desc:
-		running_total += cadence_group[1]
-		above_cadence_data.append((cadence_group[0], running_total))
+		for cadence_group in cadence_data_desc:
+			running_total += cadence_group[1]
+			this_aggregate_total += cadence_group[1]
+			
+			# Group up any outliers with seconds < 10 seconds into the next aggregate
+			if this_aggregate_total > 10:
+				activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
+																	  cadence=cadence_group[0]*2,
+																	  total_seconds_at_cadence=this_aggregate_total,
+																	  total_seconds_above_cadence=running_total)
+				db.session.add(activity_cadence_aggregate)
+				this_aggregate_total = 0
 
-	#flash("Median cadence for this activity was {cadence}".format(cadence=cadence_df["cadence"].median()))
+		activity.median_cadence = cadence_df["cadence"].median()*2
+		db.session.commit()
 
-	return render_template("activity_analysis.html", title="Analyse Activity: {name}".format(name=activity.name),
-		activity=activity, cadence_data=cadence_data, above_cadence_data=above_cadence_data)
+	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=200, dimension_name="cadence", measure_name="total_seconds_at_cadence")
+	at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
+
+	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=200, dimension_name="cadence", measure_name="total_seconds_above_cadence")
+	above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
+
+	return render_template("activity_analysis.html", title="Analyse Activity: {name}".format(name=activity.name), activity=activity,
+		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
+		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div)
 
 
 @app.route("/connect_strava/<action>")

@@ -1,22 +1,87 @@
 {% extends "base.html" %}
 
+{% block styles %}
+	{{ super() }}
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css" rel="stylesheet" />
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.0.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block scripts %}
 	{{ super() }}
+
+	<script>
+		$("#activity-nav").addClass("active");
+	</script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+	{{ at_cadence_plot_script|safe }}
+	{{ above_cadence_plot_script|safe }}
 {% endblock %}
 
 {% block app_content %}
-	<h2>{{ activity.name }}</h2>
-	<h5>Time Spent at Cadence</h5>
-	<ul>
-		{% for item in cadence_data %}
-			<li>{{ item }}</li>
-		{% endfor %}
-	</ul>
-	<h5>Time Spent at or above Cadence</h5>
-	<ul>
-		{% for item in above_cadence_data %}
-			<li>{{ item }}</li>
-		{% endfor %}
-	</ul>
+	<h2>
+		{{ activity.name }}
+		{% if activity.is_race %}
+			<i class="fa fa-flag-checkered"></i>
+		{% endif %}
+	</h2>
+	<div class="card mt-3">
+		<div class="card-header">
+			<h5 class="m-0 p-0">Summary</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-4">
+					<table>
+						<tr>
+							<td>Date and Time:</td><td>{{ activity.start_datetime }}</td>
+						</tr>
+						<tr>			
+							<td>Distance:</td><td>{{ activity.distance }}</td>
+						</tr>
+						<tr>			
+							<td>Moving Time:</td><td>{{ activity.moving_time }}</td>
+						</tr>
+					</table>
+				</div>
+				<div class="col-sm-4">
+					<table>
+						<tr>
+							<td>Average Speed:</td><td>{{ activity.average_speed }}</td>
+						</tr>
+						<tr>			
+							<td>Average Cadence:</td><td>{{ activity.average_cadence }}</td>
+						</tr>
+						<tr>			
+							<td>Median Cadence:</td><td>{{ activity.median_cadence }}</td>
+						</tr>
+					</table>
+				</div>
+				<div class="col-md-4">
+					<table>
+						<tr>
+							<td>Average Heart Rate:</td><td>{{ activity.average_heartrate }}</td>
+						</tr>
+						<tr>			
+							<td colspan="2"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></td>
+						</tr>
+						<tr>			
+							<td></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>	
+	<div class="row">
+		<div class="col-md-6">
+			<h5>Time Spent at Cadence</h5>
+			{{ at_cadence_plot_div|safe }}
+		</div>
+		<div class="col-md-6">
+			<h5>Time Spent above Cadence</h5>
+			{{ above_cadence_plot_div|safe }}
+		</div>
+	</div>
 	<p><img src="/static/img/api_logo_pwrdBy_strava_horiz_light.png" /></p>
 {% endblock %}

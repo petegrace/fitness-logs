@@ -1,7 +1,7 @@
 from flask import redirect, flash
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis
 from bokeh.plotting import figure
 import bokeh.layouts
 
@@ -76,5 +76,41 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	# url = "/index?date=@{dimension}".format(dimension=dimension)
 	# tap_tool = plot.select(type=TapTool)
 	# tap_tool.callback = OpenURL(url=url)
+
+	return plot
+
+
+def generate_bar(dataset, plot_height, dimension_name, measure_name):
+	dimension_values = []
+	measure_values = []
+
+	# Reshape the data for the bars
+	for row in dataset:
+		dimension_values.append(getattr(row, dimension_name))
+		measure_values.append(getattr(row, measure_name))
+
+	source=ColumnDataSource(dict(dimension=dimension_values, measure=measure_values))
+
+	dimension_range = (dimension_values[-1]-2, dimension_values[0]+2)
+	measure_range = (-1, max(measure_values)*1.1)
+
+	labels = LabelSet(source=source, x="measure", y="dimension", text="measure", level="glyph",
+        x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#0275d8")
+	y_ticker = SingleIntervalTicker(interval=4, num_minor_ticks=2)
+	y_axis = LinearAxis(ticker=y_ticker)
+
+	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure", y_axis_type=None)
+	plot.hbar(source=source, y="dimension", right="measure", height=1.2, color="#0275d8", fill_alpha=0.8, hover_alpha=1)
+	plot.add_layout(labels)
+	plot.add_layout(y_axis, "left")
+	plot.xaxis.visible = False
+	plot.sizing_mode = "scale_width"
+	plot.axis.minor_tick_line_color = None
+	plot.axis.axis_line_color = "#999999"
+	plot.axis.major_label_text_color = "#666666"
+	plot.axis.major_label_text_font_size = "7pt"
+	plot.axis.major_tick_line_color = "#999999"
+	plot.grid.grid_line_color = None
+	plot.outline_line_color = None
 
 	return plot
