@@ -14,6 +14,7 @@ from app.models import User, ExerciseType, Exercise, ScheduledExercise, Exercise
 from app.dataviz import generate_stacked_bar_for_categories
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
+from sqlalchemy import desc, and_, or_, null
 
 # Helpers
 
@@ -44,7 +45,7 @@ def track_event(category, action, label=None, value=0, userId="0"):
 def index():
 	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
 	page = request.args.get("page", 1, type=int)
-	recent_activities = current_user.recent_activities().paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
+	recent_activities = current_user.recent_activities().order_by(desc("created_datetime"), desc("activity_datetime")).paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
 	next_url = url_for("index", page=recent_activities.next_num) if recent_activities.has_next else None
 	prev_url = url_for("index", page=recent_activities.prev_num) if recent_activities.has_prev else None
 
@@ -202,11 +203,11 @@ def activity(mode):
 	plot_by_day_script, plot_by_day_div = components(plot_by_day)
 
 	if mode == "detail":
-		exercises = current_user.exercises().all()
+		activities = current_user.recent_activities().order_by(desc("activity_datetime")).all()
 	elif mode == "summary":
-		exercises = current_user.daily_exercise_summary().all()
+		activities = current_user.daily_activity_summary().all()
 
-	return render_template("activity.html", title="Activity", exercises=exercises, mode=mode, plot_by_day_script=plot_by_day_script, plot_by_day_div=plot_by_day_div)
+	return render_template("activity.html", title="Activity", activities=activities, mode=mode, plot_by_day_script=plot_by_day_script, plot_by_day_div=plot_by_day_div)
 
 
 @app.route("/schedule/<schedule_freq>/<selected_day>")
@@ -411,8 +412,7 @@ def import_strava_activity():
 		return redirect(url_for("connect_strava", action="prompt"))
 
 	most_recent_strava_activity_datetime = current_user.most_recent_strava_activity_datetime()
-	activities = strava_client.get_activities(before = "2018-10-12T00:00:00Z",	# TODO: remove the before param once we're done with testing
-											  after = most_recent_strava_activity_datetime)
+	activities = strava_client.get_activities(after = most_recent_strava_activity_datetime)
 
 	new_activity_count = 0
 	for strava_activity in activities:
@@ -437,12 +437,17 @@ def import_strava_activity():
 	track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
 	db.session.commit()
 
-	return redirect(url_for("index"))
+	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
+	next_page = request.args.get("next")
+	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
+		return redirect(url_for("index"))
+	return redirect(next_page)
 
 
-@app.route("/analyse_strava_activity/<id>")
+@app.route("/activity_analysis/<id>")
 @login_required
-def analyse_strava_activity(id):
+def activity_analysis(id):
+	activity = Activity.query.get(int(id))
 	strava_client = Client()
 
 	if not session.get("strava_access_token"):
@@ -452,7 +457,11 @@ def analyse_strava_activity(id):
 	strava_client.access_token = access_token
 
 	stream_types = ["time", "cadence"]
-	activity_streams = strava_client.get_activity_streams(id, types=stream_types)
+
+	try:
+		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
+	except:
+		return redirect(url_for("connect_strava", action="prompt", next="/activity_analysis/{id}".format(id=id)))
 
 	cadence_records = []
 	cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
@@ -483,10 +492,10 @@ def analyse_strava_activity(id):
 		running_total += cadence_group[1]
 		above_cadence_data.append((cadence_group[0], running_total))
 
+	#flash("Median cadence for this activity was {cadence}".format(cadence=cadence_df["cadence"].median()))
 
-	flash("Median cadence for this activity was {cadence}".format(cadence=cadence_df["cadence"].median()))
-
-	return render_template("analyse_strava_activity.html", title="Analyse Strava Activity", cadence_data=cadence_data, above_cadence_data=above_cadence_data)
+	return render_template("activity_analysis.html", title="Analyse Activity: {name}".format(name=activity.name),
+		activity=activity, cadence_data=cadence_data, above_cadence_data=above_cadence_data)
 
 
 @app.route("/connect_strava/<action>")
@@ -518,7 +527,10 @@ def connect_strava(action="prompt"):
 		data = strava_auth.get_token(code=code, grant_type="authorization_code")
 		session["strava_access_token"] = data.get("access_token")
 		track_event(category="Strava", action="Strava authorization successful", userId = str(current_user.id))
-		return redirect(url_for("import_strava_activity"))
+
+		# Pass the next query string parameter through o the import
+		next_page = request.args.get("next")
+		return redirect(url_for("import_strava_activity", next=next_page))
 
 	# Shouldn' reach here any more as we're passing people to this route directly
 	track_event(category="Strava", action="Login page for Strava", userId = str(current_user.id))

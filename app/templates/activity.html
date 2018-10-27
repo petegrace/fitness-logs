@@ -31,45 +31,69 @@
 		</li>
 	</ul>
 
-	{% for exercise_date_group in exercises|groupby("exercise_date")|reverse %}
-		<h5>{{ moment(exercise_date_group.grouper).format("ddd LL") }}:
-			{{ exercise_date_group.list|length }} {% if mode == 'detail' %} sets of {% endif %} exercises</h5>
+	{% for activity_date_group in activities|groupby("activity_date")|reverse %}
+		<h5>{{ moment(activity_date_group.grouper).format("ddd LL") }}</h5>
 		<table class="table table-sm table-hover">
 			{% if mode == "summary" %}
-				{% for exercise in exercise_date_group.list %}
+				{% for activity in activity_date_group.list %}
 					<tr>
-						<td style="width: 70%">{{ exercise.name }}</td>
+						<td style="width: 70%">
+							{% if activity.is_race %}
+								<i class="fa fa-flag-checkered"></i>
+							{% endif %}
+							{% if activity.source == "Strava" %}
+								<a href="{{ url_for('activity_analysis', id=activity.id) }}">{{ activity.name }}</a>
+							{% else %}
+								{{ activity.name }}
+							{% endif %}
+						</td>
 						<td style="width: 30%">
-							{% if exercise.measured_by == "reps" %}
-								{{ exercise.total_reps }} reps
-							{% elif exercise.measured_by == "seconds" %}
-								{{ exercise.total_seconds }} secs
+							{% if activity.measured_by == "reps" %}
+								{{ activity.total_reps }} reps
+							{% elif activity.measured_by == "seconds" %}
+								{{ activity.total_seconds }} secs
+							{% elif activity.measured_by == "distance" %}
+								{{ activity.total_distance }} m
 							{% endif %}
 						</td>
 					</tr>
 				{% endfor %}
 			{% elif mode == "detail" %}
-				{% for exercise in exercise_date_group.list %}
+				{% for activity in activity_date_group.list %}
 					<tr>
 						<td style="width: 50%">
-							{% if exercise.scheduled_exercise %}
+							{% if activity.scheduled_exercise %}
 								<i class="fa fa-check-square-o"></i>
+							{%elif activity.is_race %}
+								<i class="fa fa-flag-checkered"></i>}
 							{% endif %}
-							{{ exercise.type.name }}
+							{% if activity.source == "Strava" %}
+								<a href="{{ url_for('activity_analysis', id=activity.id) }}">{{ activity.name }}</a>
+							{% else %}
+								{{ activity.name }}
+							{% endif %}
 						</td>
-						<td style="width: 15%">{{ moment(exercise.exercise_datetime).format("HH:mm:ss") }}</td>
+						<td style="width: 15%">{{ moment(activity.activity_datetime).format("HH:mm:ss") }}</td>
 						<td style="width: 20%">
-							{% if exercise.type.measured_by == "reps" %}
-								{{ exercise.reps }} reps
-							{% elif exercise.type.measured_by == "seconds" %}
-								{{ exercise.seconds }} secs
+							{% if activity.measured_by == "reps" %}
+								{{ activity.reps }} reps
+							{% elif activity.measured_by == "seconds" %}
+								{{ activity.seconds }} secs
+							{% elif activity.measured_by == "distance" %}
+								{{ activity.distance }} m
 							{% endif %}
 						</td>
-						<td style="width: 15%"><a href="{{ url_for('edit_exercise', id=exercise.id, next='/activity/{mode}'.format(mode=mode)) }}"><i class="fa fa-edit"></i> Edit</a></td>
+						<td style="width: 15%">
+							{% if activity.source == "Exercise" %}
+								<a href="{{ url_for('edit_exercise', id=activity.id, next='/activity/{mode}'.format(mode=mode)) }}"><i class="fa fa-edit"></i> Edit</a>
+							{% elif activity.source == "Strava" %}
+								<a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a>
+							{% endif %}
+						</td>
 					</tr>
 				{% endfor %}
 			{% endif %}
 		</table>
-
 	{% endfor %}
+	<p><img src="/static/img/api_logo_cptblWith_strava_horiz_light.png" /></p>
 {% endblock %}
