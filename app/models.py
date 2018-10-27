@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import func, literal, desc, and_, or_, null
-from app import db
+from app import db, utils
 from app import login
 from itertools import groupby
 
@@ -309,6 +309,20 @@ class Activity(db.Model):
 	def activity_date(self):
 		return self.start_datetime.date()
 
+	@property
+	def distance_formatted(self):
+		if self.distance >= 1000:
+			distance_formatted = "{value} km".format(value=utils.convert_m_to_km(self.distance))
+		else:
+			distance_formatted = "{value} m".format(value=self.distance)
+		return distance_formatted
+
+	@property
+	def average_pace_formatted(self):
+		km_pace = utils.convert_mps_to_km_pace(self.average_speed)
+		average_pace_formatted = "{value} /km".format(value=utils.format_timedelta_minutes(km_pace))
+		return average_pace_formatted
+
 
 class ActivityCadenceAggregate(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -320,6 +334,14 @@ class ActivityCadenceAggregate(db.Model):
 
 	def __repr__(self):
 		return "<ActivityCadenceAggregate for {cadence} on {name}>".format(cadence=self.cadence, name=self.activity.name)
+
+	@property
+	def total_seconds_at_cadence_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_at_cadence))
+
+	@property
+	def total_seconds_above_cadence_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_cadence))
 
 
 class Exercise(db.Model):

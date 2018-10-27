@@ -53,7 +53,7 @@
 							{% elif activity.measured_by == "seconds" %}
 								{{ activity.total_seconds }} secs
 							{% elif activity.measured_by == "distance" %}
-								{{ activity.total_distance }} m
+								{{ utils.convert_m_to_km(activity.total_distance) }} km
 							{% endif %}
 						</td>
 					</tr>
@@ -80,7 +80,7 @@
 							{% elif activity.measured_by == "seconds" %}
 								{{ activity.seconds }} secs
 							{% elif activity.measured_by == "distance" %}
-								{{ activity.distance }} m
+								{{ utils.convert_m_to_km(activity.distance) }} km
 							{% endif %}
 						</td>
 						<td style="width: 15%">

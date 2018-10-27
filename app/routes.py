@@ -8,7 +8,7 @@ from werkzeug.urls import url_parse
 from wtforms import HiddenField
 import pandas as pd
 from bokeh.embed import components
-from app import app, db
+from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar
@@ -207,7 +207,7 @@ def activity(mode):
 	elif mode == "summary":
 		activities = current_user.daily_activity_summary().all()
 
-	return render_template("activity.html", title="Activity", activities=activities, mode=mode, plot_by_day_script=plot_by_day_script, plot_by_day_div=plot_by_day_div)
+	return render_template("activity.html", title="Activity", activities=activities, mode=mode, plot_by_day_script=plot_by_day_script, plot_by_day_div=plot_by_day_div, utils=utils)
 
 
 @app.route("/schedule/<schedule_freq>/<selected_day>")
@@ -514,10 +514,12 @@ def activity_analysis(id):
 	# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
 	max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
 
-	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300, dimension_name="cadence", measure_name="total_seconds_at_cadence", max_dimension_range=max_dimension_range)
+	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
+		dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range)
 	at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
 
-	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300, dimension_name="cadence", measure_name="total_seconds_above_cadence", max_dimension_range=max_dimension_range)
+	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
+		dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range)
 	above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,

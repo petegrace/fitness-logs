@@ -34,33 +34,39 @@
 				<div class="col-4">
 					<table>
 						<tr>
-							<td>Date and Time:</td><td>{{ activity.start_datetime }}</td>
+							<td><small>When:</small></td>
+							<td>{{ moment(activity.start_datetime).calendar() }}</td>
 						</tr>
 						<tr>			
-							<td>Distance:</td><td>{{ activity.distance }}</td>
+							<td><small>Distance:</small></td>
+							<td>{{ activity.distance_formatted }}</td>
 						</tr>
 						<tr>			
-							<td>Moving Time:</td><td>{{ activity.moving_time }}</td>
+							<td><small>Moving Time:</small></td>
+							<td>{{ activity.moving_time }}</td>
 						</tr>
 					</table>
 				</div>
 				<div class="col-sm-4">
 					<table>
 						<tr>
-							<td>Average Speed:</td><td>{{ activity.average_speed }}</td>
+							<td><small>Avg. Speed:</small></td>
+							<td>{{ activity.average_pace_formatted }}</td>
 						</tr>
 						<tr>			
-							<td>Average Cadence:</td><td>{{ activity.average_cadence }}</td>
+							<td><small>Avg. Cadence:</small></td>
+							<td>{{ activity.average_cadence }}</td>
 						</tr>
 						<tr>			
-							<td>Median Cadence:</td><td>{{ activity.median_cadence }}</td>
+							<td><small>Median Cadence:</small></td>
+							<td>{{ activity.median_cadence }}</td>
 						</tr>
 					</table>
 				</div>
 				<div class="col-md-4">
 					<table>
 						<tr>
-							<td>Average Heart Rate:</td><td>{{ activity.average_heartrate }}</td>
+							<td><small>Avg. Heart Rate:</small></td><td>{{ activity.average_heartrate }}</td>
 						</tr>
 						<tr>			
 							<td colspan="2"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></td>
