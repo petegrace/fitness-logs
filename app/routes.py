@@ -456,7 +456,7 @@ def activity_analysis(id):
 		strava_client = Client()
 
 		if not session.get("strava_access_token"):
-			redirect(url_for("connect_strava", action="prompt"))
+			return redirect(url_for("connect_strava", action="authorize", next="/activity_analysis/{id}".format(id=id)))
 
 		access_token = session["strava_access_token"]
 		strava_client.access_token = access_token
@@ -466,61 +466,69 @@ def activity_analysis(id):
 		try:
 			activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
 		except:
-			return redirect(url_for("connect_strava", action="prompt", next="/activity_analysis/{id}".format(id=id)))
+			return redirect(url_for("connect_strava", action="authorize", next="/activity_analysis/{id}".format(id=id)))
 
-		cadence_records = []
-		cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
-		dp_ind = 0
-		df_ind = 0
 
-		# construct a dictionary 
-		for cadence_data_point in activity_streams["cadence"].data:
-			if cadence_data_point > 0 and dp_ind > 1:
-				duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])
+		if "cadence" in activity_streams:
+			cadence_records = []
+			cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
+			dp_ind = 0
+			df_ind = 0
 
-				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
-					#cadence_records.append({"cadence": cadence_data_point,
-					#						"start_time": activity_streams["time"].data[dp_ind-1],
-					#						"duration": duration})
-					cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], duration]
-					df_ind += 1
-			dp_ind += 1
+			# construct a dictionary 
+			for cadence_data_point in activity_streams["cadence"].data:
+				if cadence_data_point > 0 and dp_ind > 1:
+					duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])
 
-		cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
-		cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
-		cadence_data_desc = cadence_data
-		cadence_data_desc.reverse()
+					if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
+						#cadence_records.append({"cadence": cadence_data_point,
+						#						"start_time": activity_streams["time"].data[dp_ind-1],
+						#						"duration": duration})
+						cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], duration]
+						df_ind += 1
+				dp_ind += 1
 
-		running_total = 0
-		this_aggregate_total = 0
-		#above_cadence_data = []
+			cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
+			cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
+			cadence_data_desc = cadence_data
+			cadence_data_desc.reverse()
 
-		for cadence_group in cadence_data_desc:
-			running_total += cadence_group[1]
-			this_aggregate_total += cadence_group[1]
-			
-			# Group up any outliers with seconds < 10 seconds into the next aggregate
-			if this_aggregate_total > 10:
-				activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
-																	  cadence=cadence_group[0]*2,
-																	  total_seconds_at_cadence=this_aggregate_total,
-																	  total_seconds_above_cadence=running_total)
-				db.session.add(activity_cadence_aggregate)
-				this_aggregate_total = 0
+			running_total = 0
+			this_aggregate_total = 0
+			#above_cadence_data = []
 
-		activity.median_cadence = cadence_df["cadence"].median()*2
-		db.session.commit()
+			for cadence_group in cadence_data_desc:
+				running_total += cadence_group[1]
+				this_aggregate_total += cadence_group[1]
+				
+				# Group up any outliers with seconds < 10 seconds into the next aggregate
+				if this_aggregate_total > 10:
+					activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
+																		  cadence=cadence_group[0]*2,
+																		  total_seconds_at_cadence=this_aggregate_total,
+																		  total_seconds_above_cadence=running_total)
+					db.session.add(activity_cadence_aggregate)
+					this_aggregate_total = 0
 
-	# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
-	max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
+			activity.median_cadence = cadence_df["cadence"].median()*2
+			db.session.commit()
 
-	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
-		dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range)
-	at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
+	
+	if activity.median_cadence is not None:
+		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
+		max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
 
-	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
-		dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range)
-	above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
+		at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
+			dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range)
+		at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
+
+		above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
+			dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range)
+		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
+	else:
+		max_dimension_range = None
+		at_cadence_plot_script, at_cadence_plot_div = (None, None)
+		above_cadence_plot_script, above_cadence_plot_div = (None, None)
 
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
 		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
@@ -532,10 +540,14 @@ def activity_analysis(id):
 def connect_strava(action="prompt"):
 	code = request.args.get("code")
 	error = request.args.get("error")
+	next_page = request.args.get("next")
+
+	if next_page is None:
+		next_page = "/index"
 
 	if error:
 		track_event(category="Strava", action="Error during Strava authorizaion", userId = str(current_user.id))
-		return redirect(url_for("connect_strava", action="prompt"))
+		return redirect(url_for("index"))
 
 	if action == "authorize":
 		# Do the Strava bit
@@ -543,7 +555,7 @@ def connect_strava(action="prompt"):
 			client_id = app.config["STRAVA_OAUTH2_CLIENT_ID"],
 			client_secret = app.config["STRAVA_OAUTH2_CLIENT_SECRET"],
 			site = "https://www.strava.com",
-			redirect_uri = app.config["STRAVA_OAUTH2_REDIRECT_URI"],
+			redirect_uri = app.config["STRAVA_OAUTH2_REDIRECT_URI"] + "?next={next}".format(next=next_page),
 			authorization_url = '/oauth/authorize',
 			token_url = '/oauth/token',
 			revoke_url = '/oauth2/deauthorize',
@@ -558,7 +570,6 @@ def connect_strava(action="prompt"):
 		track_event(category="Strava", action="Strava authorization successful", userId = str(current_user.id))
 
 		# Pass the next query string parameter through o the import
-		next_page = request.args.get("next")
 		return redirect(url_for("import_strava_activity", next=next_page))
 
 	# Shouldn' reach here any more as we're passing people to this route directly
