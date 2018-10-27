@@ -80,7 +80,7 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot
 
 
-def generate_bar(dataset, plot_height, dimension_name, measure_name):
+def generate_bar(dataset, plot_height, dimension_name, measure_name, max_dimension_range=None):
 	dimension_values = []
 	measure_values = []
 
@@ -91,7 +91,14 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name):
 
 	source=ColumnDataSource(dict(dimension=dimension_values, measure=measure_values))
 
-	dimension_range = (dimension_values[-1]-2, dimension_values[0]+2)
+	if max_dimension_range is None:
+		dimension_range_min = dimension_values[-1]
+		dimension_range_max = dimension_values[0]
+	else:
+		dimension_range_min = dimension_values[-1] if dimension_values[-1] > max_dimension_range[0] else max_dimension_range[0]
+		dimension_range_max = dimension_values[0] if dimension_values[0] < max_dimension_range[1] else max_dimension_range[1]
+
+	dimension_range = (dimension_range_min-2, dimension_range_max+2)
 	measure_range = (-1, max(measure_values)*1.1)
 
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure", level="glyph",
