@@ -514,10 +514,10 @@ def activity_analysis(id):
 	# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
 	max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
 
-	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=200, dimension_name="cadence", measure_name="total_seconds_at_cadence", max_dimension_range=max_dimension_range)
+	at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300, dimension_name="cadence", measure_name="total_seconds_at_cadence", max_dimension_range=max_dimension_range)
 	at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
 
-	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=200, dimension_name="cadence", measure_name="total_seconds_above_cadence", max_dimension_range=max_dimension_range)
+	above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300, dimension_name="cadence", measure_name="total_seconds_above_cadence", max_dimension_range=max_dimension_range)
 	above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
