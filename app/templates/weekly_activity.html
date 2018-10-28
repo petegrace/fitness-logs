@@ -19,10 +19,10 @@
 {% block app_content %}
 	<h2>Weekly Activity</h2>
 	<div class="dropdown">
-		<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown">
 			Select Week
 		</button>
-		<div class="dropdown-menu dropdown-menu-scrollable" aria-labelledby="dropdownMenuButton">
+		<div class="dropdown-menu dropdown-menu-scrollable">
 			{% for week in week_options %}
 				<a class="dropdown-item {% if week.calendar_week_start_date==current_week %}active{% endif %}" href="{{ url_for("weekly_activity", year=current_year, week=week.calendar_week_start_date) }}">{{ week.calendar_week_start_date }}</a>
 			{% endfor %}
@@ -34,14 +34,42 @@
 			{% include '_activity_summary.html' %}
 		{% endfor %}
 		{% for category_group in day_detail.exercises_by_category %}
-			<div class="card {{ category_group.category.category_key }}_border_only mt-3">
+			<div class="card {{ category_group.category.category_key }}_border_only mt-2">
 				<div class="card-header {{ category_group.category.category_key }}">
-					<h6 class="m-0 p-0">{{ category_group.exercise_count }} {{ category_group.category.category_name }} sets</h6>
+					<h6 class="m-0 p-0">
+						<a href="#{{category_group.category.category_key}}-{{day_detail.day.day_of_week}}" data-toggle="collapse" role="button">
+							<i class="fa fa-chevron-down"></i>
+							{{ category_group.exercise_count }} {{ category_group.category.category_name }} sets
+						</a>
+					</h6>
+					
 				</div>
-				<div class="card-body">
-					{% for exercise in category_group.exercises %}
-						{{ exercise.type.name }}
-					{% endfor %}
+				<div id="{{category_group.category.category_key}}-{{day_detail.day.day_of_week}}" class="card-body collapse">
+					<table class="table table-sm table-hover">
+						{% for exercise in category_group.exercises %}
+							<tr>
+								<td style="width: 40%">
+									{% if exercise.scheduled_exercise %}
+										<i class="fa fa-check-square-o"></i>
+									{% endif %}
+									{{ exercise.type.name }}
+								</td>
+								<td style="width: 20%">{{ moment(exercise.exercise_datetime).format("HH:mm:ss") }}</td>
+								<td style="width: 20%">
+									{% if exercise.type.measured_by == "reps" %}
+										{{ exercise.reps }} reps
+									{% elif exercise.type.measured_by == "seconds" %}
+										{{ exercise.seconds }} secs
+									{% endif %}
+								</td>
+								<td style="width: 20%">
+									<a href="{{ url_for('edit_exercise', id=exercise.id, next='/weekly_activity/{year}/{week}'.format(year=current_year, week=current_week)) }}">
+										<i class="fa fa-edit"></i> Edit
+									</a>
+								</td>
+							</tr>
+						{% endfor %}
+					</table>
 				</div>
 			</div>
 		{% endfor %}

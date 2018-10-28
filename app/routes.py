@@ -202,7 +202,7 @@ def weekly_activity(year, week=None):
 					).order_by(CalendarDay.calendar_week_start_date.desc()).all()
 
 	if week is None:
-		current_week = weeks[0].calendar_week_start_date
+		current_week = week_options[0].calendar_week_start_date
 	else:
 		current_week = datetime.date(datetime.strptime(week, "%Y-%m-%d"))
 
