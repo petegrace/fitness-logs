@@ -65,7 +65,7 @@ def index():
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
-							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule)
+							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule, utils=utils)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -524,11 +524,12 @@ def activity_analysis(id):
 
 		above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
 			dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range)
+		#above_cadence_plot
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 	else:
 		max_dimension_range = None
-		at_cadence_plot_script, at_cadence_plot_div = (None, None)
-		above_cadence_plot_script, above_cadence_plot_div = (None, None)
+		at_cadence_plot_script, at_cadence_plot_div = ("", "")
+		above_cadence_plot_script, above_cadence_plot_div = ("", "")
 
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
 		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
