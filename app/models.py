@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from sqlalchemy import func, literal, desc, and_, or_, null
+from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct
 from app import db, utils
 from app import login
 from itertools import groupby
@@ -122,6 +122,48 @@ class User(UserMixin, db.Model):
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
 		return scheduled_exercises_remaining
+
+
+	def weekly_activity_summary(self):
+		exercises = db.session.query(
+						ExerciseCategory.category_name,
+						ExerciseCategory.category_key,
+						CalendarDay.calendar_week_start_date,
+						func.count(distinct(func.date(Exercise.exercise_datetime))).label("total_activities"),
+						func.count(Exercise.id).label("total_sets"),
+						func.sum(Exercise.reps).label("total_reps"),
+						func.sum(Exercise.seconds).label("total_seconds"),
+						null().label("total_distance")
+				).join(ExerciseType.exercises
+				).join(ExerciseType.exercise_category
+				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
+				).filter(ExerciseType.owner == self
+				).group_by(
+						CalendarDay.calendar_week_start_date,
+						ExerciseCategory.category_key,
+						ExerciseCategory.category_name
+				)
+
+		activities = db.session.query(
+						Activity.activity_type.label("category_name"),
+						ExerciseCategory.category_key,
+						CalendarDay.calendar_week_start_date,
+						func.count(distinct(func.date(Activity.start_datetime))).label("total_activities"),
+						func.count(Activity.id).label("total_sets"),
+						null().label("total_reps"),
+						extract("epoch", func.sum(Activity.moving_time)).label("total_seconds"),
+						func.sum(Activity.distance).label("total_distance")
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name
+				).filter(Activity.owner == self
+				).group_by(
+					CalendarDay.calendar_week_start_date,
+						ExerciseCategory.category_key,
+						Activity.activity_type.label("category_name")
+				)
+
+		weekly_activity_summary = exercises.union(activities)
+		return weekly_activity_summary
 
 
 	def daily_activity_summary(self):
@@ -376,3 +418,14 @@ class ScheduledExercise(db.Model):
 	def __repr__(self):
 		return "<ScheduledExercise {name} for {user} on {day}>".format(
 			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+
+
+class CalendarDay(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	calendar_date = db.Column(db.Date, index=True)
+	day_of_week = db.Column(db.String(10))
+	calendar_week_start_date = db.Column(db.Date)
+	calendar_year = db.Column(db.Integer)
+
+	def __repr__(self):
+		return "<CalendarDay {date}>".format(date=self.calendar_date)

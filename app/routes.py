@@ -189,6 +189,16 @@ def edit_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
 
 
+@app.route("/weekly_activity")
+@login_required
+def weekly_activity():
+	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
+
+	weekly_summary = current_user.weekly_activity_summary().order_by(desc("3"), "1").all() #3 is date, 1 is category name, 
+
+	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary, utils=utils)
+
+
 @app.route("/activity/<mode>")
 @login_required
 def activity(mode):

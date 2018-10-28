@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block styles %}
+	{{ super() }}
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css" rel="stylesheet" />
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.0.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+
+	<script>
+		$("#activity-nav").addClass("active");
+	</script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+{% endblock %}
+
+{% block app_content %}
+	<h2>Weekly Activity</h2>
+		<table class="table table-sm table-hover">
+			{% for week_and_category in weekly_summary %}
+				<tr>
+					<td>
+						{{ week_and_category.calendar_week_start_date }}
+					</td>
+					<td>
+						{{ week_and_category.category_name }}
+					</td>
+					<td>
+						{{ week_and_category.category_key }}
+					</td>
+					<td>
+						{{ week_and_category.total_activities }}
+					</td>
+				</tr>
+			{% endfor %}
+		</table>
+	<p><img src="/static/img/api_logo_cptblWith_strava_horiz_light.png" /></p>
+{% endblock %}
