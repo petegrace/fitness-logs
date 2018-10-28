@@ -19,73 +19,14 @@
 {% endblock %}
 
 {% block app_content %}
-	<h2>
-		{{ activity.name }}
-		{% if activity.is_race %}
-			<i class="fa fa-flag-checkered"></i>
-		{% endif %}
-	</h2>
-	<div class="card mt-3">
-		<div class="card-header">
-			<h5 class="m-0 p-0">Summary</h5>
-		</div>
-		<div class="card-body">
-			<div class="row">
-				<div class="col-4">
-					<table>
-						<tr>
-							<td><small>When:</small></td>
-							<td>{{ moment(activity.start_datetime).calendar() }}</td>
-						</tr>
-						<tr>			
-							<td><small>Distance:</small></td>
-							<td>{{ activity.distance_formatted }}</td>
-						</tr>
-						<tr>			
-							<td><small>Moving Time:</small></td>
-							<td>{{ activity.moving_time }}</td>
-						</tr>
-					</table>
-				</div>
-				<div class="col-sm-4">
-					<table>
-						<tr>
-							<td><small>Avg. Speed:</small></td>
-							<td>{{ activity.average_pace_formatted }}</td>
-						</tr>
-						<tr>			
-							<td><small>Avg. Cadence:</small></td>
-							<td>{{ activity.average_cadence }}</td>
-						</tr>
-						<tr>			
-							<td><small>Median Cadence:</small></td>
-							<td>{{ activity.median_cadence }}</td>
-						</tr>
-					</table>
-				</div>
-				<div class="col-md-4">
-					<table>
-						<tr>
-							<td><small>Avg. Heart Rate:</small></td><td>{{ activity.average_heartrate }}</td>
-						</tr>
-						<tr>			
-							<td colspan="2"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></td>
-						</tr>
-						<tr>			
-							<td></td>
-						</tr>
-					</table>
-				</div>
-			</div>
-		</div>
-	</div>	
-	<div class="row">
+	{% include '_activity_summary.html' %}
+	<div class="row mt-4">
 		<div class="col-md-6">
-			<h5>Time Spent at Cadence</h5>
+			<h6>Time Spent at Cadence</h5>
 			{{ at_cadence_plot_div|safe }}
 		</div>
 		<div class="col-md-6">
-			<h5>Time Spent above Cadence</h5>
+			<h6>Time Spent above Cadence</h5>
 			{{ above_cadence_plot_div|safe }}
 		</div>
 	</div>

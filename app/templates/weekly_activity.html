@@ -18,23 +18,51 @@
 
 {% block app_content %}
 	<h2>Weekly Activity</h2>
-		<table class="table table-sm table-hover">
-			{% for week_and_category in weekly_summary %}
-				<tr>
-					<td>
-						{{ week_and_category.calendar_week_start_date }}
-					</td>
-					<td>
-						{{ week_and_category.category_name }}
-					</td>
-					<td>
-						{{ week_and_category.category_key }}
-					</td>
-					<td>
-						{{ week_and_category.total_activities }}
-					</td>
-				</tr>
+	<div class="dropdown">
+		<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			Select Week
+		</button>
+		<div class="dropdown-menu dropdown-menu-scrollable" aria-labelledby="dropdownMenuButton">
+			{% for week in week_options %}
+				<a class="dropdown-item {% if week.calendar_week_start_date==current_week %}active{% endif %}" href="{{ url_for("weekly_activity", year=current_year, week=week.calendar_week_start_date) }}">{{ week.calendar_week_start_date }}</a>
 			{% endfor %}
-		</table>
+		</div>
+	</div>
+	{% for day_detail in current_week_dataset %}
+		<h5>{{ day_detail.day.calendar_date }}</h5>
+		{% for activity in day_detail.activities %}
+			{% include '_activity_summary.html' %}
+		{% endfor %}
+		{% for category_group in day_detail.exercises_by_category %}
+			<div class="card {{ category_group.category.category_key }}_border_only mt-3">
+				<div class="card-header {{ category_group.category.category_key }}">
+					<h6 class="m-0 p-0">{{ category_group.exercise_count }} {{ category_group.category.category_name }} sets</h6>
+				</div>
+				<div class="card-body">
+					{% for exercise in category_group.exercises %}
+						{{ exercise.type.name }}
+					{% endfor %}
+				</div>
+			</div>
+		{% endfor %}
+	{% endfor %}
+	<table class="table table-sm table-hover">
+		{% for week_and_category in weekly_summary %}
+			<tr>
+				<td>
+					{{ week_and_category.calendar_week_start_date }}
+				</td>
+				<td>
+					{{ week_and_category.category_name }}
+				</td>
+				<td>
+					{{ week_and_category.category_key }}
+				</td>
+				<td>
+					{{ week_and_category.total_activities }}
+				</td>
+			</tr>
+		{% endfor %}
+	</table>
 	<p><img src="/static/img/api_logo_cptblWith_strava_horiz_light.png" /></p>
 {% endblock %}

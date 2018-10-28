@@ -10,7 +10,7 @@ import pandas as pd
 from bokeh.embed import components
 from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
@@ -189,14 +189,50 @@ def edit_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
 
 
-@app.route("/weekly_activity")
+@app.route("/weekly_activity/<year>")
+@app.route("/weekly_activity/<year>/<week>")
 @login_required
-def weekly_activity():
+def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
+
+	week_options = db.session.query(CalendarDay.calendar_week_start_date
+					).filter(CalendarDay.calendar_year==year
+					).filter(CalendarDay.calendar_date<=datetime.today()
+					).group_by(CalendarDay.calendar_week_start_date
+					).order_by(CalendarDay.calendar_week_start_date.desc()).all()
+
+	if week is None:
+		current_week = weeks[0].calendar_week_start_date
+	else:
+		current_week = datetime.date(datetime.strptime(week, "%Y-%m-%d"))
+
+	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
+
+	all_exercises = current_user.exercises().all()
+	all_activities = current_user.activities.all()
+	categories = current_user.exercise_categories.all()
+
+	current_week_dataset = []
+
+	for day in days:
+		exercises_by_category = []
+		for category in categories:
+			category_exercises = [exercise for exercise in all_exercises if exercise.exercise_date==day.calendar_date and exercise.type.exercise_category==category]
+			if len(category_exercises) > 0:
+				category_detail = dict(category=category,
+						  			   exercise_count=len(category_exercises),
+									   exercises=category_exercises)
+				exercises_by_category.append(category_detail)
+		day_activities = [activity for activity in all_activities if activity.activity_date==day.calendar_date]
+		day_detail = dict(day=day,
+						  exercises_by_category=exercises_by_category,
+						  activities=day_activities)
+		current_week_dataset.append(day_detail)
 
 	weekly_summary = current_user.weekly_activity_summary().order_by(desc("3"), "1").all() #3 is date, 1 is category name, 
 
-	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary, utils=utils)
+	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary,utils=utils, week_options=week_options, current_year=year, current_week=current_week,
+		current_week_dataset=current_week_dataset)
 
 
 @app.route("/activity/<mode>")
@@ -206,7 +242,7 @@ def activity(mode):
 
 	# Data viz for exercises completed by day
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day()
-	user_categories = current_user.exercise_categories.all()	
+	user_categories = current_user.exercise_categories.all()
 
 	plot_by_day = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
 		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=150, bar_direction="vertical")

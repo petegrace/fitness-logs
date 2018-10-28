@@ -1,0 +1,59 @@
+<div class="card {{ activity.category.category_key }}_border_only mt-3">
+	<div class="card-header {{ activity.category.category_key }}">
+		<h6 class="m-0 p-0">
+			{{ activity.name }}
+			{% if activity.is_race %}
+				<i class="fa fa-flag-checkered"></i>
+			{% endif %}
+		</h6>
+	</div>
+	<div class="card-body">
+		<div class="row">
+			<div class="col-4">
+				<table>
+					<tr>
+						<td><small>When:</small></td>
+						<td>{{ moment(activity.start_datetime).calendar() }}</td>
+					</tr>
+					<tr>			
+						<td><small>Distance:</small></td>
+						<td>{{ activity.distance_formatted }}</td>
+					</tr>
+					<tr>			
+						<td><small>Moving Time:</small></td>
+						<td>{{ activity.moving_time }}</td>
+					</tr>
+				</table>
+			</div>
+			<div class="col-sm-4">
+				<table>
+					<tr>
+						<td><small>Avg. Speed:</small></td>
+						<td>{{ activity.average_pace_formatted }}</td>
+					</tr>
+					<tr>			
+						<td><small>Avg. Cadence:</small></td>
+						<td>{{ activity.average_cadence }}</td>
+					</tr>
+					<tr>			
+						<td><small>Median Cadence:</small></td>
+						<td>{{ activity.median_cadence }}</td>
+					</tr>
+				</table>
+			</div>
+			<div class="col-md-4">
+				<table>
+					<tr>
+						<td><small>Avg. Heart Rate:</small></td><td>{{ activity.average_heartrate }}</td>
+					</tr>
+					<tr>			
+						<td colspan="2"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></td>
+					</tr>
+					<tr>			
+						<td></td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>

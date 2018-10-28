@@ -348,6 +348,11 @@ class Activity(db.Model):
 		return "<Activity {name} with external ID of {external_id}>".format(name=self.name, external_id=self.external_id)
 
 	@property
+	def category(self):
+		category = ExerciseCategory.query.filter_by(category_name=self.activity_type).first()
+		return category
+
+	@property
 	def activity_date(self):
 		return self.start_datetime.date()
 
@@ -402,6 +407,10 @@ class Exercise(db.Model):
 	@property
 	def exercise_date(self):
 		return self.exercise_datetime.date()
+
+	@property
+	def owner(self):
+		return self.type.owner
 
 
 class ScheduledExercise(db.Model):
