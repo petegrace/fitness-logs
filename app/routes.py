@@ -473,7 +473,7 @@ def import_strava_activity():
 							elapsed_time =strava_activity.elapsed_time,
 							moving_time = strava_activity.moving_time,
 							average_speed = strava_activity.average_speed.num,
-							average_cadence = (strava_activity.average_cadence * 2) if strava.activity_type == "Run" else strava_activity.average_cadence,
+							average_cadence = (strava_activity.average_cadence * 2) if strava_activity.type == "Run" else strava_activity.average_cadence,
 							average_heartrate = strava_activity.average_heartrate)
 
 		db.session.add(activity)
