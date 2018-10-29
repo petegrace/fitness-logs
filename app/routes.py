@@ -8,6 +8,7 @@ from werkzeug.urls import url_parse
 from wtforms import HiddenField
 import pandas as pd
 from bokeh.embed import components
+from bokeh.models import TapTool, CustomJS
 from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
@@ -204,8 +205,10 @@ def weekly_activity(year, week=None):
 	if week is None:
 		current_week = week_options[0].calendar_week_start_date
 	else:
-		current_week = datetime.date(datetime.strptime(week, "%Y-%m-%d"))
-
+		if "-" in week:
+			current_week = datetime.date(datetime.strptime(week, "%Y-%m-%d"))
+		else: # assume milliseconds
+			current_week = datetime.date(datetime.fromtimestamp(int(week)/1000.0))
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
 
 	all_exercises = current_user.exercises().all()
@@ -229,10 +232,29 @@ def weekly_activity(year, week=None):
 						  activities=day_activities)
 		current_week_dataset.append(day_detail)
 
-	weekly_summary = current_user.weekly_activity_summary().order_by(desc("3"), "1").all() #3 is date, 1 is category name, 
+	weekly_summary = current_user.weekly_activity_summary(year=year)
+	df = pd.read_sql(weekly_summary.statement, weekly_summary.session.bind)
+	weekly_summary_plot, source = generate_stacked_bar_for_categories(dataset_query=weekly_summary, user_categories=categories,
+		dimension="week_start_date", measure="total_activities", measure_units="activities", dimension_type = "datetime", plot_height=100, bar_direction="vertical",
+		granularity="week", show_grid=False, show_yaxis=False)
+
+	callback_code = """
+selection = require('core/util/selection')
+indices = selection.get_indices(source)
+for (i = 0; i < indices.length; i++) {
+    ind = indices[i]
+    url = source.data['week_start_date'][ind]
+    window.open(url, "_self")
+}
+"""
+
+	tap_tool = weekly_summary_plot.select(type=TapTool)
+	tap_tool.callback = CustomJS(args=dict(source=source), code=callback_code)
+
+	weekly_summary_plot_script, weekly_summary_plot_div = components(weekly_summary_plot)
 
 	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary,utils=utils, week_options=week_options, current_year=year, current_week=current_week,
-		current_week_dataset=current_week_dataset)
+		current_week_dataset=current_week_dataset, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div)
 
 
 @app.route("/activity/<mode>")

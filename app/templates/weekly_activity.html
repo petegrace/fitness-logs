@@ -14,6 +14,7 @@
 	</script>
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+	{{ weekly_summary_plot_script|safe }}
 {% endblock %}
 
 {% block app_content %}
@@ -28,6 +29,7 @@
 			{% endfor %}
 		</div>
 	</div>
+	{{ weekly_summary_plot_div|safe }}
 	{% for day_detail in current_week_dataset %}
 		<h5>{{ day_detail.day.calendar_date }}</h5>
 		{% for activity in day_detail.activities %}
@@ -74,23 +76,5 @@
 			</div>
 		{% endfor %}
 	{% endfor %}
-	<table class="table table-sm table-hover">
-		{% for week_and_category in weekly_summary %}
-			<tr>
-				<td>
-					{{ week_and_category.calendar_week_start_date }}
-				</td>
-				<td>
-					{{ week_and_category.category_name }}
-				</td>
-				<td>
-					{{ week_and_category.category_key }}
-				</td>
-				<td>
-					{{ week_and_category.total_activities }}
-				</td>
-			</tr>
-		{% endfor %}
-	</table>
-	<p><img src="/static/img/api_logo_cptblWith_strava_horiz_light.png" /></p>
+	<div><img src="/static/img/api_logo_cptblWith_strava_horiz_light.png" class="mt-5" /></div>
 {% endblock %}

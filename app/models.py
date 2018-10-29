@@ -124,11 +124,11 @@ class User(UserMixin, db.Model):
 		return scheduled_exercises_remaining
 
 
-	def weekly_activity_summary(self):
+	def weekly_activity_summary(self, year):
 		exercises = db.session.query(
-						ExerciseCategory.category_name,
-						ExerciseCategory.category_key,
-						CalendarDay.calendar_week_start_date,
+						func.coalesce(ExerciseCategory.category_name, "Uncategorised").label("category_name"),
+						func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+						CalendarDay.calendar_week_start_date.label("week_start_date"),
 						func.count(distinct(func.date(Exercise.exercise_datetime))).label("total_activities"),
 						func.count(Exercise.id).label("total_sets"),
 						func.sum(Exercise.reps).label("total_reps"),
@@ -138,6 +138,7 @@ class User(UserMixin, db.Model):
 				).join(ExerciseType.exercise_category
 				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
 				).filter(ExerciseType.owner == self
+				).filter(CalendarDay.calendar_year == year
 				).group_by(
 						CalendarDay.calendar_week_start_date,
 						ExerciseCategory.category_key,
@@ -146,8 +147,8 @@ class User(UserMixin, db.Model):
 
 		activities = db.session.query(
 						Activity.activity_type.label("category_name"),
-						ExerciseCategory.category_key,
-						CalendarDay.calendar_week_start_date,
+						func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+						CalendarDay.calendar_week_start_date.label("week_start_date"),
 						func.count(distinct(func.date(Activity.start_datetime))).label("total_activities"),
 						func.count(Activity.id).label("total_sets"),
 						null().label("total_reps"),
@@ -156,6 +157,7 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
 				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name
 				).filter(Activity.owner == self
+				).filter(CalendarDay.calendar_year == year
 				).group_by(
 					CalendarDay.calendar_week_start_date,
 						ExerciseCategory.category_key,
