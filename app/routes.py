@@ -204,6 +204,8 @@ def weekly_activity(year, week=None):
 
 	if week is None:
 		current_week = week_options[0].calendar_week_start_date
+		current_week_datetime = datetime.strptime(str(current_week), "%Y-%m-%d")
+		current_week_ms = current_week_datetime.timestamp() * 1000
 	else:
 		if "-" in week:
 			current_week_datetime = datetime.strptime(week, "%Y-%m-%d")
