@@ -1,7 +1,7 @@
 from flask import redirect, flash
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead
 from bokeh.plotting import figure
 import bokeh.layouts
 
@@ -35,22 +35,24 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	source = ColumnDataSource(data=data)
 
 	if dimension_type == "datetime":
-		hover_tool = HoverTool(tooltips="@{dimension}{{%F}}: @$name {units}".format(dimension=dimension, units=measure_units),
-							   formatters={dimension : "datetime"})
+		#hover_tool = HoverTool(tooltips="@{dimension}{{%F}}: @$name {units}".format(dimension=dimension, units=measure_units),
+		#					   formatters={dimension : "datetime"})
 		plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None, tools=["tap"])
 
 		if granularity == "day":
-			bar_width = 50000000 # specified in ms
+			bar_width = 60000000 # specified in ms
 		elif granularity == "week":
-			bar_width = 350000000
-		plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b")
+			bar_width = 420000000
+		plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
 	else:
 		plot = figure(x_range=dimension_list, plot_height=plot_height, toolbar_location=None)
 		bar_width = 0.7 # specified as a proportion
 
 	if bar_direction == "vertical":
-		plot.vbar_stack(categories, x=dimension, width=bar_width, color=colors, source=source, line_color=line_colors, line_width=1.5, fill_alpha=0.8,
-							hover_alpha=1, hover_fill_color=colors, hover_line_color="#333333", legend=[value(name) for name in names])
+		plot.vbar_stack(categories, x=dimension, width=bar_width, color=colors, source=source, line_color=line_colors, line_width=1.5, fill_alpha=0.7, line_alpha=0.7,
+						 selection_fill_color=colors, selection_line_color=line_colors, selection_fill_alpha=1, selection_line_alpha=1,
+						 nonselection_fill_color=colors, nonselection_line_color=line_colors, nonselection_fill_alpha=0.7, nonselection_line_alpha=0.7,
+						 legend=[value(name) for name in names])
 		if dimension_type != "datetime":
 			plot.x_range = dimension_list
 
@@ -63,11 +65,10 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	# Formatting
 	plot.y_range.start = 0
 	plot.xgrid.grid_line_color = None
-	plot.axis.minor_tick_line_color = None
 	plot.axis.axis_line_color = "#cccccc"
 	plot.axis.major_label_text_color = "#666666"
-	plot.axis.major_label_text_font_size = "7pt"
-	plot.axis.major_tick_line_color = None
+	plot.axis.major_label_text_font_size = "8pt"
+	plot.axis.major_tick_line_color = "#cccccc"
 	plot.outline_line_color = None
 	plot.legend.padding = 5
 	plot.legend.label_text_font = "sans-serif"

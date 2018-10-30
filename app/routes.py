@@ -8,7 +8,7 @@ from werkzeug.urls import url_parse
 from wtforms import HiddenField
 import pandas as pd
 from bokeh.embed import components
-from bokeh.models import TapTool, CustomJS
+from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
@@ -206,9 +206,13 @@ def weekly_activity(year, week=None):
 		current_week = week_options[0].calendar_week_start_date
 	else:
 		if "-" in week:
-			current_week = datetime.date(datetime.strptime(week, "%Y-%m-%d"))
+			current_week_datetime = datetime.strptime(week, "%Y-%m-%d")
+			current_week = datetime.date(current_week_datetime)
+			current_week_ms = current_week_datetime.timestamp() * 1000
+
 		else: # assume milliseconds
-			current_week = datetime.date(datetime.fromtimestamp(int(week)/1000.0))
+			current_week_ms = int(week)
+			current_week = datetime.date(datetime.fromtimestamp(current_week_ms/1000.0))
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
 
 	all_exercises = current_user.exercises().all()
@@ -238,18 +242,27 @@ def weekly_activity(year, week=None):
 		dimension="week_start_date", measure="total_activities", measure_units="activities", dimension_type = "datetime", plot_height=100, bar_direction="vertical",
 		granularity="week", show_grid=False, show_yaxis=False)
 
+	# TODO: extra stuff for the data viz should probably still go in the dataviz file, just a more specific function to call the generic one
 	callback_code = """
 selection = require('core/util/selection')
 indices = selection.get_indices(source)
-for (i = 0; i < indices.length; i++) {
+for (i = 0; i < indices.length; i++) {{
     ind = indices[i]
-    url = source.data['week_start_date'][ind]
+    url = "/weekly_activity/{year}/" + source.data['week_start_date'][ind]
     window.open(url, "_self")
-}
-"""
+}}
+""".format(year=year)
 
 	tap_tool = weekly_summary_plot.select(type=TapTool)
 	tap_tool.callback = CustomJS(args=dict(source=source), code=callback_code)
+
+	current_week_summary = current_user.weekly_activity_summary(week=current_week).all()
+	current_week_height = 0
+	for row in current_week_summary:
+		current_week_height += row.total_activities
+
+	weekly_summary_plot.add_layout(Arrow(end=VeeHead(fill_color="#292b2c"),
+                   x_start=current_week_ms, y_start=current_week_height+1, x_end=current_week_ms, y_end=current_week_height))
 
 	weekly_summary_plot_script, weekly_summary_plot_div = components(weekly_summary_plot)
 

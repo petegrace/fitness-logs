@@ -124,7 +124,7 @@ class User(UserMixin, db.Model):
 		return scheduled_exercises_remaining
 
 
-	def weekly_activity_summary(self, year):
+	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(
 						func.coalesce(ExerciseCategory.category_name, "Uncategorised").label("category_name"),
 						func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
@@ -138,7 +138,8 @@ class User(UserMixin, db.Model):
 				).join(ExerciseType.exercise_category
 				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
 				).filter(ExerciseType.owner == self
-				).filter(CalendarDay.calendar_year == year
+				).filter(or_(CalendarDay.calendar_year == year, year is None)
+				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
 				).group_by(
 						CalendarDay.calendar_week_start_date,
 						ExerciseCategory.category_key,
@@ -157,7 +158,8 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
 				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name
 				).filter(Activity.owner == self
-				).filter(CalendarDay.calendar_year == year
+				).filter(or_(CalendarDay.calendar_year == year, year is None)
+				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
 				).group_by(
 					CalendarDay.calendar_week_start_date,
 						ExerciseCategory.category_key,

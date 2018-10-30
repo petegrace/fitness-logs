@@ -18,20 +18,48 @@
 {% endblock %}
 
 {% block app_content %}
-	<h2>Weekly Activity</h2>
-	<div class="dropdown">
-		<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown">
-			Select Week
-		</button>
-		<div class="dropdown-menu dropdown-menu-scrollable">
-			{% for week in week_options %}
-				<a class="dropdown-item {% if week.calendar_week_start_date==current_week %}active{% endif %}" href="{{ url_for("weekly_activity", year=current_year, week=week.calendar_week_start_date) }}">{{ week.calendar_week_start_date }}</a>
-			{% endfor %}
+	<div class="card"><div class="card-body">
+	<div class = "row">
+		<div class="col-md">
+			<div class="dropdown">
+				<button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown">
+					Select Week
+				</button>
+				<div class="dropdown-menu dropdown-menu-scrollable">
+					{% for week in week_options %}
+						<a class="dropdown-item {% if week.calendar_week_start_date==current_week %}active{% endif %}" href="{{ url_for("weekly_activity", year=current_year, week=week.calendar_week_start_date) }}">{{ week.calendar_week_start_date }}</a>
+					{% endfor %}
+				</div>
+			</div>
+		</div>
+		<div class="col-md">
+			<nav class="">
+				<ul class="pagination nav justify-content-end ml-auto">
+					<li class="page-item">
+				    	<a class="page-link" href="#">
+							<span aria-hidden="true">&laquo;</span>
+							<span class="sr-only">Previous</span>
+				    	</a>
+					</li>
+					<li class="page-item"><a class="page-link" href="#">2015</a></li>
+					<li class="page-item"><a class="page-link" href="#">2016</a></li>
+					<li class="page-item"><a class="page-link" href="#">2017</a></li>
+					<li class="page-item active"><a class="page-link" href="#">2018</a></li>
+					<li class="page-item disabled">
+						<a class="page-link" href="#" aria-label="Next">
+							<span aria-hidden="true">&raquo;</span>
+							<span class="sr-only">Next</span>
+						</a>
+					</li>
+				</ul>
+			</nav>
 		</div>
 	</div>
 	{{ weekly_summary_plot_div|safe }}
+</div></div>
+	<h2>Week beginning {{ moment(current_week).format("LL") }}</h2>
 	{% for day_detail in current_week_dataset %}
-		<h5>{{ day_detail.day.calendar_date }}</h5>
+		<h5>{{ moment(day_detail.day.calendar_date).format("ddd LL") }}</h5>
 		{% for activity in day_detail.activities %}
 			{% include '_activity_summary.html' %}
 		{% endfor %}
