@@ -32,10 +32,27 @@ class User(UserMixin, db.Model):
 
 	def most_recent_strava_activity_datetime(self):
 		most_recent_strava_activity_datetime_result = db.session.query(
-					func.max(Activity.start_datetime).label("max_date")
+					func.max(Activity.start_datetime).label("max_datetime")
 				).filter(Activity.owner == self
 				).filter(Activity.external_source == "Strava").first()
-		return most_recent_strava_activity_datetime_result.max_date
+		return most_recent_strava_activity_datetime_result.max_datetime
+
+	def first_active_year(self):
+		first_activity_datetime_result = db.session.query(
+					func.min(Activity.start_datetime).label("min_datetime")
+				).filter(Activity.owner == self).first()
+
+		first_exercise_datetime_result = db.session.query(
+					func.min(Exercise.exercise_datetime).label("min_datetime")
+				).join(ExerciseType, (ExerciseType.id == Exercise.exercise_type_id)
+				).filter(ExerciseType.owner == self).first()
+
+		if first_activity_datetime_result.min_datetime < first_exercise_datetime_result.min_datetime:
+			first_active_year = first_activity_datetime_result.min_datetime.year
+		else:
+			first_active_year = first_exercise_datetime_result.min_datetime.year
+
+		return first_active_year
 
 	@login.user_loader
 	def load_user(id):
@@ -122,7 +139,6 @@ class User(UserMixin, db.Model):
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
 		return scheduled_exercises_remaining
-
 
 	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(

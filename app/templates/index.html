@@ -14,18 +14,16 @@
 			<h3>Recently added activity</h3>
 		</div>
 		<div class="col-md">
-			<ul class="nav justify-content-end">
-		 		{% if prev_url %}
-		 			<li class="nav-item">
-		 				<a class="nav-link" href="{{ prev_url }}"><i class="fa fa-backward"></i> More recent activity</a>
+			<nav>
+				<ul class="pagination-sm nav justify-content-end ml-auto mb-2">					
+		 			<li class="page-item {% if not prev_url %}disabled{% endif %}">
+		 				<a class="page-link" href="{{ prev_url }}">Newer</a>
 		 			</li>
-		 		{% endif %}
-		 		{% if next_url %}
-		 			<li class="nav-item">
-		 				<a class="nav-link" href="{{ next_url }}"><i class="fa fa-forward"></i> Older activity</a>
+		 			<li class="page-item {% if not next_url %}disabled{% endif %}">
+		 				<a class="page-link" href="{{ next_url }}">Older</a>
 		 			</li>
-		 		{% endif %}
-		 	</ul>
+				</ul>
+			</nav>
 	 	</div>
  	</div>
 	<table class="table table-sm table-hover">

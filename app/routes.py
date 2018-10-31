@@ -202,6 +202,8 @@ def weekly_activity(year, week=None):
 					).group_by(CalendarDay.calendar_week_start_date
 					).order_by(CalendarDay.calendar_week_start_date.desc()).all()
 
+	year_options = list(range(current_user.first_active_year(), datetime.today().year+1))
+
 	if week is None:
 		current_week = week_options[0].calendar_week_start_date
 		current_week_datetime = datetime.strptime(str(current_week), "%Y-%m-%d")
@@ -222,6 +224,7 @@ def weekly_activity(year, week=None):
 	categories = current_user.exercise_categories.all()
 
 	current_week_dataset = []
+	current_week_activity_count = 0 # for plotting the current week indicator at the right height on the graph
 
 	for day in days:
 		exercises_by_category = []
@@ -232,7 +235,9 @@ def weekly_activity(year, week=None):
 						  			   exercise_count=len(category_exercises),
 									   exercises=category_exercises)
 				exercises_by_category.append(category_detail)
+				current_week_activity_count += 1
 		day_activities = [activity for activity in all_activities if activity.activity_date==day.calendar_date]
+		current_week_activity_count += len(day_activities)
 		day_detail = dict(day=day,
 						  exercises_by_category=exercises_by_category,
 						  activities=day_activities)
@@ -258,17 +263,12 @@ for (i = 0; i < indices.length; i++) {{
 	tap_tool = weekly_summary_plot.select(type=TapTool)
 	tap_tool.callback = CustomJS(args=dict(source=source), code=callback_code)
 
-	current_week_summary = current_user.weekly_activity_summary(week=current_week).all()
-	current_week_height = 0
-	for row in current_week_summary:
-		current_week_height += row.total_activities
-
-	weekly_summary_plot.add_layout(Arrow(end=VeeHead(fill_color="#292b2c"),
-                   x_start=current_week_ms, y_start=current_week_height+1, x_end=current_week_ms, y_end=current_week_height))
+	weekly_summary_plot.add_layout(Arrow(end=VeeHead(fill_color="#999999"),
+                   x_start=current_week_ms, y_start=current_week_activity_count+0.1, x_end=current_week_ms, y_end=current_week_activity_count))
 
 	weekly_summary_plot_script, weekly_summary_plot_div = components(weekly_summary_plot)
 
-	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary,utils=utils, week_options=week_options, current_year=year, current_week=current_week,
+	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary,utils=utils, year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week,
 		current_week_dataset=current_week_dataset, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div)
 
 

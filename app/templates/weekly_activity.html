@@ -20,9 +20,9 @@
 {% block app_content %}
 	<div class="card"><div class="card-body">
 	<div class = "row">
-		<div class="col-md">
+		<div class="col-md-3">
 			<div class="dropdown">
-				<button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown">
+				<button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown">
 					Select Week
 				</button>
 				<div class="dropdown-menu dropdown-menu-scrollable">
@@ -32,13 +32,12 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-md">
-			<nav class="">
-				<ul class="pagination nav justify-content-end ml-auto">
-					<li class="page-item"><a class="page-link" href="{{ url_for('weekly_activity', year=2015) }}">2015</a></li>
-					<li class="page-item"><a class="page-link" href="{{ url_for('weekly_activity', year=2016) }}">2016</a></li>
-					<li class="page-item"><a class="page-link" href="{{ url_for('weekly_activity', year=2017) }}">2017</a></li>
-					<li class="page-item active"><a class="page-link" href="{{ url_for('weekly_activity', year=2018) }}">2018</a></li>
+		<div class="col-md-9">
+			<nav>
+				<ul class="pagination-sm nav justify-content-end ml-auto">
+					{% for year in year_options %}
+						<li class="page-item {% if year==current_year %}active{% endif %}"><a class="page-link" href="{{ url_for('weekly_activity', year=year) }}">{{ year }}</a></li>
+					{% endfor %}
 				</ul>
 			</nav>
 		</div>
