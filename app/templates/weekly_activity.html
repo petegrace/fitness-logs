@@ -16,6 +16,7 @@
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
 	{{ weekly_summary_plot_script|safe }}
 	{{ above_cadence_plot_script|safe }}
+	{{ exercise_sets_plot_script|safe }}
 {% endblock %}
 
 {% block app_content %}
@@ -62,7 +63,7 @@
 					{{ above_cadence_plot_div|safe }}
 				</div>
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">
-					TODO
+					{{ exercise_sets_plot_div|safe }}
 				</div>
 			</div>
 		</div>

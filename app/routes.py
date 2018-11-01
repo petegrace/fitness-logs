@@ -271,6 +271,14 @@ def weekly_activity(year, week=None):
 				dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
+	# Data and plotting for the exercise sets by day graph
+	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
+	user_categories = current_user.exercise_categories.all()
+
+	exercise_sets_plot, source = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
+		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=100, bar_direction="vertical")
+	exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
+
 
 	# Graph of activity by week for the year so we can provide navigation at the top
 	weekly_summary = current_user.weekly_activity_summary(year=year)
@@ -300,8 +308,9 @@ for (i = 0; i < indices.length; i++) {{
 
 	return render_template("weekly_activity.html", title="Weekly Activity",utils=utils,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
-		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week,
-		current_week_dataset=current_week_dataset, above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div)
+		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
+		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div,
+		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div)
 
 
 @app.route("/activity/<mode>")

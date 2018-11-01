@@ -240,7 +240,7 @@ class User(UserMixin, db.Model):
 		return daily_activity_summary
 
 
-	def exercises_by_category_and_day(self):
+	def exercises_by_category_and_day(self, week=None):
 		exercises_by_category_and_day = db.session.query(
 					func.date(Exercise.exercise_datetime).label("exercise_date"),
 					func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
@@ -248,8 +248,10 @@ class User(UserMixin, db.Model):
 					func.sum(Exercise.reps).label("total_reps"),
 					func.sum(Exercise.seconds).label("total_seconds")
 				).join(ExerciseType.exercises
+				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
 				).outerjoin(ExerciseType.exercise_category
 				).filter(ExerciseType.owner == self
+				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
 				).group_by(
 					func.date(Exercise.exercise_datetime).label("exercise_date"),
 					ExerciseCategory.category_name,
