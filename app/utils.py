@@ -18,3 +18,8 @@ def format_timedelta_minutes(timedelta):
 	minutes, seconds = divmod(timedelta.seconds, 60)
 	timedelta_formatted = "%d:%02d" % (minutes, seconds)
 	return timedelta_formatted
+
+def convert_seconds_to_minutes_formatted(seconds):
+	minutes, seconds = divmod(seconds, 60)
+	timedelta_formatted = "%d:%02d" % (minutes, seconds)
+	return timedelta_formatted

@@ -185,6 +185,22 @@ class User(UserMixin, db.Model):
 		weekly_activity_summary = exercises.union(activities)
 		return weekly_activity_summary
 
+	def weekly_cadence_stats(self, week=None):
+		weekly_cadence_stats = db.session.query(
+						ActivityCadenceAggregate.cadence,
+						CalendarDay.calendar_week_start_date,
+						func.sum(ActivityCadenceAggregate.total_seconds_at_cadence).label("total_seconds_at_cadence"),
+						func.sum(ActivityCadenceAggregate.total_seconds_above_cadence).label("total_seconds_above_cadence"),
+						literal("").label("total_seconds_above_cadence_formatted")
+				).join(ActivityCadenceAggregate.activity
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
+				).group_by(
+						ActivityCadenceAggregate.cadence,
+						CalendarDay.calendar_week_start_date
+				)
+
+		return weekly_cadence_stats
 
 	def daily_activity_summary(self):
 		daily_exercise_summary = db.session.query(

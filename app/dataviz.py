@@ -86,7 +86,7 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot, source
 
 
-def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, max_dimension_range=None):
+def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, max_dimension_range=None):
 	dimension_values = []
 	measure_values = []
 	measure_labels = []
@@ -98,7 +98,10 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	for row in dataset:
 		dimension_values.append(getattr(row, dimension_name))
 		measure_values.append(getattr(row, measure_name))
-		measure_labels.append(getattr(row, measure_label_name))
+		if measure_label_function is None:
+			measure_labels.append(getattr(row, measure_label_name))
+		else:
+			measure_labels.append(measure_label_function(getattr(row, measure_label_name)))
 
 	source=ColumnDataSource(dict(dimension=dimension_values,
 								 measure=measure_values,
@@ -111,7 +114,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		dimension_range_min = dimension_values[-1] if dimension_values[-1] > max_dimension_range[0] else max_dimension_range[0]
 		dimension_range_max = dimension_values[0] if dimension_values[0] < max_dimension_range[1] else max_dimension_range[1]
 
-	dimension_range = (dimension_range_min-2, dimension_range_max+2)
+	dimension_range = (dimension_range_min-1, dimension_range_max+1)
 	measure_range = (-1, max(measure_values)*1.1)
 
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure_label", level="glyph",

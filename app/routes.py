@@ -243,6 +243,36 @@ def weekly_activity(year, week=None):
 						  activities=day_activities)
 		current_week_dataset.append(day_detail)
 
+	# Data and plotting for weekly cadence analysis graph
+	weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
+
+	if len(weekly_cadence_stats) == 0:
+		above_cadence_plot_script=None
+		above_cadence_plot_div=None
+	else:
+		min_significant_cadence = 0
+		max_significant_cadence = 999
+
+		# For the lower range in graph look for aything more than 5 minutes
+		for cadence_aggregate in weekly_cadence_stats:
+			if cadence_aggregate.total_seconds_at_cadence >= 300:
+				min_significant_cadence = cadence_aggregate.cadence
+				break
+
+		# For the upper range in graph look for aything more than 1 minute
+		weekly_cadence_stats.reverse()
+		for cadence_aggregate in weekly_cadence_stats:
+			if cadence_aggregate.total_seconds_at_cadence >= 60:
+				max_significant_cadence = cadence_aggregate.cadence
+				break
+
+		max_dimension_range = (min_significant_cadence, max_significant_cadence)
+		above_cadence_plot = generate_bar(dataset=weekly_cadence_stats, plot_height=100,
+				dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range)
+		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
+
+
+	# Graph of activity by week for the year so we can provide navigation at the top
 	weekly_summary = current_user.weekly_activity_summary(year=year)
 	df = pd.read_sql(weekly_summary.statement, weekly_summary.session.bind)
 	weekly_summary_plot, source = generate_stacked_bar_for_categories(dataset_query=weekly_summary, user_categories=categories,
@@ -268,8 +298,10 @@ for (i = 0; i < indices.length; i++) {{
 
 	weekly_summary_plot_script, weekly_summary_plot_div = components(weekly_summary_plot)
 
-	return render_template("weekly_activity.html", title="Weekly Activity", weekly_summary=weekly_summary,utils=utils, year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week,
-		current_week_dataset=current_week_dataset, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div)
+	return render_template("weekly_activity.html", title="Weekly Activity",utils=utils,
+		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
+		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week,
+		current_week_dataset=current_week_dataset, above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div)
 
 
 @app.route("/activity/<mode>")
