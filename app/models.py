@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
 	exercise_types = db.relationship("ExerciseType", backref="owner", lazy="dynamic")
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
+	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -465,6 +466,23 @@ class ScheduledExercise(db.Model):
 	def __repr__(self):
 		return "<ScheduledExercise {name} for {user} on {day}>".format(
 			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+
+
+class TrainingGoal(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	goal_period = db.Column(db.String(20))
+	goal_start_date = db.Column(db.Date)
+	goal_metric = db.Column(db.String(50))
+	goal_metric_units = db.Column(db.String(50))
+	goal_dimension_value = db.Column(db.String(50)) # The will be optional and might be an integer most of the time, e.g. Cadence of 168
+	goal_target = db.Column(db.Numeric())
+	current_metric_value = db.Column(db.Numeric())
+	goal_status = db.Column(db.String(20))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<TrainingGoal for {metric} starting on {start_date}>".format(metric=self.goal_metric, start_date=self.goal_start_date)
 
 
 class CalendarDay(db.Model):

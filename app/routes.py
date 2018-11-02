@@ -245,13 +245,17 @@ def weekly_activity(year, week=None):
 
 	# Data and plotting for weekly cadence analysis graph
 	weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
+	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
+
+	if len(weekly_cadence_goals) == 0:
+		weekly_cadence_goals = None
 
 	if len(weekly_cadence_stats) == 0:
 		above_cadence_plot_script=None
 		above_cadence_plot_div=None
 	else:
-		min_significant_cadence = 0
-		max_significant_cadence = 999
+		min_significant_cadence = 60
+		max_significant_cadence = 200
 
 		# For the lower range in graph look for aything more than 5 minutes
 		for cadence_aggregate in weekly_cadence_stats:
@@ -267,8 +271,8 @@ def weekly_activity(year, week=None):
 				break
 
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)
-		above_cadence_plot = generate_bar(dataset=weekly_cadence_stats, plot_height=100,
-				dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range)
+		above_cadence_plot = generate_bar(dataset=weekly_cadence_stats, plot_height=100, dimension_name="cadence", measure_name="total_seconds_above_cadence",
+				measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range, goals_dataset=weekly_cadence_goals)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	# Data and plotting for the exercise sets by day graph
