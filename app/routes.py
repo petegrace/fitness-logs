@@ -12,6 +12,7 @@ from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
+from app.app_classes import TempCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
@@ -254,24 +255,25 @@ def weekly_activity(year, week=None):
 		above_cadence_plot_script=None
 		above_cadence_plot_div=None
 	else:
-		min_significant_cadence = 60
-		max_significant_cadence = 200
+		min_significant_cadence = 30
+		max_significant_cadence = 300
+		weekly_running_total = 0
+
+		weekly_cadence_summary = []
 
 		# For the lower range in graph look for aything more than 5 minutes
 		for cadence_aggregate in weekly_cadence_stats:
-			if cadence_aggregate.total_seconds_at_cadence >= 300:
+			flash(cadence_aggregate)
+			weekly_running_total += cadence_aggregate.total_seconds_at_cadence
+			if cadence_aggregate.total_seconds_at_cadence >= 60 and max_significant_cadence==300: # only overwrite the max once (we're iterating in descing order)
+				max_significant_cadence = cadence_aggregate.cadence 
+			if cadence_aggregate.total_seconds_at_cadence >= 300: # keep overwriting until we get to the end and have the min
 				min_significant_cadence = cadence_aggregate.cadence
-				break
-
-		# For the upper range in graph look for aything more than 1 minute
-		weekly_cadence_stats.reverse()
-		for cadence_aggregate in weekly_cadence_stats:
-			if cadence_aggregate.total_seconds_at_cadence >= 60:
-				max_significant_cadence = cadence_aggregate.cadence
-				break
+			weekly_cadence_summary.append(TempCadenceAggregate(cadence=cadence_aggregate.cadence,
+															   total_seconds_above_cadence=weekly_running_total))
 
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)
-		above_cadence_plot = generate_bar(dataset=weekly_cadence_stats, plot_height=100, dimension_name="cadence", measure_name="total_seconds_above_cadence",
+		above_cadence_plot = generate_bar(dataset=weekly_cadence_summary, plot_height=120, dimension_name="cadence", measure_name="total_seconds_above_cadence",
 				measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range, goals_dataset=weekly_cadence_goals)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
@@ -280,7 +282,7 @@ def weekly_activity(year, week=None):
 	user_categories = current_user.exercise_categories.all()
 
 	exercise_sets_plot, source = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=100, bar_direction="vertical")
+		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, bar_direction="vertical")
 	exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
 
 
@@ -603,7 +605,7 @@ def activity_analysis(id):
 			dp_ind = 0
 			df_ind = 0
 
-			# construct a dictionary 
+			# construct a data frame
 			for cadence_data_point in activity_streams["cadence"].data:
 				if cadence_data_point > 0 and dp_ind > 1:
 					duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])

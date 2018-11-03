@@ -23,7 +23,7 @@ oauth2 = UserOAuth2()
 from app.auth import bp as auth_bp
 app.register_blueprint(auth_bp, url_prefix="/auth")
 
-from app import routes, models, dataviz, utils
+from app import routes, models, app_classes, dataviz, utils
 
 
 # Google Auth initialization

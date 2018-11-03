@@ -199,7 +199,7 @@ class User(UserMixin, db.Model):
 				).group_by(
 						ActivityCadenceAggregate.cadence,
 						CalendarDay.calendar_week_start_date
-				)
+				).order_by(ActivityCadenceAggregate.cadence.desc()) # Descending to support running total calcs
 
 		return weekly_cadence_stats
 

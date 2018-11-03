@@ -87,6 +87,7 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 
 
 def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, max_dimension_range=None, goals_dataset=None):
+	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
 	measure_labels = []
