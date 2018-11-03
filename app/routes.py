@@ -11,7 +11,7 @@ from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
 from app.app_classes import TempCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar
 from stravalib.client import Client
@@ -191,13 +191,14 @@ def edit_exercise(id):
 	return render_template("edit_exercise.html", title="Edit Exercise", form=form, exercise_name=exercise.type.name)
 
 
-@app.route("/weekly_activity/<year>")
-@app.route("/weekly_activity/<year>/<week>")
+@app.route("/weekly_activity/<year>", methods=['GET', 'POST'])
+@app.route("/weekly_activity/<year>/<week>", methods=['GET', 'POST'])
 @login_required
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
 	goal_form = CadenceGoalForm()
 
+	# Sort out our week and year-related stuff
 	week_options = db.session.query(CalendarDay.calendar_week_start_date
 					).filter(CalendarDay.calendar_year==year
 					).filter(CalendarDay.calendar_date<=datetime.today()
@@ -219,6 +220,31 @@ def weekly_activity(year, week=None):
 		else: # assume milliseconds
 			current_week_ms = int(week)
 			current_week = datetime.date(datetime.fromtimestamp(current_week_ms/1000.0))
+
+	# Create a new goal or update an existing one if it's a post
+	if goal_form.validate_on_submit():
+		weekly_goal = current_user.training_goals.filter_by(goal_start_date=current_week
+			).filter_by(goal_metric="Time Spent Above Cadence"
+			).filter_by(goal_dimension_value=str(goal_form.cadence.data)).first()
+		if weekly_goal is not None:
+			weekly_goal.goal_target = goal_form.target_minutes_above_cadence.data * 60
+			track_event(category="Analysis", action="Existing weekly goal for cadence updated", userId = str(current_user.id))
+			flash("Updated goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
+		else:
+			weekly_goal = TrainingGoal(owner=current_user,
+									   goal_period='week',
+									   goal_start_date=current_week,
+									   goal_metric="Time Spent Above Cadence",
+									   goal_metric_units="seconds",
+									   goal_dimension_value=str(goal_form.cadence.data),
+									   goal_target=goal_form.target_minutes_above_cadence.data * 60,
+									   goal_status="In Progress")
+			db.session.add(weekly_goal)
+			track_event(category="Analysis", action="New weekly goal for cadence created", userId = str(current_user.id))
+			flash("Created new goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
+		db.session.commit()
+
+	# Now start getting the data that we need for a get (as well as after a post)
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
 
 	all_exercises = current_user.exercises().all()
@@ -273,7 +299,31 @@ def weekly_activity(year, week=None):
 															   total_seconds_above_cadence=weekly_running_total))
 
 		set_cadence_goal_callback = """
-			$('#setGoal-modal').modal("show")
+			$('#setGoal-modal').modal('show')
+			selection = require('core/util/selection')
+			indices = selection.get_indices(source)
+			for (i = 0; i < indices.length; i++) {{
+			    ind = indices[i]
+			    selected_cadence = source.data['dimension'][ind]
+			}}
+			try {{
+				goal_indices = selection.get_indices(goals_source)
+				for (i = 0; i < goal_indices.length; i++) {{
+				    ind = goal_indices[i]
+				    selected_cadence = goals_source.data['dimension'][ind]
+				    current_target = goals_source.data['measure'][ind] / 60
+				}}
+			}}
+			catch(err) {{
+				goal_indices = []
+			}}
+			$('#cadence').val(selected_cadence)
+			if (goal_indices.length > 0) {{
+				$('#target_minutes_above_cadence').val(current_target)
+			}}
+			else {{
+				$('#target_minutes_above_cadence').val('')
+			}}
 			"""
 
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)

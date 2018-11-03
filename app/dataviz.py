@@ -162,10 +162,12 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		goal_labels = LabelSet(source=goals_source, x="measure", y="dimension", text="measure_label", level="glyph",
        		x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#666666")
 		plot.add_layout(goal_labels)
+	else:
+		goals_source = None
 
 	if tap_tool_callback is not None:
 		tap_tool = plot.select(type=TapTool)
-		tap_tool.callback = CustomJS(args=dict(source=source), code=tap_tool_callback)
+		tap_tool.callback = CustomJS(args=dict(source=source, goals_source=goals_source), code=tap_tool_callback)
 
 	plot.add_layout(y_axis, "left")
 	plot.xaxis.visible = False

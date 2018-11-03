@@ -83,6 +83,6 @@ class ExerciseCategoriesForm(FlaskForm):
 	submit = SubmitField("Save Changes", render_kw={"class": "btn btn-light border border-secondary"})
 
 class CadenceGoalForm(FlaskForm):
-	cadence = IntegerField("Cadence")
-	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence")
+	cadence = IntegerField("Cadence", validators=[DataRequired()])
+	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
