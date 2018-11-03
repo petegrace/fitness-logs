@@ -263,7 +263,6 @@ def weekly_activity(year, week=None):
 
 		# For the lower range in graph look for aything more than 5 minutes
 		for cadence_aggregate in weekly_cadence_stats:
-			flash(cadence_aggregate)
 			weekly_running_total += cadence_aggregate.total_seconds_at_cadence
 			if cadence_aggregate.total_seconds_at_cadence >= 60 and max_significant_cadence==300: # only overwrite the max once (we're iterating in descing order)
 				max_significant_cadence = cadence_aggregate.cadence 
