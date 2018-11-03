@@ -86,7 +86,7 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot, source
 
 
-def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, max_dimension_range=None, goals_dataset=None):
+def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, max_dimension_range=None, goals_dataset=None, tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
@@ -150,7 +150,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	y_ticker = SingleIntervalTicker(interval=4, num_minor_ticks=2)
 	y_axis = LinearAxis(ticker=y_ticker)
 
-	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension for @measure_label", y_axis_type=None)
+	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension for @measure_label", y_axis_type=None, tools=["tap"])
 	plot.hbar(source=source, y="dimension", right="measure", height=1.2, color="#0275d8", fill_alpha=0.8, hover_alpha=1)
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure_label", level="glyph",
         x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#0275d8")
@@ -162,6 +162,10 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		goal_labels = LabelSet(source=goals_source, x="measure", y="dimension", text="measure_label", level="glyph",
        		x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#666666")
 		plot.add_layout(goal_labels)
+
+	if tap_tool_callback is not None:
+		tap_tool = plot.select(type=TapTool)
+		tap_tool.callback = CustomJS(args=dict(source=source), code=tap_tool_callback)
 
 	plot.add_layout(y_axis, "left")
 	plot.xaxis.visible = False

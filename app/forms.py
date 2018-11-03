@@ -81,3 +81,8 @@ class ExerciseCategoriesForm(FlaskForm):
 	cat_yellow = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
 	cat_yellow_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
 	submit = SubmitField("Save Changes", render_kw={"class": "btn btn-light border border-secondary"})
+
+class CadenceGoalForm(FlaskForm):
+	cadence = IntegerField("Cadence")
+	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence")
+	submit = SubmitField("Set Goal")

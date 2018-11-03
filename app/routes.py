@@ -10,7 +10,7 @@ import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay
 from app.app_classes import TempCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar
@@ -196,6 +196,7 @@ def edit_exercise(id):
 @login_required
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
+	goal_form = CadenceGoalForm()
 
 	week_options = db.session.query(CalendarDay.calendar_week_start_date
 					).filter(CalendarDay.calendar_year==year
@@ -271,9 +272,14 @@ def weekly_activity(year, week=None):
 			weekly_cadence_summary.append(TempCadenceAggregate(cadence=cadence_aggregate.cadence,
 															   total_seconds_above_cadence=weekly_running_total))
 
+		set_cadence_goal_callback = """
+			$('#setGoal-modal').modal("show")
+			"""
+
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)
 		above_cadence_plot = generate_bar(dataset=weekly_cadence_summary, plot_height=120, dimension_name="cadence", measure_name="total_seconds_above_cadence",
-				measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range, goals_dataset=weekly_cadence_goals)
+				measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range, goals_dataset=weekly_cadence_goals,
+				tap_tool_callback=set_cadence_goal_callback)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	# Data and plotting for the exercise sets by day graph
@@ -292,19 +298,19 @@ def weekly_activity(year, week=None):
 		dimension="week_start_date", measure="total_activities", measure_units="activities", dimension_type = "datetime", plot_height=100, bar_direction="vertical",
 		granularity="week", show_grid=False, show_yaxis=False)
 
-	# TODO: extra stuff for the data viz should probably still go in the dataviz file, just a more specific function to call the generic one
-	callback_code = """
-selection = require('core/util/selection')
-indices = selection.get_indices(source)
-for (i = 0; i < indices.length; i++) {{
-    ind = indices[i]
-    url = "/weekly_activity/{year}/" + source.data['week_start_date'][ind]
-    window.open(url, "_self")
-}}
-""".format(year=year)
+	# TODO: extra stuff for the data viz should should be refactored into dataviz now we've shown we can pass the callback in as a parameter
+	weekly_summary_callback_code = """
+		selection = require('core/util/selection')
+		indices = selection.get_indices(source)
+		for (i = 0; i < indices.length; i++) {{
+		    ind = indices[i]
+		    url = "/weekly_activity/{year}/" + source.data['week_start_date'][ind]
+		    window.open(url, "_self")
+		}}
+		""".format(year=year)
 
 	tap_tool = weekly_summary_plot.select(type=TapTool)
-	tap_tool.callback = CustomJS(args=dict(source=source), code=callback_code)
+	tap_tool.callback = CustomJS(args=dict(source=source), code=weekly_summary_callback_code)
 
 	weekly_summary_plot.add_layout(Arrow(end=VeeHead(fill_color="#999999"),
                    x_start=current_week_ms, y_start=current_week_activity_count+0.1, x_end=current_week_ms, y_end=current_week_activity_count))
@@ -315,7 +321,7 @@ for (i = 0; i < indices.length; i++) {{
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div,
-		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div)
+		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, goal_form=goal_form)
 
 
 @app.route("/activity/<mode>")
