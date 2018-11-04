@@ -63,6 +63,13 @@ class User(UserMixin, db.Model):
 		return Exercise.query.join(ExerciseType,
 			(ExerciseType.id == Exercise.exercise_type_id)).filter(ExerciseType.owner == self).order_by(Exercise.exercise_datetime.desc())
 
+	def activities_filtered(self, activity_type=None, week=None):
+		return Activity.query.join(CalendarDay, (func.date(Activity.start_datetime) == CalendarDay.calendar_date)
+			).filter(Activity.owner == self
+			).filter(or_(Activity.activity_type == activity_type, activity_type is None)
+			).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
+			)
+
 	def recent_activities(self):
 		exercises = db.session.query(
 						Exercise.id,

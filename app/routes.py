@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
 import requests
 import statistics
@@ -9,7 +9,7 @@ from wtforms import HiddenField
 import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
-from app import app, db, utils
+from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
 from app.app_classes import TempCadenceAggregate
@@ -223,7 +223,12 @@ def weekly_activity(year, week=None):
 
 	# Create a new goal or update an existing one if it's a post
 	if goal_form.validate_on_submit():
-		weekly_goal = current_user.training_goals.filter_by(goal_start_date=current_week
+		if goal_form.goal_relative_week.data == "this":
+			goal_start_date = week_options[0].calendar_week_start_date
+		elif goal_form.goal_relative_week.data == "next":
+			goal_start_date = week_options[0].calendar_week_start_date + timedelta(days=7)
+
+		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
 			).filter_by(goal_metric="Time Spent Above Cadence"
 			).filter_by(goal_dimension_value=str(goal_form.cadence.data)).first()
 		if weekly_goal is not None:
@@ -233,7 +238,7 @@ def weekly_activity(year, week=None):
 		else:
 			weekly_goal = TrainingGoal(owner=current_user,
 									   goal_period='week',
-									   goal_start_date=current_week,
+									   goal_start_date=goal_start_date,
 									   goal_metric="Time Spent Above Cadence",
 									   goal_metric_units="seconds",
 									   goal_dimension_value=str(goal_form.cadence.data),
@@ -622,6 +627,11 @@ def import_strava_activity():
 	track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
 	db.session.commit()
 
+	# Evaluate any goals that the user has, including processing any additional data e.g. cadence
+	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
+	current_week = current_day.calendar_week_start_date
+	analysis.evaluate_cadence_goals(week=current_week)
+
 	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 	next_page = request.args.get("next")
 	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
@@ -828,3 +838,11 @@ def chart():
 
 # 	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
 # 		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script, plot_by_type_div=plot_by_type_div, plot_by_type_script=plot_by_type_script)
+
+@app.route("/test")
+@login_required
+def test():
+	current_week_datetime = datetime.strptime("2018-10-22", "%Y-%m-%d")
+	current_week = datetime.date(current_week_datetime)
+	analysis.evaluate_cadence_goals(week=current_week)
+	return redirect(url_for("index"))

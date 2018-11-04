@@ -83,6 +83,7 @@ class ExerciseCategoriesForm(FlaskForm):
 	submit = SubmitField("Save Changes", render_kw={"class": "btn btn-light border border-secondary"})
 
 class CadenceGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
 	cadence = IntegerField("Cadence", validators=[DataRequired()])
 	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
