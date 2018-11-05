@@ -129,3 +129,5 @@ def calculate_weekly_cadence_aggregations(week):
 									   min_significant_cadence = min_significant_cadence,
 									   max_significant_cadence = max_significant_cadence)
 	return weekly_cadence_aggregations
+
+

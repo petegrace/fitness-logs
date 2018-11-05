@@ -243,11 +243,15 @@ def weekly_activity(year, week=None):
 									   goal_metric_units="seconds",
 									   goal_dimension_value=str(goal_form.cadence.data),
 									   goal_target=goal_form.target_minutes_above_cadence.data * 60,
-									   goal_status="In Progress")
+									   goal_status="In Progress",
+									   current_metric_value=0)
 			db.session.add(weekly_goal)
 			track_event(category="Analysis", action="New weekly goal for cadence created", userId = str(current_user.id))
 			flash("Created new goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
 		db.session.commit()
+
+		# Evaluate the goals in case there's already progress made
+		analysis.evaluate_cadence_goals(goal_start_date)
 
 	# Now start getting the data that we need for a get (as well as after a post)
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
@@ -345,6 +349,13 @@ def weekly_activity(year, week=None):
 		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, bar_direction="vertical")
 	exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
 
+	# Data and plotting for the goals graph
+	goals_for_week = current_user.training_goals.filter(TrainingGoal.goal_start_date == current_week).all()
+	current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
+				measure_label_function=utils.format_percentage, dimension_type="discrete",
+				goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description")
+	current_goals_plot_script, current_goals_plot_div = components(current_goals_plot)
+
 
 	# Graph of activity by week for the year so we can provide navigation at the top
 	weekly_summary = current_user.weekly_activity_summary(year=year)
@@ -375,8 +386,9 @@ def weekly_activity(year, week=None):
 	return render_template("weekly_activity.html", title="Weekly Activity",utils=utils,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
-		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div,
-		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, goal_form=goal_form)
+		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, goal_form=goal_form,
+		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div,
+		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div)
 
 
 @app.route("/activity/<mode>")
@@ -782,62 +794,7 @@ def chart():
 
 	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
  		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script)
-# 	exercises_by_category_and_day = current_user.exercises_by_category_and_day()
-# 	exercises_by_type = current_user.exercises_by_type()
-# 	user_categories = current_user.exercise_categories.all()
 
-# 	# Colour mappings
-# 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
-# 	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
-# 	available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
-# 	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
-# 	category_name_mappings.append(("Uncategorised", "Uncategorised"))
-
-# 	# Prepare the by type plot
-# 	by_type_df = pd.read_sql(exercises_by_type.statement, exercises_by_type.session.bind)
-# 	by_type_pivot_df = by_type_df.pivot(index="exercise_type", columns="category_key", values="exercise_sets_count")
-# 	by_type_pivot_df = by_type_pivot_df.fillna(value=0)
-# 	by_type_categories = by_type_df["category_key"].unique()
-# 	types = by_type_pivot_df.index.values
-
-# 	by_type_data = {'exercise_type' : types}
-# 	by_type_colors = []
-# 	by_type_line_colors = []
-# 	by_type_names = []
-
-# 	for category in by_type_categories:
-# 		by_type_data[category] = by_type_pivot_df[category].values
-# 		category_index =  available_categories.index(category)
-# 		by_type_colors.append(available_colors[category_index])
-# 		by_type_line_colors.append(available_line_colors[category_index])
-# 		by_type_names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
-
-# 	plot_by_type = figure(y_range=types, plot_height=300, toolbar_location=None, tools="")
-# 	plot_by_type.hbar_stack(by_type_categories, y='exercise_type', height=0.7, color=by_type_colors, source=by_type_data, line_color=by_type_line_colors, line_width=1.5)
-
-
-# 	plot_by_type.x_range.start = 0
-# 	#plot_by_type.y_range.range_padding = 0.1
-# 	plot_by_type.ygrid.grid_line_color = None
-# 	plot_by_type.axis.minor_tick_line_color = None
-# 	plot_by_type.axis.axis_line_color = "#999999"
-# 	plot_by_type.axis.major_label_text_color = "#666666"
-# 	plot_by_type.axis.major_label_text_font_size = "7pt"
-# 	plot_by_type.axis.major_tick_line_color = None
-# 	plot_by_type.outline_line_color = None
-# 	plot_by_type.sizing_mode = "scale_width"
-# 	plot_by_type.title.text_font = "sans-serif"
-# 	plot_by_type.title.text_font_style = "normal"
-
-# 	plot_by_day = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-# 		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=200, bar_direction="vertical")
-
-# 	# SPlit the plot components to pass into the template
-# 	plot_by_day_script, plot_by_day_div = components(plot_by_day)
-# 	plot_by_type_script, plot_by_type_div = components(plot_by_type)
-
-# 	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
-# 		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script, plot_by_type_div=plot_by_type_div, plot_by_type_script=plot_by_type_script)
 
 @app.route("/test")
 @login_required

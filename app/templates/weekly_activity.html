@@ -18,6 +18,7 @@
 	{{ weekly_summary_plot_script|safe }}
 	{{ above_cadence_plot_script|safe }}
 	{{ exercise_sets_plot_script|safe }}
+	{{ current_goals_plot_script|safe }}
 {% endblock %}
 
 {% block app_content %}
@@ -56,11 +57,16 @@
 		</div>
 		<div class="card-body">
 			<div class="nav nav-tabs" id="analysis-tab" role="tablist">
-				<a class="nav-item nav-link active" id="nav-cadence-tab" data-toggle="tab" href="#nav-cadence" role="tab">Time Spent Above Cadence</a>
+				<a class="nav-item nav-link active" id="nav-goals-tab" data-toggle="tab" href="#nav-goals" role="tab">Goal Progress</a>
+				<a class="nav-item nav-link" id="nav-cadence-tab" data-toggle="tab" href="#nav-cadence" role="tab">Time Spent Above Cadence</a>
 				<a class="nav-item nav-link" id="nav-exerciseSets-tab" data-toggle="tab" href="#nav-exerciseSets" role="tab">Exercise Sets per Day</a>
 			</div>
 			<div class="tab-content" id="analysis-tabContent">
-				<div class="tab-pane fade show active" id="nav-cadence" role="tabpanel">
+				<div class="tab-pane fade show active" id="nav-goals" role="tabpanel">
+					<p class="mt-2">You can add new goals by clicking and tapping within the other graphs on the metric you want to set a goal for.</p>
+					{{ current_goals_plot_div|safe }}
+				</div>
+				<div class="tab-pane fade" id="nav-cadence" role="tabpanel">
 					{{ above_cadence_plot_div|safe }}
 				</div>
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">

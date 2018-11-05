@@ -1,7 +1,7 @@
 from flask import redirect, flash
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead, CategoricalAxis
 from bokeh.plotting import figure
 import bokeh.layouts
 
@@ -86,7 +86,8 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot, source
 
 
-def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, max_dimension_range=None, goals_dataset=None, tap_tool_callback=None):
+def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None,
+		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
@@ -109,12 +110,13 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 								 measure_label=measure_labels))
 
 	# Set the dimension ranges without knowledge of goal targets for now
-	if max_dimension_range is None:
-		dimension_range_min = dimension_values[-1]
-		dimension_range_max = dimension_values[0]
-	else:
-		dimension_range_min = dimension_values[-1] if dimension_values[-1] > max_dimension_range[0] else max_dimension_range[0]
-		dimension_range_max = dimension_values[0] if dimension_values[0] < max_dimension_range[1] else max_dimension_range[1]
+	if dimension_type == "continuous":
+		if max_dimension_range is None:
+			dimension_range_min = dimension_values[-1]
+			dimension_range_max = dimension_values[0]
+		else:
+			dimension_range_min = dimension_values[-1] if dimension_values[-1] > max_dimension_range[0] else max_dimension_range[0]
+			dimension_range_max = dimension_values[0] if dimension_values[0] < max_dimension_range[1] else max_dimension_range[1]
 
 	measure_range_max = max(measure_values)
 
@@ -125,40 +127,52 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		goal_measure_labels = []
 
 		for row in goals_dataset:
-			goal_dimension_values.append(int(row.goal_dimension_value))
-			goal_measure_values.append(row.goal_target)
-			goal_measure_labels.append("Target: " + measure_label_function(row.goal_target))
+			if goal_dimension_type == "value":
+				goal_dimension_values.append(int(row.goal_dimension_value))
+			else:
+				goal_dimension_values.append(row.goal_description)
+
+			if goal_measure_type == "absolute":
+				goal_measure_values.append(row.goal_target)
+				goal_measure_labels.append("Target: " + measure_label_function(row.goal_target))
+			else:
+				goal_measure_values.append(100)
+				goal_measure_labels.append("Target: 100%")
 
 		goals_source = ColumnDataSource(dict(dimension=goal_dimension_values,
 											 measure=goal_measure_values,
 											 measure_label=goal_measure_labels))
 
-		# Update the max ranges 
-		if min(goal_dimension_values) < dimension_range_min:
-			dimension_range_min = min(goal_dimension_values)-1
+		# Update the max ranges
+		if dimension_type == "continuous":
+			if min(goal_dimension_values) < dimension_range_min:
+				dimension_range_min = min(goal_dimension_values)-1
 
-		if max(goal_dimension_values) > dimension_range_max:
-			dimension_range_max = max(goal_dimension_values)+1
+			if max(goal_dimension_values) > dimension_range_max:
+				dimension_range_max = max(goal_dimension_values)+1
 			
 		if max(goal_measure_values) > measure_range_max:
 			measure_range_max = max(goal_measure_values)
 
-
-	dimension_range = (dimension_range_min-1, dimension_range_max+1)
+	if dimension_type == "continuous":
+		dimension_range = (dimension_range_min-1, dimension_range_max+1)
+		bar_height = 1.2
+		goal_bar_height = 1.8
+	elif dimension_type == "discrete":
+		dimension_range = dimension_values
+		bar_height = 0.6
+		goal_bar_height = 0.8
 	measure_range = (-1, float(measure_range_max)*1.1)
 
-	y_ticker = SingleIntervalTicker(interval=4, num_minor_ticks=2)
-	y_axis = LinearAxis(ticker=y_ticker)
-
-	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension for @measure_label", y_axis_type=None, tools=["tap"])
-	plot.hbar(source=source, y="dimension", right="measure", height=1.2, color="#0275d8", fill_alpha=0.8, hover_alpha=1)
+	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure_label", y_axis_type=None, tools=["tap"])
+	plot.hbar(source=source, y="dimension", right="measure", height=bar_height, color="#0275d8", fill_alpha=0.8, hover_alpha=1)
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure_label", level="glyph",
         x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#0275d8")
 	plot.add_layout(labels)
-	
+
 	# Add dashed lines for any goal targets that are set
 	if goals_dataset is not None:
-		plot.hbar(source=goals_source, y="dimension", right="measure", height=1.8, fill_alpha=0, line_color="#666666", line_dash="dotted")
+		plot.hbar(source=goals_source, y="dimension", right="measure", height=goal_bar_height, fill_alpha=0, line_color="#666666")
 		goal_labels = LabelSet(source=goals_source, x="measure", y="dimension", text="measure_label", level="glyph",
        		x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#666666")
 		plot.add_layout(goal_labels)
@@ -169,7 +183,14 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		tap_tool = plot.select(type=TapTool)
 		tap_tool.callback = CustomJS(args=dict(source=source, goals_source=goals_source), code=tap_tool_callback)
 
+	# TODO: This will need to be more flexible for data other than cadence
+	if dimension_type == "continuous":
+		y_ticker = SingleIntervalTicker(interval=4, num_minor_ticks=2)
+		y_axis = LinearAxis(ticker=y_ticker)
+	else:
+		y_axis = CategoricalAxis()
 	plot.add_layout(y_axis, "left")
+
 	plot.xaxis.visible = False
 	plot.sizing_mode = "scale_width"
 	plot.axis.minor_tick_line_color = None

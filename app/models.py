@@ -491,6 +491,14 @@ class TrainingGoal(db.Model):
 	def __repr__(self):
 		return "<TrainingGoal for {metric} starting on {start_date}>".format(metric=self.goal_metric, start_date=self.goal_start_date)
 
+	@property
+	def percent_progress(self):
+		return (self.current_metric_value / self.goal_target) * 100
+
+	@property
+	def goal_description(self):
+		return "{metric} of {value}".format(metric=self.goal_metric, value=self.goal_dimension_value)
+
 
 class CalendarDay(db.Model):
 	id = db.Column(db.Integer, primary_key=True)

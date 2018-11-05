@@ -23,3 +23,6 @@ def convert_seconds_to_minutes_formatted(seconds):
 	minutes, seconds = divmod(seconds, 60)
 	timedelta_formatted = "%d:%02d" % (minutes, seconds)
 	return timedelta_formatted
+
+def format_percentage(percent):
+	return "{percent}%".format(percent=round(percent, 1))
