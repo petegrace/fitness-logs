@@ -351,10 +351,14 @@ def weekly_activity(year, week=None):
 
 	# Data and plotting for the goals graph
 	goals_for_week = current_user.training_goals.filter(TrainingGoal.goal_start_date == current_week).all()
-	current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
-				measure_label_function=utils.format_percentage, dimension_type="discrete",
-				goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description")
-	current_goals_plot_script, current_goals_plot_div = components(current_goals_plot)
+	if len(goals_for_week) == 0:
+		current_goals_plot_script=None
+		current_goals_plot_div=None
+	else:
+		current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
+					measure_label_function=utils.format_percentage, dimension_type="discrete",
+					goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description")
+		current_goals_plot_script, current_goals_plot_div = components(current_goals_plot)
 
 
 	# Graph of activity by week for the year so we can provide navigation at the top
