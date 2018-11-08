@@ -48,7 +48,14 @@ class User(UserMixin, db.Model):
 				).join(ExerciseType, (ExerciseType.id == Exercise.exercise_type_id)
 				).filter(ExerciseType.owner == self).first()
 
-		if first_activity_datetime_result.min_datetime < first_exercise_datetime_result.min_datetime:
+		# Probably a better way to do this but dealing with the bug when comparing None
+		if first_activity_datetime_result.min_datetime is None and first_exercise_datetime_result.min_datetime is None:
+			first_active_year = 2018
+		elif first_activity_datetime_result.min_datetime is None:
+			first_active_year = first_exercise_datetime_result.min_datetime.year
+		elif first_exercise_datetime_result.min_datetime is None:
+			first_active_year = first_activity_datetime_result.min_datetime.year
+		elif first_activity_datetime_result.min_datetime < first_exercise_datetime_result.min_datetime:
 			first_active_year = first_activity_datetime_result.min_datetime.year
 		else:
 			first_active_year = first_exercise_datetime_result.min_datetime.year
