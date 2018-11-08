@@ -187,7 +187,7 @@ class User(UserMixin, db.Model):
 						extract("epoch", func.sum(Activity.moving_time)).label("total_seconds"),
 						func.sum(Activity.distance).label("total_distance")
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
-				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name
+				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name and ExerciseCategory.owner==Activity.owner
 				).filter(Activity.owner == self
 				).filter(or_(CalendarDay.calendar_year == year, year is None)
 				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
