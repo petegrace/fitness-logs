@@ -179,7 +179,7 @@ class User(UserMixin, db.Model):
 
 		activities = db.session.query(
 						Activity.activity_type.label("category_name"),
-						func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+						func.coalesce(ExerciseCategory.category_key, Activity.activity_type).label("category_key"),
 						CalendarDay.calendar_week_start_date.label("week_start_date"),
 						func.count(distinct(func.date(Activity.start_datetime))).label("total_activities"),
 						func.count(Activity.id).label("total_sets"),
@@ -187,7 +187,7 @@ class User(UserMixin, db.Model):
 						extract("epoch", func.sum(Activity.moving_time)).label("total_seconds"),
 						func.sum(Activity.distance).label("total_distance")
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
-				).outerjoin(ExerciseCategory, Activity.activity_type==ExerciseCategory.category_name and ExerciseCategory.owner==Activity.owner
+				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
 				).filter(Activity.owner == self
 				).filter(or_(CalendarDay.calendar_year == year, year is None)
 				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
@@ -209,6 +209,7 @@ class User(UserMixin, db.Model):
 						literal("").label("total_seconds_above_cadence_formatted")
 				).join(ActivityCadenceAggregate.activity
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).filter(Activity.owner == self
 				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
 				).group_by(
 						ActivityCadenceAggregate.cadence,
@@ -402,7 +403,7 @@ class Activity(db.Model):
 
 	@property
 	def category(self):
-		category = ExerciseCategory.query.filter_by(category_name=self.activity_type).first()
+		category = ExerciseCategory.query.filter_by(category_name=self.activity_type).filter_by(owner=self.owner).first()
 		return category
 
 	@property

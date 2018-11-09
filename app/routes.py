@@ -107,7 +107,8 @@ def new_exercise(context, selected_day=None):
 	elif context == "scheduling":
 		form = ScheduleNewExerciseTypeForm()
 
-	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.all()]
+	# Bit of a haack to reduce avoid duplicate errors when unioning exercises and activities
+	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	form.exercise_category_id.choices = category_choices
 
 	# for the post...
@@ -363,7 +364,6 @@ def weekly_activity(year, week=None):
 
 	# Graph of activity by week for the year so we can provide navigation at the top
 	weekly_summary = current_user.weekly_activity_summary(year=year)
-	df = pd.read_sql(weekly_summary.statement, weekly_summary.session.bind)
 	weekly_summary_plot, source = generate_stacked_bar_for_categories(dataset_query=weekly_summary, user_categories=categories,
 		dimension="week_start_date", measure="total_activities", measure_units="activities", dimension_type = "datetime", plot_height=100, bar_direction="vertical",
 		granularity="week", show_grid=False, show_yaxis=False)
@@ -525,7 +525,7 @@ def exercise_types():
 @login_required
 def edit_exercise_type(id):
 	form = EditExerciseTypeForm()
-	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.all()]
+	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	form.exercise_category_id.choices = category_choices
 
 	exercise_type = ExerciseType.query.get(int(id))

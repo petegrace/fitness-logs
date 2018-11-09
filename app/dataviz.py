@@ -27,10 +27,10 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 
 	for category in categories:
 		data[category] = pivot_df[category].values
-		category_index =  available_categories.index(category)
+		category_index =  available_categories.index(category) if category in available_categories else 8
 		colors.append(available_colors[category_index])
-		line_colors.append(available_line_colors[category_index])
-		names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0])
+		line_colors.append(available_line_colors[category_index]) #TODO: Need to assign the undefinned category if it can't be matched
+		names.append([mapping[1] for mapping in category_name_mappings if mapping[0]==category][0] if category in available_categories else category)
 
 	source = ColumnDataSource(data=data)
 
