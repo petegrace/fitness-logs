@@ -1,9 +1,11 @@
 from flask import flash, redirect, url_for, request, session
 from flask_login import current_user
+from bokeh.embed import components
 from app import app, db, utils
-from app.models import TrainingGoal, ActivityCadenceAggregate
-from app.app_classes import TempCadenceAggregate
-from sqlalchemy import or_
+from app.models import TrainingGoal, ActivityCadenceAggregate, CalendarDay, Activity
+from app.app_classes import TempCadenceAggregate, PlotComponentContainer
+from app.dataviz import generate_line_chart
+from sqlalchemy import func, or_
 from stravalib.client import Client
 import pandas as pd
 from datetime import datetime, timedelta
@@ -131,3 +133,27 @@ def calculate_weekly_cadence_aggregations(week):
 	return weekly_cadence_aggregations
 
 
+def get_cadence_goal_history_charts(week):
+	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric="Time Spent Above Cadence").all()
+
+	cadence_goal_plot_containers = []
+
+	for goal in weekly_cadence_goals:
+		goal_history = db.session.query(
+				CalendarDay.calendar_week_start_date,
+				func.sum(ActivityCadenceAggregate.total_seconds_at_cadence).label("total_seconds_above_cadence")
+			).join(ActivityCadenceAggregate.activity
+			).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+			).filter(Activity.owner == current_user
+			).filter(ActivityCadenceAggregate.cadence >= int(goal.goal_dimension_value)
+			).filter(Activity.start_datetime >= (week - timedelta(days=365))
+			).filter(Activity.start_datetime < (week + timedelta(days=7))
+			).group_by(CalendarDay.calendar_week_start_date).all()
+
+		plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal.goal_dimension_value)
+		cadence_goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_seconds_above_cadence")
+		cadence_goal_history_plot_script, cadence_goal_history_plot_div = components(cadence_goal_history_plot)
+		cadence_goal_plot_container = PlotComponentContainer(name=plot_name, plot_div=cadence_goal_history_plot_div, plot_script=cadence_goal_history_plot_script)
+		cadence_goal_plot_containers.append(cadence_goal_plot_container)
+
+	return cadence_goal_plot_containers

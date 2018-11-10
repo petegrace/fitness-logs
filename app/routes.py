@@ -13,7 +13,7 @@ from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
 from app.app_classes import TempCadenceAggregate
-from app.dataviz import generate_stacked_bar_for_categories, generate_bar
+from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
 from sqlalchemy import desc, and_, or_, null
@@ -342,6 +342,9 @@ def weekly_activity(year, week=None):
 				tap_tool_callback=set_cadence_goal_callback)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
+	# Data and plotting for historic performance against current cadence goals
+	cadence_goal_history_charts = analysis.get_cadence_goal_history_charts(week=current_week)
+
 	# Data and plotting for the exercise sets by day graph
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
 	user_categories = current_user.exercise_categories.all()
@@ -392,7 +395,8 @@ def weekly_activity(year, week=None):
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, goal_form=goal_form,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div,
-		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div)
+		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
+		cadence_goal_history_charts=cadence_goal_history_charts)
 
 
 @app.route("/activity/<mode>")
@@ -803,7 +807,12 @@ def chart():
 @app.route("/test")
 @login_required
 def test():
-	current_week_datetime = datetime.strptime("2018-10-22", "%Y-%m-%d")
+	current_week_datetime = datetime.strptime("2018-11-05", "%Y-%m-%d")
 	current_week = datetime.date(current_week_datetime)
-	analysis.evaluate_cadence_goals(week=current_week)
-	return redirect(url_for("index"))
+
+	
+
+	# add a line renderer
+	p.line([1, 2, 3, 4, 5], [6, 7, 2, 4, 5], line_width=2)
+
+	show(p)

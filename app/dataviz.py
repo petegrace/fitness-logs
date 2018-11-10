@@ -202,3 +202,36 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	plot.outline_line_color = None
 
 	return plot
+
+
+def generate_line_chart(dataset, plot_height, dimension_name, measure_name, measure_label_function=None):
+	dimension_values = []
+	measure_values = []
+
+	for row in dataset:
+		dimension_values.append(getattr(row, dimension_name))
+		measure_values.append(getattr(row, measure_name))
+
+	source=ColumnDataSource(dict(dimension=dimension_values,
+								 measure=measure_values))
+
+	latest_dimension_value = [dimension_values[-1]]
+	latest_measure_value = [measure_values[-1]]
+
+	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None)
+	plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
+
+	plot.line(source=source, x="dimension", y="measure", line_width=2)
+	plot.circle(x=latest_dimension_value, y=latest_measure_value, size=6)
+
+	plot.sizing_mode = "scale_width"
+	plot.axis.minor_tick_line_color = None
+	plot.axis.axis_line_color = "#999999"
+	plot.axis.major_label_text_color = "#666666"
+	plot.axis.major_label_text_font_size = "8pt"
+	plot.axis.major_tick_line_color = "#cccccc"
+	plot.xgrid.grid_line_color = None
+	plot.ygrid.grid_line_color = "#eeeeee"
+	plot.outline_line_color = None
+
+	return plot

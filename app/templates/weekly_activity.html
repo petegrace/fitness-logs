@@ -19,6 +19,9 @@
 	{{ above_cadence_plot_script|safe }}
 	{{ exercise_sets_plot_script|safe }}
 	{{ current_goals_plot_script|safe }}
+	{% for chart in cadence_goal_history_charts %}
+		{{ chart.plot_script|safe }}
+	{% endfor %}
 {% endblock %}
 
 {% block app_content %}
@@ -68,6 +71,10 @@
 				</div>
 				<div class="tab-pane fade" id="nav-cadence" role="tabpanel">
 					{{ above_cadence_plot_div|safe }}
+					{% for chart in cadence_goal_history_charts %}
+						<h6 class="mt-3">{{ chart.name }}</h6>
+						{{ chart.plot_div|safe }}
+					{% endfor %}
 				</div>
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">
 					{{ exercise_sets_plot_div|safe }}
