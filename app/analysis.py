@@ -25,7 +25,7 @@ def evaluate_cadence_goals(week):
 			if run.median_cadence is None:
 				result = parse_cadence_stream(activity=run)
 				if result == "Not authorized":
-					redirect(url_for("connect_strava", action="authorize"))
+					return redirect(url_for("connect_strava", action="authorize"))
 
 		# 3. Get weekly cadence stats as for the graph
 		weekly_cadence_aggregations = calculate_weekly_cadence_aggregations(week)
@@ -148,7 +148,8 @@ def get_cadence_goal_history_charts(week):
 			).filter(ActivityCadenceAggregate.cadence >= int(goal.goal_dimension_value)
 			).filter(Activity.start_datetime >= (week - timedelta(days=365))
 			).filter(Activity.start_datetime < (week + timedelta(days=7))
-			).group_by(CalendarDay.calendar_week_start_date).all()
+			).group_by(CalendarDay.calendar_week_start_date
+			).order_by(CalendarDay.calendar_week_start_date).all()
 
 		plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal.goal_dimension_value)
 		cadence_goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_seconds_above_cadence")

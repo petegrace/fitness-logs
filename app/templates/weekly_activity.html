@@ -75,6 +75,9 @@
 						<h6 class="mt-3">{{ chart.name }}</h6>
 						{{ chart.plot_div|safe }}
 					{% endfor %}
+					{% if utils.length_of_list(cadence_goal_history_charts) > 0 %}
+						<p class="mt-3">Missing historic data?  You might need to <a href="{{ url_for('backfill_cadence_data') }}">backfill your cadence data</a>. Note this can take several minutes.</p>
+					{% endif %}
 				</div>
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">
 					{{ exercise_sets_plot_div|safe }}

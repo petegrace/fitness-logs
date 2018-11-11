@@ -26,3 +26,7 @@ def convert_seconds_to_minutes_formatted(seconds):
 
 def format_percentage(percent):
 	return "{percent}%".format(percent=round(percent, 1))
+
+# Wrapping the Python len function so its in utils that we pass into Jinja templates, otherwise we get undefined error
+def length_of_list(list):
+	return len(list)

@@ -793,26 +793,18 @@ def connect_strava(action="prompt"):
 	return render_template("connect_strava.html", title="Connect to Strava")
 
 
-
-@app.route("/charts")
+@app.route("/backfill_cadence_data")
 @login_required
-def chart():
-	plot_by_day = select_test()
-	plot_by_day_script, plot_by_day_div = components(plot_by_day)
+def backfill_cadence_data():
+	track_event(category="Strava", action="Cadence backfill triggered", userId = str(current_user.id))
+	activities = current_user.activities.filter(Activity.median_cadence == None).filter(Activity.average_cadence != None).order_by(Activity.start_datetime.desc()).all()
+	flash("Getting cadence data for {count} activities".format(count=len(activities)))
 
-	return render_template("chart.html", title="Exercises Data Viz", bars_count=0,
- 		plot_by_day_div=plot_by_day_div, plot_by_day_script=plot_by_day_script)
+	for activity in activities:
+		if activity.median_cadence is None:
+			result = analysis.parse_cadence_stream(activity)
+			if result == "Not authorized":
+				return redirect(url_for("connect_strava", action="authorize"))
 
-
-@app.route("/test")
-@login_required
-def test():
-	current_week_datetime = datetime.strptime("2018-11-05", "%Y-%m-%d")
-	current_week = datetime.date(current_week_datetime)
-
-	
-
-	# add a line renderer
-	p.line([1, 2, 3, 4, 5], [6, 7, 2, 4, 5], line_width=2)
-
-	show(p)
+	track_event(category="Strava", action="Cadence backfill completed", userId = str(current_user.id))
+	return redirect(url_for("weekly_activity", year=2018))
