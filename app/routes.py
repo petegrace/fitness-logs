@@ -13,7 +13,7 @@ from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
 from app.app_classes import TempCadenceAggregate
-from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart
+from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
 from sqlalchemy import desc, and_, or_, null
@@ -349,8 +349,8 @@ def weekly_activity(year, week=None):
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
 	user_categories = current_user.exercise_categories.all()
 
-	exercise_sets_plot, source = generate_stacked_bar_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, bar_direction="vertical")
+	exercise_sets_plot = generate_line_chart_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
+		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, line_type="cumulative")
 	exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
 
 	# Data and plotting for the goals graph

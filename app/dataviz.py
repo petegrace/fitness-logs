@@ -235,3 +235,67 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 	plot.outline_line_color = None
 
 	return plot
+
+
+def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None):	
+	# Colour mappings
+	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
+	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
+	available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
+	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
+	category_name_mappings.append(("Uncategorised", "Uncategorised"))
+
+	# Reshape the data
+	df = pd.read_sql(dataset_query.statement, dataset_query.session.bind)
+	pivot_df = df.pivot(index=dimension, columns="category_key", values=measure)
+	pivot_df = pivot_df.fillna(value=0)
+
+	if line_type == "cumulative":
+		pivot_df = pivot_df.cumsum()
+
+	categories = df["category_key"].unique()
+	dimension_list = pivot_df.index.values
+
+	data = {dimension : dimension_list}
+	colors = {}
+	line_colors = {}
+	line_dashes = {}
+	names = {}
+
+	for category in categories:
+		data[category] = pivot_df[category].values
+		category_index =  available_categories.index(category) if category in available_categories else 8
+		colors[category] = available_colors[category_index]
+		line_colors[category] = available_line_colors[category_index] #TODO: Need to assign the undefinned category if it can't be matched
+		line_dashes[category] = "solid" if "outline" not in category else "dashed"
+		names[category] = [mapping[1] for mapping in category_name_mappings if mapping[0]==category][0] if category in available_categories else category
+
+	source = ColumnDataSource(data=data)
+
+	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None)
+	plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
+
+	latest_dimension_value = data[dimension][-1]
+
+	for category in categories:
+		latest_measure_value = data[category][-1]
+		plot.line(source=source, x=dimension, y=category, line_width=2, line_color=line_colors[category], line_dash=line_dashes[category],
+						 legend=names[category])
+		plot.circle(x=latest_dimension_value, y=latest_measure_value, size=6, line_color=line_colors[category], line_width=2, color=colors[category])
+
+	plot.sizing_mode = "scale_width"
+	plot.axis.minor_tick_line_color = None
+	plot.axis.axis_line_color = "#999999"
+	plot.axis.major_label_text_color = "#666666"
+	plot.axis.major_label_text_font_size = "8pt"
+	plot.axis.major_tick_line_color = "#cccccc"
+	plot.xgrid.grid_line_color = None
+	plot.ygrid.grid_line_color = "#eeeeee"
+	plot.outline_line_color = None
+	plot.legend.padding = 5
+	plot.legend.label_text_font = "sans-serif"
+	plot.legend.label_text_color = "#666666"
+	plot.legend.label_text_font_size = "8pt"
+	plot.legend.location = "top_left"
+
+	return plot
