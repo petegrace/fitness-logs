@@ -87,3 +87,9 @@ class CadenceGoalForm(FlaskForm):
 	cadence = IntegerField("Cadence", validators=[DataRequired()])
 	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
+
+class ExerciseSetsGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
+	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
+	target_sets_to_complete = IntegerField("Target Sets to Complete", validators=[DataRequired()])
+	submit = SubmitField("Set Goal")

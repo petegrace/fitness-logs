@@ -237,7 +237,7 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 	return plot
 
 
-def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None):	
+def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None, tap_tool_callback=None):	
 	# Colour mappings
 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
 	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
@@ -272,7 +272,7 @@ def generate_line_chart_for_categories(dataset_query, dimension, measure, dimens
 
 	source = ColumnDataSource(data=data)
 
-	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None)
+	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None, tools=["tap"])
 	plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
 
 	latest_dimension_value = data[dimension][-1]
@@ -280,8 +280,12 @@ def generate_line_chart_for_categories(dataset_query, dimension, measure, dimens
 	for category in categories:
 		latest_measure_value = data[category][-1]
 		plot.line(source=source, x=dimension, y=category, line_width=2, line_color=line_colors[category], line_dash=line_dashes[category],
-						 legend=names[category])
-		plot.circle(x=latest_dimension_value, y=latest_measure_value, size=6, line_color=line_colors[category], line_width=2, color=colors[category])
+						 legend=names[category], name=category)
+		plot.circle(source=source, x=dimension, y=category, size=6, line_color=line_colors[category], line_width=2, color=colors[category])
+
+	if tap_tool_callback is not None:
+		tap_tool = plot.select(type=TapTool)
+		tap_tool.callback = CustomJS(args=dict(source=source), code=tap_tool_callback)
 
 	plot.sizing_mode = "scale_width"
 	plot.axis.minor_tick_line_color = None

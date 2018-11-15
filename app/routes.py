@@ -10,7 +10,7 @@ import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
 from app.app_classes import TempCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
@@ -197,7 +197,12 @@ def edit_exercise(id):
 @login_required
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
-	goal_form = CadenceGoalForm()
+	cadence_goal_form = CadenceGoalForm()	
+	exercise_sets_goal_form = ExerciseSetsGoalForm()
+
+	# Bit of a haack to reduce avoid duplicate errors when unioning exercises and activities
+	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
+	exercise_sets_goal_form.exercise_category_id.choices = category_choices
 
 	# Sort out our week and year-related stuff
 	week_options = db.session.query(CalendarDay.calendar_week_start_date
@@ -222,18 +227,18 @@ def weekly_activity(year, week=None):
 			current_week_ms = int(week)
 			current_week = datetime.date(datetime.fromtimestamp(current_week_ms/1000.0))
 
-	# Create a new goal or update an existing one if it's a post
-	if goal_form.validate_on_submit():
-		if goal_form.goal_relative_week.data == "this":
+	# Create a new cadence goal or update an existing one if it's a post
+	if cadence_goal_form.validate_on_submit():
+		if cadence_goal_form.goal_relative_week.data == "this":
 			goal_start_date = week_options[0].calendar_week_start_date
-		elif goal_form.goal_relative_week.data == "next":
+		elif cadence_goal_form.goal_relative_week.data == "next":
 			goal_start_date = week_options[0].calendar_week_start_date + timedelta(days=7)
 
 		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
 			).filter_by(goal_metric="Time Spent Above Cadence"
-			).filter_by(goal_dimension_value=str(goal_form.cadence.data)).first()
+			).filter_by(goal_dimension_value=str(cadence_goal_form.cadence.data)).first()
 		if weekly_goal is not None:
-			weekly_goal.goal_target = goal_form.target_minutes_above_cadence.data * 60
+			weekly_goal.goal_target = cadence_goal_form.target_minutes_above_cadence.data * 60
 			track_event(category="Analysis", action="Existing weekly goal for cadence updated", userId = str(current_user.id))
 			flash("Updated goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
 		else:
@@ -242,8 +247,8 @@ def weekly_activity(year, week=None):
 									   goal_start_date=goal_start_date,
 									   goal_metric="Time Spent Above Cadence",
 									   goal_metric_units="seconds",
-									   goal_dimension_value=str(goal_form.cadence.data),
-									   goal_target=goal_form.target_minutes_above_cadence.data * 60,
+									   goal_dimension_value=str(cadence_goal_form.cadence.data),
+									   goal_target=cadence_goal_form.target_minutes_above_cadence.data * 60,
 									   goal_status="In Progress",
 									   current_metric_value=0)
 			db.session.add(weekly_goal)
@@ -253,6 +258,38 @@ def weekly_activity(year, week=None):
 
 		# Evaluate the goals in case there's already progress made
 		analysis.evaluate_cadence_goals(goal_start_date)
+
+	# Create a new exercise sets goal for or update an existing one if it's a post
+	if exercise_sets_goal_form.validate_on_submit():
+		if exercise_sets_goal_form.goal_relative_week.data == "this":
+			goal_start_date = week_options[0].calendar_week_start_date
+		elif exercise_sets_goal_form.goal_relative_week.data == "next":
+			goal_start_date = week_options[0].calendar_week_start_date + timedelta(days=7)
+
+		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
+			).filter_by(goal_metric="Exercise Sets Completed"
+			).filter_by(goal_dimension_value=str(exercise_sets_goal_form.exercise_category_id.data)).first()
+		if weekly_goal is not None:
+			weekly_goal.goal_target = exercise_sets_goal_form.target_sets_to_complete.data
+			track_event(category="Analysis", action="Existing weekly goal for exerise sets updated", userId = str(current_user.id))
+			flash("Updated goal for exercise sets completed")
+		else:
+			weekly_goal = TrainingGoal(owner=current_user,
+									   goal_period='week',
+									   goal_start_date=goal_start_date,
+									   goal_metric="Exercise Sets Completed",
+									   goal_metric_units="sets",
+									   goal_dimension_value=str(exercise_sets_goal_form.exercise_category_id.data),
+									   goal_target=exercise_sets_goal_form.target_sets_to_complete.data,
+									   goal_status="In Progress",
+									   current_metric_value=0)
+			db.session.add(weekly_goal)
+			track_event(category="Analysis", action="New weekly goal for exercise sets created", userId = str(current_user.id))
+			flash("Created new goal for exercise sets completed")
+		db.session.commit()
+
+		# Evaluate the goals in case there's already progress made
+		analysis.evaluate_exercise_set_goals(goal_start_date)
 
 	# Now start getting the data that we need for a get (as well as after a post)
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
@@ -282,34 +319,24 @@ def weekly_activity(year, week=None):
 		current_week_dataset.append(day_detail)
 
 	# Data and plotting for weekly cadence analysis graph
-	weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
+	#weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
 	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
 
 	if len(weekly_cadence_goals) == 0:
 		weekly_cadence_goals = None
 
-	if len(weekly_cadence_stats) == 0:
+	weekly_cadence_aggregations = analysis.calculate_weekly_cadence_aggregations(current_week)
+
+	if len(weekly_cadence_aggregations["summary"]) == 0:
 		above_cadence_plot_script=None
 		above_cadence_plot_div=None
 	else:
-		min_significant_cadence = 30
-		max_significant_cadence = 300
-		weekly_running_total = 0
-
-		weekly_cadence_summary = []
-
-		# For the lower range in graph look for aything more than 5 minutes
-		for cadence_aggregate in weekly_cadence_stats:
-			weekly_running_total += cadence_aggregate.total_seconds_at_cadence
-			if cadence_aggregate.total_seconds_at_cadence >= 60 and max_significant_cadence==300: # only overwrite the max once (we're iterating in descing order)
-				max_significant_cadence = cadence_aggregate.cadence 
-			if cadence_aggregate.total_seconds_at_cadence >= 300: # keep overwriting until we get to the end and have the min
-				min_significant_cadence = cadence_aggregate.cadence
-			weekly_cadence_summary.append(TempCadenceAggregate(cadence=cadence_aggregate.cadence,
-															   total_seconds_above_cadence=weekly_running_total))
+		weekly_cadence_summary = weekly_cadence_aggregations["summary"]
+		min_significant_cadence = weekly_cadence_aggregations["min_significant_cadence"]
+		max_significant_cadence = weekly_cadence_aggregations["max_significant_cadence"]
 
 		set_cadence_goal_callback = """
-			$('#setGoal-modal').modal('show')
+			$('#setCadenceGoal-modal').modal('show')
 			selection = require('core/util/selection')
 			indices = selection.get_indices(source)
 			for (i = 0; i < indices.length; i++) {{
@@ -347,17 +374,26 @@ def weekly_activity(year, week=None):
 
 	# Data and plotting for the exercise sets by day graph
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
-	user_categories = current_user.exercise_categories.all()
 
-	exercise_sets_plot = generate_line_chart_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-		dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, line_type="cumulative")
-	exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
+	if len(exercises_by_category_and_day.all()) == 0:
+		exercise_sets_plot_script = None
+		exercise_sets_plot_div = None
+	else:
+		user_categories = current_user.exercise_categories.all()
+		set_exercise_sets_goal_callback = """
+				$('#setExerciseSetsGoal-modal').modal('show')
+				"""
+
+		exercise_sets_plot = generate_line_chart_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
+			dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, line_type="cumulative",
+			tap_tool_callback=set_exercise_sets_goal_callback)
+		exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
 
 	# Data and plotting for the goals graph
 	goals_for_week = current_user.training_goals.filter(TrainingGoal.goal_start_date == current_week).all()
 	if len(goals_for_week) == 0:
-		current_goals_plot_script=None
-		current_goals_plot_div=None
+		current_goals_plot_script = None
+		current_goals_plot_div = None
 	else:
 		current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
 					measure_label_function=utils.format_percentage, dimension_type="discrete",
@@ -393,8 +429,8 @@ def weekly_activity(year, week=None):
 	return render_template("weekly_activity.html", title="Weekly Activity",utils=utils,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
-		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, goal_form=goal_form,
-		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div,
+		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
+		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
 		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
 		cadence_goal_history_charts=cadence_goal_history_charts)
 

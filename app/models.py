@@ -70,6 +70,14 @@ class User(UserMixin, db.Model):
 		return Exercise.query.join(ExerciseType,
 			(ExerciseType.id == Exercise.exercise_type_id)).filter(ExerciseType.owner == self).order_by(Exercise.exercise_datetime.desc())
 
+	def exercises_filtered(self, exercise_category_id=None, week=None):
+		return Exercise.query.join(ExerciseType, (ExerciseType.id == Exercise.exercise_type_id)
+			).join(CalendarDay, (func.date(Exercise.exercise_datetime) == CalendarDay.calendar_date)
+			).filter(ExerciseType.owner == self
+			).filter(or_(ExerciseType.exercise_category_id == exercise_category_id, exercise_category_id is None)
+			).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
+			)
+
 	def activities_filtered(self, activity_type=None, week=None):
 		return Activity.query.join(CalendarDay, (func.date(Activity.start_datetime) == CalendarDay.calendar_date)
 			).filter(Activity.owner == self
@@ -505,7 +513,11 @@ class TrainingGoal(db.Model):
 
 	@property
 	def goal_description(self):
-		return "{metric} of {value}".format(metric=self.goal_metric, value=self.goal_dimension_value)
+		if self.goal_metric == "Exercise Sets Completed":
+			goal_dimension_friendly_value = ExerciseCategory.query.get(int(self.goal_dimension_value)).category_name
+		else:	
+			goal_dimension_friendly_value = self.goal_dimension_value
+		return "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
 
 
 class CalendarDay(db.Model):

@@ -113,12 +113,22 @@ def calculate_weekly_cadence_aggregations(week):
 	weekly_cadence_stats = current_user.weekly_cadence_stats(week=week).all()
 	min_significant_cadence = 30
 	max_significant_cadence = 300
+	previous_cadence = 0
 	weekly_running_total = 0
 
 	weekly_cadence_summary = []
 
 	# For the lower range in graph look for aything more than 5 minutes
 	for cadence_aggregate in weekly_cadence_stats:
+		# Fill in any gaps
+		if cadence_aggregate.cadence < previous_cadence - 2:
+			gap_cadence = previous_cadence - 2
+			while gap_cadence > cadence_aggregate.cadence:
+				weekly_cadence_summary.append(TempCadenceAggregate(cadence=gap_cadence,
+														   		   total_seconds_above_cadence=weekly_running_total))
+				gap_cadence -= 2
+
+		# Now get on with adding the current cadence
 		weekly_running_total += cadence_aggregate.total_seconds_at_cadence
 		if cadence_aggregate.total_seconds_at_cadence >= 60 and max_significant_cadence==300: # only overwrite the max once (we're iterating in descing order)
 			max_significant_cadence = cadence_aggregate.cadence 
@@ -126,6 +136,8 @@ def calculate_weekly_cadence_aggregations(week):
 			min_significant_cadence = cadence_aggregate.cadence
 		weekly_cadence_summary.append(TempCadenceAggregate(cadence=cadence_aggregate.cadence,
 														   total_seconds_above_cadence=weekly_running_total))
+		# Set the previous_cadence so we can detect gaps
+		previous_cadence = cadence_aggregate.cadence
 
 	weekly_cadence_aggregations = dict(summary = weekly_cadence_summary,
 									   min_significant_cadence = min_significant_cadence,
@@ -158,3 +170,22 @@ def get_cadence_goal_history_charts(week):
 		cadence_goal_plot_containers.append(cadence_goal_plot_container)
 
 	return cadence_goal_plot_containers
+
+
+def evaluate_exercise_set_goals(week):
+	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
+	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric="Exercise Sets Completed").all()
+	flash(current_goals)
+	for goal in current_goals:
+		exercise_sets = current_user.exercises_filtered(exercise_category_id=int(goal.goal_dimension_value), week=goal.goal_start_date).all()
+		flash(len(exercise_sets))
+		# 4. Compare the current stats vs. goal where they're for the same cadence
+		goal.current_metric_value = len(exercise_sets)
+		# 5. Set to success if the target has been hit and flash a congrats message
+		if goal.current_metric_value >= goal.goal_target:
+			goal.goal_status = "Successful"
+		# 6. Set to missed if if the time period has expired
+		if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+			goal.goal_status = "Missed"
+
+	db.session.commit()
