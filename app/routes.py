@@ -704,66 +704,9 @@ def activity_analysis(id):
 	# Grab the cadence data from Strava if we don't already have it
 	if activity.median_cadence is None:
 		track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
-		strava_client = Client()
-
-		if not session.get("strava_access_token"):
-			return redirect(url_for("connect_strava", action="authorize", next="/activity_analysis/{id}".format(id=id)))
-
-		access_token = session["strava_access_token"]
-		strava_client.access_token = access_token
-
-		stream_types = ["time", "cadence"]
-
-		try:
-			activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
-		except:
-			return redirect(url_for("connect_strava", action="authorize", next="/activity_analysis/{id}".format(id=id)))
-
-
-		if "cadence" in activity_streams:
-			cadence_records = []
-			cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
-			dp_ind = 0
-			df_ind = 0
-
-			# construct a data frame
-			for cadence_data_point in activity_streams["cadence"].data:
-				if cadence_data_point > 0 and dp_ind > 1:
-					duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])
-
-					if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
-						#cadence_records.append({"cadence": cadence_data_point,
-						#						"start_time": activity_streams["time"].data[dp_ind-1],
-						#						"duration": duration})
-						cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], duration]
-						df_ind += 1
-				dp_ind += 1
-
-			cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
-			cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
-			cadence_data_desc = cadence_data
-			cadence_data_desc.reverse()
-
-			running_total = 0
-			this_aggregate_total = 0
-			#above_cadence_data = []
-
-			for cadence_group in cadence_data_desc:
-				running_total += cadence_group[1]
-				this_aggregate_total += cadence_group[1]
-				
-				# Group up any outliers with seconds < 10 seconds into the next aggregate
-				if this_aggregate_total > 10:
-					activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
-																		  cadence=cadence_group[0]*2,
-																		  total_seconds_at_cadence=this_aggregate_total,
-																		  total_seconds_above_cadence=running_total)
-					db.session.add(activity_cadence_aggregate)
-					this_aggregate_total = 0
-
-			activity.median_cadence = cadence_df["cadence"].median()*2
-			db.session.commit()
-
+		result = analysis.parse_cadence_stream(activity)
+		if result == "Not authorized":
+			return redirect(url_for("connect_strava", action="authorize"))
 	
 	if activity.median_cadence is not None:
 		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
