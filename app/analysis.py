@@ -175,10 +175,8 @@ def get_cadence_goal_history_charts(week):
 def evaluate_exercise_set_goals(week):
 	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
 	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric="Exercise Sets Completed").all()
-	flash(current_goals)
 	for goal in current_goals:
 		exercise_sets = current_user.exercises_filtered(exercise_category_id=int(goal.goal_dimension_value), week=goal.goal_start_date).all()
-		flash(len(exercise_sets))
 		# 4. Compare the current stats vs. goal where they're for the same cadence
 		goal.current_metric_value = len(exercise_sets)
 		# 5. Set to success if the target has been hit and flash a congrats message

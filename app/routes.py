@@ -288,9 +288,6 @@ def weekly_activity(year, week=None):
 			flash("Created new goal for exercise sets completed")
 		db.session.commit()
 
-		# Evaluate the goals in case there's already progress made
-		analysis.evaluate_exercise_set_goals(goal_start_date)
-
 	# Now start getting the data that we need for a get (as well as after a post)
 	days = CalendarDay.query.filter_by(calendar_week_start_date=current_week).order_by(CalendarDay.calendar_date.desc()).all()
 
@@ -317,6 +314,9 @@ def weekly_activity(year, week=None):
 						  exercises_by_category=exercises_by_category,
 						  activities=day_activities)
 		current_week_dataset.append(day_detail)
+
+	# Evaluate the exercise sets goals at this point
+	analysis.evaluate_exercise_set_goals(current_week)
 
 	# Data and plotting for weekly cadence analysis graph
 	#weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
