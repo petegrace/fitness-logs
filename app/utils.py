@@ -30,3 +30,9 @@ def format_percentage(percent):
 # Wrapping the Python len function so its in utils that we pass into Jinja templates, otherwise we get undefined error
 def length_of_list(list):
 	return len(list)
+
+def format_goal_units(goal_metric, value):
+	if goal_metric == "Exercise Sets Completed":
+		return "{sets} sets".format(sets=value)
+	elif goal_metric == "Time Spent Above Cadence":
+		return convert_seconds_to_minutes_formatted(value)

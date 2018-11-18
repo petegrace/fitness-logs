@@ -405,7 +405,7 @@ def weekly_activity(year, week=None):
 	else:
 		current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
 					measure_label_function=utils.format_percentage, dimension_type="discrete", category_field="goal_category",
-					goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description")
+					goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description", goal_label_function=utils.format_goal_units)
 		current_goals_plot_script, current_goals_plot_div = components(current_goals_plot)
 
 

@@ -87,7 +87,7 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot, source
 
 
-def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, measure_label_function=None):
+def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, measure_label_function=None, goal_label_function=None):
 	goal_dimension_values = []
 	goal_measure_values = []
 	goal_measure_labels = []
@@ -95,7 +95,7 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 	goal_line_colors = []
 
 	for row in goals_dataset:
-		if goal_dimension_type == "value":
+		if goal_dimension_type == "value" and row.goal_dimension_value != "None":
 			goal_dimension_values.append(int(row.goal_dimension_value))
 		else:
 			goal_dimension_values.append(row.goal_description)
@@ -108,10 +108,13 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 				goal_measure_labels.append("Target: " + str(row.goal_target))
 		else:
 			goal_measure_values.append(100)
-			goal_measure_labels.append("Target: 100%")
+			if goal_label_function is not None:
+				goal_measure_labels.append("Target: " + goal_label_function(goal_metric=row.goal_metric, value=row.goal_target))
+			else:
+				goal_measure_labels.append("Target: " + str(row.goal_target))
 
-		goal_fill_colors.append(row.goal_category.fill_color)
-		goal_line_colors.append(row.goal_category.line_color)
+		goal_fill_colors.append(row.goal_category.fill_color if row.goal_category is not None else "#292b2c")
+		goal_line_colors.append(row.goal_category.line_color if row.goal_category is not None else "#292b2c")
 
 	goals_source = ColumnDataSource(dict(dimension=goal_dimension_values,
 										 measure=goal_measure_values,
@@ -123,7 +126,7 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 
 
 def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, category_field=None, fill_color=None, line_color=None,
-		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):
+		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", goal_label_function=None, tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
@@ -145,8 +148,8 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 			measure_labels.append(measure_label_function(getattr(row, measure_label_name)))
 
 		if category_field is not None:
-			fill_colors.append(getattr(row, category_field).fill_color)
-			line_colors.append(getattr(row, category_field).line_color)
+			fill_colors.append(getattr(row, category_field).fill_color if getattr(row, category_field) is not None else "#292b2c")
+			line_colors.append(getattr(row, category_field).line_color if getattr(row, category_field) is not None else "#292b2c")
 		elif fill_color is not None:
 			fill_colors.append(fill_color),
 			line_colors.append(line_color)
@@ -173,7 +176,8 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	# Prep the goals data if we have any
 	if goals_dataset is not None:
-		goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
+		goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type,
+							measure_label_function=measure_label_function, goal_label_function=goal_label_function)
 
 		# Update the max ranges
 		if dimension_type == "continuous":
@@ -324,7 +328,7 @@ def generate_line_chart_for_categories(dataset_query, dimension, measure, dimens
 		if len(goals_dataset) > 0:
 			goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
 			goal_end_date = goals_dataset[0].goal_start_date + timedelta(days=6)
-			plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="#eeeeee", size=10) # TODO: use the correct color by adding into the data source
+			plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="#eeeeee", size=10)
 			plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="fill_color", size=4)
 			#TODO: should label the target
 
