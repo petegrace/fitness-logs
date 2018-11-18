@@ -366,6 +366,8 @@ class ExerciseCategory(db.Model):
 	category_name = db.Column(db.String(25))
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercise_types = db.relationship("ExerciseType", backref="exercise_category", lazy="dynamic")
+	fill_color = db.Column(db.String(25))
+	line_color = db.Column(db.String(25))
 
 	def __repr__(self):
 		return "<ExerciseCategory {name} for {user}>".format(name=self.category_name, user=self.owner.email)
@@ -518,6 +520,14 @@ class TrainingGoal(db.Model):
 		else:	
 			goal_dimension_friendly_value = self.goal_dimension_value
 		return "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
+
+	@property
+	def goal_category(self):
+		if self.goal_metric == "Exercise Sets Completed":
+			category = ExerciseCategory.query.get(int(self.goal_dimension_value))
+		elif self.goal_metric == "Time Spent Above Cadence":
+			category = ExerciseCategory.query.filter(ExerciseCategory.owner == self.owner).filter(ExerciseCategory.category_name == "Run").first()
+		return category
 
 
 class CalendarDay(db.Model):

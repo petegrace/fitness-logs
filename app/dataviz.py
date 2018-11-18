@@ -1,4 +1,5 @@
 from flask import redirect, flash
+from datetime import timedelta
 import pandas as pd
 from bokeh.core.properties import value
 from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead, CategoricalAxis
@@ -86,6 +87,41 @@ def generate_stacked_bar_for_categories(dataset_query, user_categories, dimensio
 	return plot, source
 
 
+def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, measure_label_function=None):
+	goal_dimension_values = []
+	goal_measure_values = []
+	goal_measure_labels = []
+	goal_fill_colors = []
+	goal_line_colors = []
+
+	for row in goals_dataset:
+		if goal_dimension_type == "value":
+			goal_dimension_values.append(int(row.goal_dimension_value))
+		else:
+			goal_dimension_values.append(row.goal_description)
+
+		if goal_measure_type == "absolute":
+			goal_measure_values.append(row.goal_target)
+			if measure_label_function is not None:
+				goal_measure_labels.append("Target: " + measure_label_function(row.goal_target))
+			else:
+				goal_measure_labels.append("Target: " + str(row.goal_target))
+		else:
+			goal_measure_values.append(100)
+			goal_measure_labels.append("Target: 100%")
+
+		goal_fill_colors.append(row.goal_category.fill_color)
+		goal_line_colors.append(row.goal_category.line_color)
+
+	goals_source = ColumnDataSource(dict(dimension=goal_dimension_values,
+										 measure=goal_measure_values,
+										 measure_label=goal_measure_labels,
+										 fill_color=goal_fill_colors,
+										 line_color=goal_line_colors))
+
+	return goals_source
+
+
 def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None,
 		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
@@ -122,37 +158,18 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	# Prep the goals data if we have any
 	if goals_dataset is not None:
-		goal_dimension_values = []
-		goal_measure_values = []
-		goal_measure_labels = []
-
-		for row in goals_dataset:
-			if goal_dimension_type == "value":
-				goal_dimension_values.append(int(row.goal_dimension_value))
-			else:
-				goal_dimension_values.append(row.goal_description)
-
-			if goal_measure_type == "absolute":
-				goal_measure_values.append(row.goal_target)
-				goal_measure_labels.append("Target: " + measure_label_function(row.goal_target))
-			else:
-				goal_measure_values.append(100)
-				goal_measure_labels.append("Target: 100%")
-
-		goals_source = ColumnDataSource(dict(dimension=goal_dimension_values,
-											 measure=goal_measure_values,
-											 measure_label=goal_measure_labels))
+		goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
 
 		# Update the max ranges
 		if dimension_type == "continuous":
-			if min(goal_dimension_values) < dimension_range_min:
-				dimension_range_min = min(goal_dimension_values)-1
+			if min(goals_source.data["dimension"]) < dimension_range_min:
+				dimension_range_min = min(goals_source.data["dimension"])-1
 
-			if max(goal_dimension_values) > dimension_range_max:
-				dimension_range_max = max(goal_dimension_values)+1
+			if max(goals_source.data["dimension"]) > dimension_range_max:
+				dimension_range_max = max(goals_source.data["dimension"])+1
 			
-		if max(goal_measure_values) > measure_range_max:
-			measure_range_max = max(goal_measure_values)
+		if max(goals_source.data["measure"]) > measure_range_max:
+			measure_range_max = max(goals_source.data["measure"])
 
 	if dimension_type == "continuous":
 		dimension_range = (dimension_range_min-1, dimension_range_max+1)
@@ -237,7 +254,8 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 	return plot
 
 
-def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None, tap_tool_callback=None):	
+def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None, measure_label_function=None,
+								goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):	
 	# Colour mappings
 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
 	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
@@ -282,6 +300,15 @@ def generate_line_chart_for_categories(dataset_query, dimension, measure, dimens
 		plot.line(source=source, x=dimension, y=category, line_width=2, line_color=line_colors[category], line_dash=line_dashes[category],
 						 legend=names[category], name=category)
 		plot.circle(source=source, x=dimension, y=category, size=6, line_color=line_colors[category], line_width=2, color=colors[category])
+
+	# Prep the goals data if we have any
+	if goals_dataset is not None:
+		goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
+		goal_end_date = goals_dataset[0].goal_start_date + timedelta(days=6)
+		plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="#eeeeee", size=10) # TODO: use the correct color by adding into the data source
+		plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="fill_color", size=4)
+		#TODO: should label the target
+
 
 	if tap_tool_callback is not None:
 		tap_tool = plot.select(type=TapTool)

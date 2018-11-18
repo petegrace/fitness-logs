@@ -319,7 +319,6 @@ def weekly_activity(year, week=None):
 	analysis.evaluate_exercise_set_goals(current_week)
 
 	# Data and plotting for weekly cadence analysis graph
-	#weekly_cadence_stats = current_user.weekly_cadence_stats(week=current_week).all()
 	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
 
 	if len(weekly_cadence_goals) == 0:
@@ -374,6 +373,7 @@ def weekly_activity(year, week=None):
 
 	# Data and plotting for the exercise sets by day graph
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
+	weekly_exercise_set_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Exercise Sets Completed").all()
 
 	if len(exercises_by_category_and_day.all()) == 0:
 		exercise_sets_plot_script = None
@@ -385,7 +385,7 @@ def weekly_activity(year, week=None):
 				"""
 
 		exercise_sets_plot = generate_line_chart_for_categories(dataset_query=exercises_by_category_and_day, user_categories=user_categories,
-			dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, line_type="cumulative",
+			dimension="exercise_date", measure="exercise_sets_count", dimension_type = "datetime", plot_height=120, line_type="cumulative", goals_dataset=weekly_exercise_set_goals,
 			tap_tool_callback=set_exercise_sets_goal_callback)
 		exercise_sets_plot_script, exercise_sets_plot_div = components(exercise_sets_plot)
 
@@ -611,16 +611,26 @@ def categories():
 
 		category_keys = [field_name for field_name in dir(categories_form) if field_name.startswith("cat_")]
 
+		# Lists to use for looking up colour attributes for each category
+		available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
+		available_fill_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
+		available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
+
 		for category_key in category_keys:
 			if categories_form[category_key].data != "":
 				category = current_categories.filter_by(category_key=category_key).first()
+				category_index =  available_categories.index(category_key)
 
 				if category:
 					category.category_name = categories_form[category_key].data
+					category.fill_color = available_fill_colors[category_index]
+					category.line_color = available_line_colors[category_index]
 				else:
 					category = ExerciseCategory(owner=current_user,
 												category_key=category_key,
-												category_name=categories_form[category_key].data)
+												category_name=categories_form[category_key].data,
+												fill_color=available_fill_colors[category_index],
+												line_color=available_line_colors[category_index])
 			elif categories_form[category_key].data == "":
 				category = current_categories.filter_by(category_key=category_key).first()
 
