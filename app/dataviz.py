@@ -122,12 +122,14 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 	return goals_source
 
 
-def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None,
+def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, category_field=None, fill_color=None, line_color=None,
 		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
 	measure_labels = []
+	fill_colors = []
+	line_colors = []
 
 	if measure_label_name is None:
 		measure_label_name = measure_name
@@ -136,14 +138,27 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	for row in dataset:
 		dimension_values.append(getattr(row, dimension_name))
 		measure_values.append(getattr(row, measure_name))
+
 		if measure_label_function is None:
 			measure_labels.append(getattr(row, measure_label_name))
 		else:
 			measure_labels.append(measure_label_function(getattr(row, measure_label_name)))
 
+		if category_field is not None:
+			fill_colors.append(getattr(row, category_field).fill_color)
+			line_colors.append(getattr(row, category_field).line_color)
+		elif fill_color is not None:
+			fill_colors.append(fill_color),
+			line_colors.append(line_color)
+		else:
+			fill_colors.append("#292b2c")
+			line_colors.append("#292b2c")
+
 	source=ColumnDataSource(dict(dimension=dimension_values,
 								 measure=measure_values,
-								 measure_label=measure_labels))
+								 measure_label=measure_labels,
+								 fill_color=fill_colors,
+								 line_color=line_colors))
 
 	# Set the dimension ranges without knowledge of goal targets for now
 	if dimension_type == "continuous":
@@ -182,9 +197,9 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	measure_range = (-1, float(measure_range_max)*1.1)
 
 	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure_label", y_axis_type=None, tools=["tap"])
-	plot.hbar(source=source, y="dimension", right="measure", height=bar_height, color="#0275d8", fill_alpha=0.8, hover_alpha=1)
+	plot.hbar(source=source, y="dimension", right="measure", height=bar_height, color="fill_color", line_color="line_color", fill_alpha=0.8, hover_color="fill_color", hover_alpha=1)
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure_label", level="glyph",
-        x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="#0275d8")
+        x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="fill_color")
 	plot.add_layout(labels)
 
 	# Add dashed lines for any goal targets that are set
@@ -221,7 +236,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	return plot
 
 
-def generate_line_chart(dataset, plot_height, dimension_name, measure_name, measure_label_function=None):
+def generate_line_chart(dataset, plot_height, dimension_name, measure_name, measure_label_function=None, line_color=None):
 	dimension_values = []
 	measure_values = []
 
@@ -238,8 +253,11 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None)
 	plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
 
-	plot.line(source=source, x="dimension", y="measure", line_width=2)
-	plot.circle(x=latest_dimension_value, y=latest_measure_value, size=6)
+	if line_color is None:
+		line_color = "#292b2c"
+
+	plot.line(source=source, x="dimension", y="measure", line_width=2, line_color=line_color)
+	plot.circle(x=latest_dimension_value, y=latest_measure_value, size=6, color=line_color, line_color=line_color)
 
 	plot.sizing_mode = "scale_width"
 	plot.axis.minor_tick_line_color = None
@@ -303,11 +321,12 @@ def generate_line_chart_for_categories(dataset_query, dimension, measure, dimens
 
 	# Prep the goals data if we have any
 	if goals_dataset is not None:
-		goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
-		goal_end_date = goals_dataset[0].goal_start_date + timedelta(days=6)
-		plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="#eeeeee", size=10) # TODO: use the correct color by adding into the data source
-		plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="fill_color", size=4)
-		#TODO: should label the target
+		if len(goals_dataset) > 0:
+			goals_source = prepare_goals_source(goals_dataset=goals_dataset, goal_dimension_type=goal_dimension_type, goal_measure_type=goal_measure_type, measure_label_function=measure_label_function)
+			goal_end_date = goals_dataset[0].goal_start_date + timedelta(days=6)
+			plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="#eeeeee", size=10) # TODO: use the correct color by adding into the data source
+			plot.circle(source=goals_source, x=goal_end_date, y="measure", line_color="line_color", color="fill_color", size=4)
+			#TODO: should label the target
 
 
 	if tap_tool_callback is not None:

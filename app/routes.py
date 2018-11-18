@@ -362,10 +362,18 @@ def weekly_activity(year, week=None):
 			}}
 			"""
 
+		run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
+		if run_category is not None:
+			cadence_fill_color = run_category.fill_color
+			cadence_line_color = run_category.line_color
+		else:
+			cadence_fill_color = None
+			cadence_line_color = None
+
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)
 		above_cadence_plot = generate_bar(dataset=weekly_cadence_summary, plot_height=120, dimension_name="cadence", measure_name="total_seconds_above_cadence",
-				measure_label_function=utils.convert_seconds_to_minutes_formatted, max_dimension_range=max_dimension_range, goals_dataset=weekly_cadence_goals,
-				tap_tool_callback=set_cadence_goal_callback)
+				measure_label_function=utils.convert_seconds_to_minutes_formatted, fill_color=cadence_fill_color, line_color=cadence_line_color, max_dimension_range=max_dimension_range,
+				goals_dataset=weekly_cadence_goals, tap_tool_callback=set_cadence_goal_callback)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	# Data and plotting for historic performance against current cadence goals
@@ -396,7 +404,7 @@ def weekly_activity(year, week=None):
 		current_goals_plot_div = None
 	else:
 		current_goals_plot = generate_bar(dataset=goals_for_week, plot_height=120, dimension_name="goal_description", measure_name="percent_progress",
-					measure_label_function=utils.format_percentage, dimension_type="discrete",
+					measure_label_function=utils.format_percentage, dimension_type="discrete", category_field="goal_category",
 					goals_dataset=goals_for_week, goal_measure_type="percent", goal_dimension_type="description")
 		current_goals_plot_script, current_goals_plot_div = components(current_goals_plot)
 
@@ -722,12 +730,22 @@ def activity_analysis(id):
 		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
 		max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
 
+		run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
+		if run_category is not None:
+			fill_color = run_category.fill_color
+			line_color = run_category.line_color
+		else:
+			fill_color = None
+			line_color = None
+
 		at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
-			dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range)
+			dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range,
+			fill_color=fill_color, line_color=line_color)
 		at_cadence_plot_script, at_cadence_plot_div = components(at_cadence_plot)
 
 		above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
-			dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range)
+			dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range,
+			fill_color=fill_color, line_color=line_color)
 		#above_cadence_plot
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 	else:
