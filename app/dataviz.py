@@ -2,7 +2,7 @@ from flask import redirect, flash
 from datetime import timedelta
 import pandas as pd
 from bokeh.core.properties import value
-from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead, CategoricalAxis
+from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead, CategoricalAxis, FuncTickFormatter
 from bokeh.plotting import figure
 import bokeh.layouts
 
@@ -240,7 +240,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 	return plot
 
 
-def generate_line_chart(dataset, plot_height, dimension_name, measure_name, measure_label_function=None, line_color=None):
+def generate_line_chart(dataset, plot_height, dimension_name, measure_name, measure_label_function=None, line_color=None, y_tick_function_code=None):
 	dimension_values = []
 	measure_values = []
 
@@ -256,6 +256,9 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 
 	plot = figure(x_axis_type="datetime", plot_height=plot_height, toolbar_location=None)
 	plot.xaxis.formatter=DatetimeTickFormatter(days="%d %b", months="1st %b")
+
+	if y_tick_function_code is not None:
+		plot.yaxis.formatter=FuncTickFormatter(code=y_tick_function_code)
 
 	if line_color is None:
 		line_color = "#292b2c"

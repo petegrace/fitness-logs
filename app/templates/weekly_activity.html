@@ -3,8 +3,8 @@
 
 {% block styles %}
 	{{ super() }}
-    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.5.min.css" rel="stylesheet" />
-    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.0.min.css" rel="stylesheet" />
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-1.0.1.min.css" rel="stylesheet" />
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.1.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block scripts %}
@@ -12,9 +12,10 @@
 
 	<script>
 		$("#activity-nav").addClass("active");
+		Bokeh.index["blue_fig"].resize();
 	</script>
-	<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.13.0.min.js"></script>
-	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-1.0.1.min.js"></script>
+	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.1.min.js"></script>
 	{{ weekly_summary_plot_script|safe }}
 	{{ above_cadence_plot_script|safe }}
 	{{ exercise_sets_plot_script|safe }}

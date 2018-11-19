@@ -170,7 +170,8 @@ def get_cadence_goal_history_charts(week):
 			).order_by(CalendarDay.calendar_week_start_date).all()
 
 		plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal.goal_dimension_value)
-		cadence_goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_seconds_above_cadence", line_color=line_color)
+		cadence_goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_seconds_above_cadence", line_color=line_color,
+											y_tick_function_code="return parseInt(tick / 60);")
 		cadence_goal_history_plot_script, cadence_goal_history_plot_div = components(cadence_goal_history_plot)
 		cadence_goal_plot_container = PlotComponentContainer(name=plot_name, plot_div=cadence_goal_history_plot_div, plot_script=cadence_goal_history_plot_script)
 		cadence_goal_plot_containers.append(cadence_goal_plot_container)
