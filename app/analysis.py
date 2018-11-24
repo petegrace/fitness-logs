@@ -2,7 +2,7 @@ from flask import flash, redirect, url_for, request, session
 from flask_login import current_user
 from bokeh.embed import components
 from app import app, db, utils
-from app.models import TrainingGoal, ActivityCadenceAggregate, CalendarDay, Activity
+from app.models import TrainingGoal, ActivityCadenceAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_line_chart
 from sqlalchemy import func, or_
@@ -197,3 +197,41 @@ def evaluate_exercise_set_goals(week):
 			goal.goal_status = "Missed"
 
 	db.session.commit()
+
+
+def get_goal_history_charts(week, goal_metric):
+	weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
+
+	goal_plot_containers = []
+
+	for goal in weekly_goals:
+		if goal.goal_dimension_value == "None":
+			line_color = "#292b2c"
+			goal_category_name = "Uncategorised"
+		else:
+			goal_category = ExerciseCategory.query.get(int(goal.goal_dimension_value))
+			line_color = goal_category.line_color
+			goal_category_name = goal_category.category_name
+
+		if goal_metric == "Exercise Sets Completed":
+			goal_history = db.session.query(
+					CalendarDay.calendar_week_start_date,
+					func.count(Exercise.id).label("exercise_sets_completed")
+				).join(Exercise.type
+				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
+				).filter(ExerciseType.owner == current_user
+				).filter(or_(ExerciseType.exercise_category_id == int(goal.goal_dimension_value), goal.goal_dimension_value == "None")
+				).filter(Exercise.exercise_datetime >= (week - timedelta(days=365))
+				).filter(Exercise.exercise_datetime < (week + timedelta(days=7))
+				).group_by(CalendarDay.calendar_week_start_date
+				).order_by(CalendarDay.calendar_week_start_date).all()
+
+			measure_name = "exercise_sets_completed"
+
+		plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal_category_name)
+		goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name=measure_name, line_color=line_color)
+		goal_history_plot_script, goal_history_plot_div = components(goal_history_plot)
+		goal_plot_container = PlotComponentContainer(name=plot_name, plot_div=goal_history_plot_div, plot_script=goal_history_plot_script)
+		goal_plot_containers.append(goal_plot_container)
+
+	return goal_plot_containers

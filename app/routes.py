@@ -383,6 +383,9 @@ def weekly_activity(year, week=None):
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
 	weekly_exercise_set_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Exercise Sets Completed").all()
 
+	# Data and plotting for historic performance against current exercise set goals
+	exercise_set_goal_history_charts = analysis.get_goal_history_charts(week=current_week, goal_metric="Exercise Sets Completed")
+
 	if len(exercises_by_category_and_day.all()) == 0:
 		exercise_sets_plot_script = None
 		exercise_sets_plot_div = None
@@ -440,7 +443,7 @@ def weekly_activity(year, week=None):
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
 		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
-		cadence_goal_history_charts=cadence_goal_history_charts)
+		cadence_goal_history_charts=cadence_goal_history_charts, exercise_set_goal_history_charts=exercise_set_goal_history_charts)
 
 
 @app.route("/activity/<mode>")
