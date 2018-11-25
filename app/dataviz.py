@@ -100,9 +100,14 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 		else:
 			goal_dimension_values.append(row.goal_description)
 
+
+		goal_progress_percent = (row.current_metric_value / row.goal_target) * 100
+
 		if goal_measure_type == "absolute":
 			goal_measure_values.append(row.goal_target)
-			if measure_label_function is not None:
+			if goal_progress_percent >= 80:
+				goal_measure_labels.append("") # Avoid overlapping off labels by hiding the target
+			elif measure_label_function is not None:
 				goal_measure_labels.append("Target: " + measure_label_function(row.goal_target))
 			else:
 				goal_measure_labels.append("Target: " + str(row.goal_target))
