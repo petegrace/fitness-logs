@@ -20,6 +20,27 @@
 	{{ super() }}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
 	<style>
+		.tt-navbar {
+			background-color: #1d5454;
+		}
+
+		.tt-heading {
+			color: #1d5454;
+		}
+
+		.navbar-dark .navbar-nav .nav-link {
+			color: #cdcdcd;
+		}
+
+		.card {
+			border-color: #1d5454;
+		}
+
+		.card-header {
+			border-color: #1d5454;
+			background-color: #ededed;
+		}
+
 		.btn {
 		    margin: 2px 0px;
 		}
@@ -113,23 +134,30 @@
 		}	
 
 		h2 {
-			margin-top: 20px;
+			color: #1d5454;
+			margin-top: 20px; /* TODO: Bin these off and use the boostrap mt classes */;
 		}
 
 		h3 {
+			color: #1d5454;
 			margin-top: 20px;
 		}
 
+		h4 {
+			color: #1d5454;
+		}
+
 		h5 {
+			color: #1d5454;
 			margin-top: 20px;
 		}
 	</style>
 {% endblock %}
 
 {% block navbar %}
-	<nav class="navbar navbar-expand-lg navbar-light bg-light mb-2">
+	<nav class="navbar navbar-expand-lg navbar-dark tt-navbar mb-2">
 	    <div class="container">
-	        <a class="navbar-brand" href="{{ url_for('index') }}">Fitness Logs</a>
+	        <a class="navbar-brand" href="{{ url_for('index') }}"><i class="fa fa-check-circle" style="color: #ededed;"></i> Training Ticks</a>
 	        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
 			    <span class="navbar-toggler-icon"></span>
 			</button>

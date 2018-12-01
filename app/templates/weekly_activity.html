@@ -60,7 +60,7 @@
 	<h2>Week beginning {{ moment(current_week).format("LL") }}</h2>
 	<div class="card">
 		<div class="card-header">
-			<h6 class="m-0 p-0">Analysis and Weekly Goals</h6>
+			<h6 class="m-0 p-0 tt-heading">Analysis and Weekly Goals</h6>
 		</div>
 		<div class="card-body">
 			<div class="nav nav-tabs" id="analysis-tab" role="tablist">
@@ -76,7 +76,7 @@
 				<div class="tab-pane fade" id="nav-cadence" role="tabpanel">
 					{{ above_cadence_plot_div|safe }}
 					{% for chart in cadence_goal_history_charts %}
-						<h6 class="mt-3">{{ chart.name }}</h6>
+						<h6 class="mt-3 tt-heading">{{ chart.name }}</h6>
 						{{ chart.plot_div|safe }}
 					{% endfor %}
 					{% if utils.length_of_list(cadence_goal_history_charts) > 0 %}
@@ -86,7 +86,7 @@
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">
 					{{ exercise_sets_plot_div|safe }}
 					{% for chart in exercise_set_goal_history_charts %}
-						<h6 class="mt-3">{{ chart.name }}</h6>
+						<h6 class="mt-3 tt-heading">{{ chart.name }}</h6>
 						{{ chart.plot_div|safe }}
 					{% endfor %}
 				</div>
