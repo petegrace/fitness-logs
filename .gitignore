@@ -112,3 +112,4 @@ venv.bak/
 config.py
 app.yaml
 strava_testing.py
+.idea/
