@@ -624,8 +624,8 @@ def categories():
 
 		# Lists to use for looking up colour attributes for each category
 		available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
-		available_fill_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
-		available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
+		available_fill_colors = ["#588157", "#ffffff", "#3f7eba", "#ffffff", "#ef6461", "#ffffff", "#e4b363", "#ffffff", "#ffffff"]
+		available_line_colors = ["#588157", "#588157","#3f7eba", "#3f7eba", "#ef6461", "#ef6461", "#e4b363", "#e4b363", "#292b2c"]
 
 		for category_key in category_keys:
 			if categories_form[category_key].data != "":

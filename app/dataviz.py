@@ -7,10 +7,10 @@ from bokeh.plotting import figure
 import bokeh.layouts
 
 def generate_stacked_bar_for_categories(dataset_query, user_categories, dimension, measure, dimension_type, plot_height, bar_direction="vertical", measure_units="", granularity="day", show_grid=True, show_yaxis=True):
-	# Colour mappings
+	# Colour mappings - TODO: Switch to using the colours in the DB for each category
 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
-	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
-	available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
+	available_colors = ["#588157", "#ffffff", "#3f7eba", "#ffffff", "#ef6461", "#ffffff", "#e4b363", "#ffffff", "#ffffff"]
+	available_line_colors = ["#588157", "#588157","#3f7eba", "#3f7eba", "#ef6461", "#ef6461", "#e4b363", "#e4b363", "#292b2c"]
 	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
 	category_name_mappings.append(("Uncategorised", "Uncategorised"))
 
@@ -286,10 +286,10 @@ def generate_line_chart(dataset, plot_height, dimension_name, measure_name, meas
 
 def generate_line_chart_for_categories(dataset_query, dimension, measure, dimension_type, plot_height, line_type="normal", user_categories=None, measure_label_function=None,
 								goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", tap_tool_callback=None):	
-	# Colour mappings
+	# Colour mappings - TODO: Swich to using the DB
 	available_categories = ["cat_green", "cat_green_outline", "cat_blue", "cat_blue_outline", "cat_red", "cat_red_outline", "cat_yellow", "cat_yellow_outline", "Uncategorised"]
-	available_colors = ["#5cb85c", "#ffffff", "#0275d8", "#ffffff", "#d9534f", "#ffffff", "#f0ad4e", "#ffffff", "#ffffff"]
-	available_line_colors = ["#5cb85c", "#5cb85c","#0275d8", "#0275d8", "#d9534f", "#d9534f", "#f0ad4e", "#f0ad4e", "#292b2c"]
+	available_colors = ["#588157", "#ffffff", "#3f7eba", "#ffffff", "#ef6461", "#ffffff", "#e4b363", "#ffffff", "#ffffff"]
+	available_line_colors = ["#588157", "#588157","#3f7eba", "#3f7eba", "#ef6461", "#ef6461", "#e4b363", "#e4b363", "#292b2c"]
 	category_name_mappings = [(c.category_key, c.category_name) for c in user_categories]
 	category_name_mappings.append(("Uncategorised", "Uncategorised"))
 
