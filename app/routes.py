@@ -722,6 +722,10 @@ def activity_analysis(id):
 	track_event(category="Strava", action="Activity Analysis page loaded", userId = str(current_user.id))
 	activity = Activity.query.get(int(id))
 
+	if activity is None or activity.owner != current_user:
+		flash("Invalid activity")
+		return redirect(url_for("index"))
+
 	# Grab the cadence data from Strava if we don't already have it
 	if activity.median_cadence is None:
 		track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
