@@ -63,7 +63,7 @@ def parse_cadence_stream(activity):
 	except:
 		return "Not authorized"
 
-	if "cadence" in activity_streams:
+	if activity_streams is not None and "cadence" in activity_streams:
 		cadence_records = []
 		cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
 		dp_ind = 0
