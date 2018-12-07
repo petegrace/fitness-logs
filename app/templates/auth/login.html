@@ -2,9 +2,15 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block app_content %}
-	<h1>Sign In</h1>	
-	<p><a href="/oauth2authorize">Login with Google</a></p>
-<hr class="featurette-divider">
+
+<!-- Main jumbotron for a primary marketing message or call to action -->
+      <div class="jumbotron" style="background-color: #B6DBCA">
+        <div class="container">
+          <h1 class="display-3">Get started now!</h1>
+          <p>Log yourself in, or if you're a new user simply use your existing Google account to sign yourself up and start using Training Ticks straight away. Or if you need some convincing on why you should use Training Ticks then scroll down to check the features available to enhance your training and help keep yourself motivated!</p>
+          <p><a href="/oauth2authorize"><img src="/static/img/btn_google_signin_dark_normal_web.png" /></a></p>
+        </div>
+      </div>
 
 	<div class="row featurette">
           <div class="col-md-8">
@@ -17,9 +23,7 @@
           </div>
         </div>
 
-        <hr class="featurette-divider">
-
-        <div class="row featurette">
+        <div class="row featurette mt-5">
           <div class="col-md-7 order-md-2">
             <h2 class="featurette-heading">Deeper insight on your Strava activities.</h2>
             <p class="lead">If your Strava activity includes cadence data then Training Ticks will import it and provde you with insightful visualisations so you can understand your natural cadence and how it changes from activity to activity.  Great if you want to try and improve your leg speed to get that extra performance benefit.</p>
@@ -29,9 +33,7 @@
           </div>
         </div>
 
-        <hr class="featurette-divider">
-
-        <div class="row featurette">
+        <div class="row featurette mt-5">
           <div class="col-md-4">
             <h2 class="featurette-heading">Analyse your activity for the week.</h2>
             <p class="lead">The Analysis & Goals section lets you see all of your activity for the week in one place under a simple, expandable interface. Charts at the top aggregate your data up to a weekly level and allow you to set and track goals.</p>
@@ -44,9 +46,7 @@
           </div>
         </div>
 
-        <hr class="featurette-divider">
-
-        <div class="row featurette">
+        <div class="row featurette mt-5">
           <div class="col-md-8 order-md-2">
             <h2 class="featurette-heading">Create your own training plan.</h2>
             <p class="lead">Schedule your preferred exercises across a recurring weekly training plan so that you're prompted with your exercises to do each day.</p>
@@ -56,12 +56,10 @@
           </div>
         </div>
 
-        <hr class="featurette-divider">
-
-        <div class="row featurette">
+        <div class="row featurette mt-5">
           <div class="col-md-4">
             <h2 class="featurette-heading">Set and track weekly goals.</h2>
-            <p class="lead">You can set a goal for anything in the weekly analysis simply by clicking within the charts, either for the current or upcoming week. Your progress for all goals you have each week is then easily visibly from the same page.</p>
+            <p class="lead">You can set for cadence and completed exercise sets (more options coming soon!) simply by clicking within the charts, either for the current or upcoming week. Your progress for all goals you have each week is then easily visibly from the same page.</p>
           </div>
           <div class="col-md-4">
             <img class="featurette-image img-fluid mx-auto" src="/static/img/create-goal.jpg" alt="Create goal">
@@ -71,9 +69,7 @@
           </div>
         </div>
 
-        <hr class="featurette-divider">
-
-        <div class="row featurette">
+        <div class="row featurette mt-5">
           <div class="col-md-7 order-md-2">
             <h2 class="featurette-heading">Categorisation and colour-coding.</h2>
             <p class="lead">Set your own categories for activities and exercises to give yourself a more user-friendly interface through colour-coding of activities, and allow you to segment your activities when analysing.</p>
