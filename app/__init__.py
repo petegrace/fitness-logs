@@ -16,6 +16,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login = LoginManager(app)
 login.login_view = "auth.login"
+login.login_message = None
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 oauth2 = UserOAuth2()
