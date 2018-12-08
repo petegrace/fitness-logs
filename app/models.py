@@ -174,7 +174,7 @@ class User(UserMixin, db.Model):
 						func.sum(Exercise.seconds).label("total_seconds"),
 						null().label("total_distance")
 				).join(ExerciseType.exercises
-				).join(ExerciseType.exercise_category
+				).outerjoin(ExerciseType.exercise_category
 				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
 				).filter(ExerciseType.owner == self
 				).filter(or_(CalendarDay.calendar_year == year, year is None)

@@ -300,6 +300,7 @@ def weekly_activity(year, week=None):
 
 	for day in days:
 		exercises_by_category = []
+		# Create dictionaries of exercises for each category
 		for category in categories:
 			category_exercises = [exercise for exercise in all_exercises if exercise.exercise_date==day.calendar_date and exercise.type.exercise_category==category]
 			if len(category_exercises) > 0:
@@ -308,8 +309,19 @@ def weekly_activity(year, week=None):
 									   exercises=category_exercises)
 				exercises_by_category.append(category_detail)
 				current_week_activity_count += 1
+		# Create similar dictionary for uncategorised
+		uncategorised_exercises = [exercise for exercise in all_exercises if exercise.exercise_date==day.calendar_date and exercise.type.exercise_category is None]
+		if len(uncategorised_exercises) > 0:
+			category_detail = dict(category=None,
+					  			   exercise_count=len(uncategorised_exercises),
+								   exercises=uncategorised_exercises)
+			exercises_by_category.append(category_detail)
+			current_week_activity_count += 1
+		# Grab the activities without worrying about categories
 		day_activities = [activity for activity in all_activities if activity.activity_date==day.calendar_date]
 		current_week_activity_count += len(day_activities)
+
+		# Construct a dictionary for the day as a whole
 		day_detail = dict(day=day,
 						  exercises_by_category=exercises_by_category,
 						  activities=day_activities)
