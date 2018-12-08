@@ -16,10 +16,18 @@
 	</script>
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-1.0.1.min.js"></script>
 	<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-1.0.1.min.js"></script>
-	{{ weekly_summary_plot_script|safe }}
-	{{ above_cadence_plot_script|safe }}
-	{{ exercise_sets_plot_script|safe }}
-	{{ current_goals_plot_script|safe }}
+	{% if weekly_summary_plot_script != None %}
+		{{ weekly_summary_plot_script|safe }}
+	{% endif %}
+	{% if above_cadence_plot_script != None %}
+		{{ above_cadence_plot_script|safe }}
+	{% endif %}
+	{% if exercise_sets_plot_script != None %}
+		{{ exercise_sets_plot_script|safe }}
+	{% endif %}
+	{% if current_goals_plot_script != None %}
+		{{ current_goals_plot_script|safe }}
+	{% endif %}
 	{% for chart in cadence_goal_history_charts %}
 		{{ chart.plot_script|safe }}
 	{% endfor %}
