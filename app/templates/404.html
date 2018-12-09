@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+	<h2><i class="fa fa-exclamation-circle"></i> Whoops, that's not gone well</h2>
+	<p>Looks like you're trying to get to a page that doesn't exist.</p>
+	<p>If you got here via another page on the site then the error has been logged and we'll try and fix it as soon as we can. Sorry for the inconvenience.</p>
+	<p><a href="{{ url_for('index') }}">Back</a></p>
+{% endblock %}
