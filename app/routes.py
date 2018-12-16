@@ -834,3 +834,7 @@ def backfill_cadence_data():
 
 	track_event(category="Strava", action="Cadence backfill completed", userId = str(current_user.id))
 	return redirect(url_for("weekly_activity", year=2018))
+
+@app.route("/privacy")
+def privacy_policy():
+	return render_template("privacy.html", title="Privacy Policy")
