@@ -27,9 +27,7 @@ class Config(object):
             database=CLOUDSQL_DATABASE, connection_name=CLOUDSQL_CONNECTION_NAME)
 
     if os.environ.get('GAE_INSTANCE'):
-        SQLALCHEMY_DATABASE_URI = LIVE_SQLALCHEMY_DATABASE_URI
     else:
-        SQLALCHEMY_DATABASE_URI = LOCAL_SQLALCHEMY_DATABASE_URI
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -37,10 +35,15 @@ class Config(object):
     STRAVA_OAUTH2_CLIENT_ID = '<strava_id_probs_int>'
     STRAVA_OAUTH2_CLIENT_SECRET = '<strava_oauth_secret>'
 
+    # Use presence of GAE_INSTANCE environment variable to determine if we're in the live app in GCP
     if os.environ.get('GAE_INSTANCE'):
-        STRAVA_OAUTH2_REDIRECT_URI = "https://fitness-logs.appspot.com/connect_strava/authorize"
+        ENVIRONMENT = 'PROD'
+        SQLALCHEMY_DATABASE_URI = LIVE_SQLALCHEMY_DATABASE_URI
+        STRAVA_OAUTH2_REDIRECT_URI = "https://trainingticks.com/connect_strava/authorize"
     else:
+        ENVIRONMENT = 'DEV'
         STRAVA_OAUTH2_REDIRECT_URI = "http://127.0.0.1:5000/connect_strava/authorize"
+        SQLALCHEMY_DATABASE_URI = LOCAL_SQLALCHEMY_DATABASE_URI
 
     # Google Analytics
     GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID') or '<ga_id>'

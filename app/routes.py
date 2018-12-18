@@ -1,4 +1,5 @@
 from datetime import datetime, date, timedelta
+import os
 import calendar
 import requests
 import statistics
@@ -36,7 +37,7 @@ def track_event(category, action, label=None, value=0, userId="0"):
     }
 
     response = requests.post(
-        'http://www.google-analytics.com/collect', data=data)
+        'https://www.google-analytics.com/collect', data=data)
 
 
 # Routes

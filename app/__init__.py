@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager, login_user
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
+from flask_sslify import SSLify
 from config import Config
 from oauth2client.contrib.flask_util import UserOAuth2
 import httplib2
@@ -17,6 +18,7 @@ migrate = Migrate(app, db)
 login = LoginManager(app)
 login.login_view = "auth.login"
 login.login_message = None
+sslify = SSLify(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 oauth2 = UserOAuth2()
