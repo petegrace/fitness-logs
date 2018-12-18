@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import StringField, PasswordField, SubmitField, HiddenField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 from app.models import User
 
@@ -10,14 +10,7 @@ class LoginForm(FlaskForm):
 	submit = SubmitField("Sign In")
 
 
-class RegistrationForm(FlaskForm):
-	email = StringField("Email", validators=[DataRequired(), Email()])
-	password = PasswordField("Password", validators=[DataRequired()])
-	password2 = PasswordField("Repeat Password", validators=[DataRequired(), EqualTo("password")])
-	submit = SubmitField("Register")
-
-	# Check for duplicate email
-	def validate_email(self, email):
-		user = User.query.filter_by(email=email.data).first()
-		if user is not None:
-			raise ValidationError("Email address is already in use. Please use a different one.")
+class RegisterForm(FlaskForm):
+	google_email = HiddenField("google_email")
+	consent_privacy = BooleanField("I consent for Training Ticks to store and process my data as per the Privacy Policy.", validators=[DataRequired("You must consent to our Privacy Policy in order to register.")])
+	submit = SubmitField("Complete Registration")
