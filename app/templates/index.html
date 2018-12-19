@@ -9,10 +9,24 @@
 {% endblock %}
 
 {% block app_content %}
-	{% if recent_activities|length < 5 %}
-		<h3>Need some help getting started?</h3>
-		<a href="#" data-toggle="modal" data-target="#howToLogExerciseModal">Take the tour on how to log exercises</a>		
-	{% endif %}
+	<!-- TODO: Make this more relevant to the user depending where they are in user journey and give them option to dismiss for rest of session and/or permanently -->
+	<div class="alert alert-success alert-dismissible fade show" role="alert">
+		<h4>Take the Tour
+			<!-- TODO: Re-enable this once it can act as a proper dismiss option rather than keep on coming back! -->
+			<!--<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			</button>-->
+		</h4>
+		<p>Need some help getting started? Choose the guide for what you want to do...</p>
+		<ol>
+			<li>
+				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a>
+			</li>
+			<li>
+				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your running cadence</a>	
+			</li>
+		</ol>
+	</div>
 	{% if recent_activities|length > 0 %}
 		<div class="row align-items-end">
 			<div class="col-md">
@@ -172,7 +186,7 @@
 		</div>
 	</div>
 
-	<!-- Modal and carousel for how to guide -->
+	<!-- Modal and carousel for how to log exercise -->
 	<div class="modal fade" id="howToLogExerciseModal" tabindex="-1" role="dialog" aria-labelledby="howToLogExerciseModalLabel" aria-hidden="true">
 	  <div class="modal-dialog" role="document">
 	    <div class="modal-content">
@@ -204,6 +218,7 @@
 			    </div>
 			    <div class="carousel-item mb-5">
 			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
 			      <p><small>Your exercise will now show up under <strong>Recently added activity</strong>. Whilst you’re in the mood, why not repeat the exercise you’ve just done? This time once you’re done, click the new button that’s appeared for your exercise.</small></p>
 			    </div>
 			    <div class="carousel-item mb-5">
@@ -222,6 +237,78 @@
 			    <span class="sr-only">Previous</span>
 			  </a>
 			  <a class="carousel-control-next" href="#howToLogExerciseCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to analyse cadence -->
+	<div class="modal fade" id="howToAnalyseCadenceModal" tabindex="-1" role="dialog" aria-labelledby="howToAnalyseCadenceModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToAnalyseCadenceModalLabel">How to analyse your running cadence</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToAnalyseCadenceCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="5"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="6"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>Training Ticks gives you tools to understand your natural cadence (steps per minute) and target improvement, as well as measure your interval training. If you haven’t already, start by importing your runs using <strong>Connect With Strava</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>Now click on any of your running activities to open up more detail including the cadence data. You can do this from under <strong>Recently added activity</strong>, or hop along to <strong>Analysis & Goals</strong> from the menu at the top to navigate by week.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>The first time you open an activity in Training Ticks it will connect to Strava again to retrieve more detailed cadence data, and present you with 2 charts to visualise how much time you spent at any given cadence (in steps per minute), and how much time you spent in total above any given cadence.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>Cadence analysis gives you a great way to measure your interval training, where you'll typically see two peaks on the left chart - one for intervals and another for your normal/recovery pace. From the chart on the right you can easily see how much time you spent doing intervals and at what cadence.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>If you make your way to <strong>Analysis & Goals</strong> from the menu at the top you can see your cumulative cadence stats across each week by clicking on the tab for <strong>Time Spent Above Cadence</strong>. Note that you must have viewed the activities for that week first in order to process the cadence data.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>You might be wondering why the charts are all in a rather dull dark grey! You can fix that easily by going to <strong>Manage Exercises</strong> from the top menu and then clicking on the <strong>Exercise Categories</strong> tab. Choose your favourite colour from those available, and type in "Run", then click the <strong>Save Changes</strong> button.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_7.jpg" alt="Step 7">
+			      <hr class="featurette-divider" />
+			      <p><small>Now go back to the <strong>Analysis & Goals</strong> page, or one of your activities, and admire the much prettier graphs!</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToAnalyseCadenceCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToAnalyseCadenceCarouselIndicators" role="button" data-slide="next">
 			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
 			    <span class="sr-only">Next</span>
 			  </a>
