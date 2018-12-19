@@ -694,8 +694,13 @@ def import_strava_activity():
 	most_recent_strava_activity_datetime = current_user.most_recent_strava_activity_datetime()
 	activities = strava_client.get_activities(after = most_recent_strava_activity_datetime)
 
+	# Strava returns the activities in descending order but we want the most recent to show at the top of "recently added activity" after we've imported
+	activities_list = list(activities)
+	activities_list.reverse()
+
 	new_activity_count = 0
-	for strava_activity in activities:
+
+	for strava_activity in activities_list:
 		activity = Activity(external_source = "Strava",
 							external_id = strava_activity.id,
 							owner = current_user,
