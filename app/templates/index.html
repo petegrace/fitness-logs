@@ -18,20 +18,24 @@
 			</button>-->
 		</h4>
 		<p>Need some help getting started? Choose the guide for what you want to do...</p>
-		<ol>
-			<li>
-				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a>
-			</li>
-			<li>
-				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your running cadence</a>	
-			</li>
-			<li>
-				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a>	
-			</li>
-			<li>
-				<a href="#" class="alert-link" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a>	
-			</li>
-		</ol>
+		<div class="row">
+			<div class="col-md-6">
+				<h6>"I want to improve my running cadence or interval training"</h6>
+				<ol>
+					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your cadence</a></li>
+					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How to set and track training goals</a></li>
+				</ol>
+			</div>
+			<div class="col-md-6">
+				<h6>"I want to track or manage my cross-training exercises"</h6>
+				<ol>
+					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a></li>
+					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a></li>
+					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a></li>
+				</ol>
+
+			</div>
+		</div>
 	</div>
 	{% if recent_activities|length > 0 %}
 		<div class="row align-items-end">
@@ -459,6 +463,72 @@
 			    <span class="sr-only">Previous</span>
 			  </a>
 			  <a class="carousel-control-next" href="#howToCreateAndUseTrainingPlanCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to set goals -->
+	<div class="modal fade" id="howToSetTrainingGoalsModal" tabindex="-1" role="dialog" aria-labelledby="howToSetTrainingGoalsModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToSetTrainingGoalsModalLabel">How to set and track training goals</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToSetTrainingGoalsCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="5"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>Start by going to the <strong>Analysis & Goals</strong> page from the menu at the top. Since you don't have any goals set up yet let's go the cadence chart and set a goal from there, so click on the <strong>Time Spent Above Cadence</strong> tab.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>In this section you can click into the charts to set yourself goals for the week on specific metrics. In this example I want to spend more time running at a higher cadence, so I'm going to set a goal for my total time spent above 168 steps per minute, by clicking on the bar within the chart.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>The form that pops up defaults to "This Week" (although I could set the goal for next week if I prefer). For my goal here I want to get up to 90 minutes at 168. If I'd clicked on the wrong bar in the previous step I can also change the cadence for this goal. Click <strong>Set Goal</strong> once you're happy.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>You'll be returned to the <strong>Goal Progress</strong> tab which shows how you're doing so far against all your goals for the week. You can set as many as you like.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>Go back to the <strong>Time Spent Above Cadence</strong> tab where you'll now see the goal target plotted on the cadence chart.  You can also see a graph showing your historic weekly trend for the cadence you're targeting.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>If you've been using Strava for a while you probably will have lots of activities that Training Ticks hasn't processed the cadence data for yet. So to make your historic chart accurate you may need to click the link to <strong>backfill your cadence data</strong>. This feature still needs to be refined a little so will take a few minutes if you have lots of activities.</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToSetTrainingGoalsCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToSetTrainingGoalsCarouselIndicators" role="button" data-slide="next">
 			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
 			    <span class="sr-only">Next</span>
 			  </a>
