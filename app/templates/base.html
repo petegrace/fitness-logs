@@ -285,6 +285,17 @@
 		                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('weekly_activity', year='2018') }}"><i class="fa fa-bar-chart"></i> Analysis & Goals</a></li>
 		                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly') }}"><i class="fa fa-calendar"></i> Training Plan</a></li>
 		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('exercise_types') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
+		                	<li class="navbar-item dropdown" id="help-nav">
+		                		<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button"><i class="fa fa-question-circle"></i> Help</a>
+		                		<div class="dropdown-menu">
+									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your cadence</a>
+									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How to set and track training goals</a>
+									<div class="dropdown-divider"></div>
+									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a>
+									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a>
+									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a>
+								</div>
+		                	</li>
 		                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="fa fa-sign-out"></i> Logout</a></li>
 	                	</ul>
 	                {% endif %}
@@ -317,4 +328,346 @@
         	</div>
     	</div>
     </footer>
+
+	<!-- Modal and carousel for how to log exercise -->
+	<div class="modal fade" id="howToLogExerciseModal" tabindex="-1" role="dialog" aria-labelledby="howToLogExerciseModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToLogExerciseModalLabel">How to log exercises</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToLogExerciseCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToLogExerciseCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToLogExerciseCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToLogExerciseCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToLogExerciseCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToLogExerciseCarouselIndicators" data-slide-to="4"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>First of all you need to do some work, so choose your favourite exercise and do some reps! Once you're done click the <strong>New Exercise Type</strong> button.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>Enter a name for the exercise you’ve just done and specify how many reps you did. Or if you chose exercise that involves holding a position then change the <strong>Measured By</strong> dropdown to “Time (seconds)” and enter the number of seconds in the field below. Once you’re done click <strong>Log Exercise</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>Your exercise will now show up under <strong>Recently added activity</strong>. Whilst you’re in the mood, why not repeat the exercise you’ve just done? This time once you’re done, click the new button that’s appeared for your exercise.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>You’ll notice that the button defaults to logging the same number of reps that you did first time round, so if you do a different number just click the <strong>Edit</strong> link after you’ve recorded the exercise.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_log_exercise_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>If you want to change the default number of reps then just tick the <strong>Update default</strong> tickbox and this in turn will update the button once you click on <strong>Update Exercise</strong>.</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToLogExerciseCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToLogExerciseCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to analyse cadence -->
+	<div class="modal fade" id="howToAnalyseCadenceModal" tabindex="-1" role="dialog" aria-labelledby="howToAnalyseCadenceModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToAnalyseCadenceModalLabel">How to analyse your running cadence</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToAnalyseCadenceCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="5"></li>
+			    <li data-target="#howToAnalyseCadenceCarouselIndicators" data-slide-to="6"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>Training Ticks gives you tools to understand your natural cadence (steps per minute) and target improvement, as well as measure your interval training. If you haven’t already, start by importing your runs using <strong>Connect With Strava</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>Now click on any of your running activities to open up more detail including the cadence data. You can do this from under <strong>Recently added activity</strong>, or hop along to <strong>Analysis & Goals</strong> from the menu at the top to navigate by week.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>The first time you open an activity in Training Ticks it will connect to Strava again to retrieve more detailed cadence data, and present you with 2 charts to visualise how much time you spent at any given cadence (in steps per minute), and how much time you spent in total above any given cadence.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>Cadence analysis gives you a great way to measure your interval training, where you'll typically see two peaks on the left chart - one for intervals and another for your normal/recovery pace. From the chart on the right you can easily see how much time you spent doing intervals and at what cadence.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>If you make your way to <strong>Analysis & Goals</strong> from the menu at the top you can see your cumulative cadence stats across each week by clicking on the tab for <strong>Time Spent Above Cadence</strong>. Note that you must have viewed the activities for that week first in order to process the cadence data.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>You might be wondering why the charts are all in a rather dull dark grey! You can fix that easily by going to <strong>Manage Exercises</strong> from the top menu and then clicking on the <strong>Exercise Categories</strong> tab. Choose your favourite colour from those available, and type in "Run", then click the <strong>Save Changes</strong> button.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_analyse_cadence_step_7.jpg" alt="Step 7">
+			      <hr class="featurette-divider" />
+			      <p><small>Now go back to the <strong>Analysis & Goals</strong> page, or one of your activities, and admire the much prettier graphs!</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToAnalyseCadenceCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToAnalyseCadenceCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to categorise your exercises -->
+	<div class="modal fade" id="howToCategoriseExercisesModal" tabindex="-1" role="dialog" aria-labelledby="howToCategoriseExercisesModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToCategoriseExercisesModalLabel">How to categorise your exercises</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToCategoriseExercisesCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="5"></li>
+			    <li data-target="#howToCategoriseExercisesCarouselIndicators" data-slide-to="6"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>Exercise categories enable you to customise the Training Ticks user interface for the way that you think about your training. So for example I might want to classify Calf raises and Press ups in the screenshot above as "Strength" exercises, and Calf stretch as a "Stretch" exercise. Training Ticks doesn't prescribe any categories by default, which means that until you set up any categories everything will have a rather dull and grey look. Let's change that!</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>Go to the menu at the top and select <strong>Manage Exercises</strong>. The first tab it loads up enables you to edit the exercises types themselves, so click on the next tab along for <strong>Exercise Categories</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>Training Ticks currently allows you to set up to 8 categories - 4 based on filled colours and 4 based on an outline border. For this example I've decided to use the solid blue category for "Strength" and the outine blue category for "Stretch".</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>Any exercises you've created up to now will remain uncategorised until we edit them, so hop back to the <strong>Exercise Types</strong> tab and click the <strong>Edit</strong> link next to each of your exercises.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>Now that you're using categories you'll see a drop down menu allowing you to choose the relevant one for each exercise, so set this to the value you want and click <strong>Update Exercise Type</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>Once you've updated your exercise types, return to the home page and check out the buttons that should now be colour-coded according to the changes you've just made. Next time you log a New Exercise Type the category option will be available immediately.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_categorise_exercises_step_7.jpg" alt="Step 7">
+			      <hr class="featurette-divider" />
+			      <p><small>The same colour-coding scheme will be used across the rest of the Training Ticks user interface, so for example if you pop along to the <strong>Analysis & Goals</strong> page you'll see the charts now use your category colours, as does the summary for your weekly activity.</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToCategoriseExercisesCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToCategoriseExercisesCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to create and use training plan -->
+	<div class="modal fade" id="howToCreateAndUseTrainingPlanModal" tabindex="-1" role="dialog" aria-labelledby="howToCreateAndUseTrainingPlanModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToCreateAndUseTrainingPlanModalLabel">How to create and use a training plan</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToCreateAndUseTrainingPlanCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="5"></li>
+			    <li data-target="#howToCreateAndUseTrainingPlanCarouselIndicators" data-slide-to="6"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>You can get to the Training Plan page via the top menu, which presents you with the screen above. Currently you can create a recurring weekly plan for exercises, so it's perfect if you're going through a rehab or strengthening programme. Each day has a separate tab, and it will default to the current day of the week when you first go to the page.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>To add an exercise for any day of your training plan, just tap on the exercise you want in the same way that you would log it from the home page. Or if it's an exercise you've not done before, use the <strong>New Exercise Type</strong> button. Once added it will appear in the plan for that day with 1 set against it.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>If you tap on the exercise again it will add another set to your plan for that day, or alternatively you can click the <strong>Edit</strong> link on the planned exercise to change the number of sets and/or reps.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>To edit an exercise that you have planned, change the values as you require for the given day and click <strong>Update Exercise</strong>.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>Once you've planned all your exercises, hop back to the home page, and if you have exercises planned for today you'll now see a new section to <strong>Log exercises from Training Plan</strong> with the exercises you need to do.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>To record exercises from your plan, tap on the buttons for each set that you complete, and the plan will show you how many sets you have left. Once you've done them all the button will drop out of the planned exercises.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_create_and_use_a_training_plan_step_7.jpg" alt="Step 7">
+			      <hr class="featurette-divider" />
+			      <p><small>Once you've got through all of your planned exercises for the day, you'll see a nice green message to confirm that you're done. But if you're feeling keen to do more then you can carry on doing more sets from the <strong>Log adhoc exercises</strong> section.</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToCreateAndUseTrainingPlanCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToCreateAndUseTrainingPlanCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- Modal and carousel for how to set goals -->
+	<div class="modal fade" id="howToSetTrainingGoalsModal" tabindex="-1" role="dialog" aria-labelledby="howToSetTrainingGoalsModalLabel" aria-hidden="true">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="howToSetTrainingGoalsModalLabel">How to set and track training goals</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	        <div id="howToSetTrainingGoalsCarouselIndicators" class="carousel slide" >
+			  <ol class="carousel-indicators">
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="0" class="active"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="1"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="2"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="3"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="4"></li>
+			    <li data-target="#howToSetTrainingGoalsCarouselIndicators" data-slide-to="5"></li>
+			  </ol>
+			  <div class="carousel-inner">
+			    <div class="carousel-item mb-5 active">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_1.jpg" alt="Step 1">
+			      <hr class="featurette-divider" />
+			      <p><small>Start by going to the <strong>Analysis & Goals</strong> page from the menu at the top. Since you don't have any goals set up yet let's go the cadence chart and set a goal from there, so click on the <strong>Time Spent Above Cadence</strong> tab.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_2.jpg" alt="Step 2">
+			      <hr class="featurette-divider" />
+			      <p><small>In this section you can click into the charts to set yourself goals for the week on specific metrics. In this example I want to spend more time running at a higher cadence, so I'm going to set a goal for my total time spent above 168 steps per minute, by clicking on the bar within the chart.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_3.jpg" alt="Step 3">
+			      <hr class="featurette-divider" />
+			      <p><small>The form that pops up defaults to "This Week" (although I could set the goal for next week if I prefer). For my goal here I want to get up to 90 minutes at 168. If I'd clicked on the wrong bar in the previous step I can also change the cadence for this goal. Click <strong>Set Goal</strong> once you're happy.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_4.jpg" alt="Step 4">
+			      <hr class="featurette-divider" />
+			      <p><small>You'll be returned to the <strong>Goal Progress</strong> tab which shows how you're doing so far against all your goals for the week. You can set as many as you like.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_5.jpg" alt="Step 5">
+			      <hr class="featurette-divider" />
+			      <p><small>Go back to the <strong>Time Spent Above Cadence</strong> tab where you'll now see the goal target plotted on the cadence chart.  You can also see a graph showing your historic weekly trend for the cadence you're targeting.</small></p>
+			    </div>
+			    <div class="carousel-item mb-5">
+			      <img class="d-block w-100" src="/static/img/how_to_set_goals_step_6.jpg" alt="Step 6">
+			      <hr class="featurette-divider" />
+			      <p><small>If you've been using Strava for a while you probably will have lots of activities that Training Ticks hasn't processed the cadence data for yet. So to make your historic chart accurate you may need to click the link to <strong>backfill your cadence data</strong>. This feature still needs to be refined a little so will take a few minutes if you have lots of activities.</small></p>
+			    </div>
+			  </div>
+			  <a class="carousel-control-prev" href="#howToSetTrainingGoalsCarouselIndicators" role="button" data-slide="prev">
+			    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Previous</span>
+			  </a>
+			  <a class="carousel-control-next" href="#howToSetTrainingGoalsCarouselIndicators" role="button" data-slide="next">
+			    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+			    <span class="sr-only">Next</span>
+			  </a>
+			</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
 {% endblock %}
