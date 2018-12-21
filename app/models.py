@@ -122,6 +122,14 @@ class User(UserMixin, db.Model):
 		exercises_and_activities = exercises.union(activities)
 		return exercises_and_activities
 
+	def uncategorised_activity_types(self):
+		uncategorised_activity_types = db.session.query(Activity.activity_type.distinct()
+											).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
+											).filter(Activity.owner == self
+											).filter(Activity.activity_type.in_(["Run", "Ride", "Swim"])
+											).filter(ExerciseCategory.category_name == None)
+		return uncategorised_activity_types
+
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
 			(ExerciseType.id == ScheduledExercise.exercise_type_id)

@@ -3,7 +3,9 @@ import os
 import calendar
 import requests
 import statistics
-from flask import render_template, flash, redirect, url_for, request, session
+import time
+import threading
+from flask import render_template, flash, redirect, url_for, request, session, Response
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField
@@ -41,7 +43,6 @@ def track_event(category, action, label=None, value=0, userId="0"):
 
 
 # Routes
-
 @app.route("/")
 @app.route("/index")
 @login_required
@@ -727,11 +728,17 @@ def import_strava_activity():
 	current_week = current_day.calendar_week_start_date
 	analysis.evaluate_cadence_goals(week=current_week)
 
+	# TODO: If new_activity_count >= 1 and user has missing categories then add a URL param that we can use to offer to redirect to Categories page
+	has_uncategorised_activity_types = False
+	if new_activity_count > 0:
+		if len(current_user.uncategorised_activity_types().all()) > 0:
+			has_uncategorised_activity_types = True
+
 	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 	next_page = request.args.get("next")
 	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-		return redirect(url_for("index"))
-	return redirect(next_page)
+		return redirect(url_for("index", has_uncategorised_activity_types=has_uncategorised_activity_types))
+	return redirect("{next_page}?has_uncategorised_activity_types={has_uncategorised_activity_types}".format(next_page=next_page, has_uncategorised_activity_types=has_uncategorised_activity_types))
 
 
 @app.route("/activity_analysis/<id>")
