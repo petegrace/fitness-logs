@@ -1,13 +1,23 @@
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
-from app import db, oauth2
+from app import app, db #, oauth2
 from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm
 from app.models import User
+from requests_oauth2.services import GoogleClient
+from requests_oauth2 import OAuth2BearerToken
+import requests
+import json
 
 
 # Helpers
+google_auth = GoogleClient(
+	client_id = app.config["GOOGLE_OAUTH2_CLIENT_ID"],
+	client_secret=app.config["GOOGLE_OAUTH2_CLIENT_SECRET"],
+	redirect_uri="http://localhost:5000/auth/oauth2callback",
+)
+
 def register_user(user):
 	db.session.add(user)
 	db.session.commit()
@@ -26,11 +36,11 @@ def login():
 	register_form = RegisterForm()
 
 	if register_form.validate_on_submit():
-		new_user = User(email=session['google_profile']['emails'][0]['value'], auth_type="Google")
+		new_user = User(email=session["email"], auth_type="Google")
 		register_user(new_user)
 
-	if 'google_profile' in session:
-		google_email = session['google_profile']['emails'][0]['value'] # TODO: This might be a bit risky for if linked accounts
+	if "email" in session:
+		google_email = session["email"] 
 		user = User.query.filter_by(email=google_email).first()
 
 		if user is None:
@@ -45,16 +55,49 @@ def login():
 			return redirect(next_page)
 
 	# for the get...
-	return render_template("auth/login.html", title="Sign In")#, form=form)
+	authorization_url = google_auth.authorize_url(
+	    scope=["email"],
+		response_type="code",
+	)
+	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)#, form=form)
+
+
+@bp.route("/oauth2callback")
+def oauth2callback():
+	code = request.args.get("code")
+	error = request.args.get("error")
+	if error:
+	    return "error :( {!r}".format(error)
+	if not code:
+	    return redirect(google_auth.authorize_url(
+	        scope=["email"],
+	        response_type="code",
+	    ))
+
+	data = google_auth.get_token(
+	    code=code,
+	    grant_type="authorization_code",
+	)
+
+	with requests.Session() as s:
+		s.auth = OAuth2BearerToken(data["access_token"])
+		discovery_request = s.get("https://accounts.google.com/.well-known/openid-configuration")
+		discovery_request.raise_for_status()
+		userinfo_endpoint = discovery_request.json()["userinfo_endpoint"]
+
+		userinfo_request = s.get(userinfo_endpoint)
+		userinfo_request.raise_for_status()
+
+	session["email"] = userinfo_request.json()["email"]
+	return redirect(url_for("auth.login"))
 
 
 @bp.route("/cancel")
 def cancel():
-	if 'google_profile' in session:
+	if "email" in session:
 		# Delete the user's profile and the credentials stored by oauth2.
-		del session['google_profile']
+		del session["email"]
 		session.modified = True
-		oauth2.storage.delete()
 
 	return redirect(url_for("auth.login"))
 
@@ -63,18 +106,11 @@ def cancel():
 def logout():
 	if current_user.auth_type == "Google":
 		# Delete the user's profile and the credentials stored by oauth2.
-		del session['google_profile']
+		del session["email"]
 		session.modified = True
-		oauth2.storage.delete()
 
 	logout_user()
 	return redirect(url_for("index"))
-
-@bp.route("/register")
-def register():
-	form = RegisterForm()
-	form.google_email = "test@gmail.com"
-	return render_template("auth/register.html", title="Complete Registration", form=form)
 
 # @bp.route("/register", methods=["GET", "POST"])
 # def register():
