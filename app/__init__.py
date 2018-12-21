@@ -6,7 +6,6 @@ from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sslify import SSLify
 from config import Config
-import httplib2
 import json
 
 app = Flask(__name__)
