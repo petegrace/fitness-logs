@@ -15,7 +15,7 @@ import json
 google_auth = GoogleClient(
 	client_id = app.config["GOOGLE_OAUTH2_CLIENT_ID"],
 	client_secret=app.config["GOOGLE_OAUTH2_CLIENT_SECRET"],
-	redirect_uri="http://localhost:5000/auth/oauth2callback",
+	redirect_uri=app.config["GOOGLE_OAUTH2_REDIRECT_URI"],
 )
 
 def register_user(user):
