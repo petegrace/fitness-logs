@@ -202,7 +202,6 @@
 		</div>
 	</div>
 
-
 	<!-- Modal for pointing people at Manage Categories -->
 	{% if show_strava_categories_modal %}
 		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
@@ -218,7 +217,7 @@
 		        <p>Exercise Categories enable you to colour code your runs, rides and swims throughout the Training Ticks interface.</p>
 		    	<p>Would you like to set these up now?</p>
 		        <p>
-		        	<a href="{{ url_for('categories') }}" class="btn btn-primary">Yes please!</a>
+		        	<a href="{{ url_for('categories', show_strava_categories_modal=True) }}" class="btn btn-primary">Yes please!</a>
 		        	<button class="btn btn-secondary" data-dismiss="modal" aria-label="Close">No thanks, not now</button>
 		        </p>
 		    </div>

@@ -7,6 +7,12 @@
 	<script>
 		$("#manage-exercises-nav").addClass("active");
 	</script>
+
+	{% if show_strava_categories_modal %}
+		<script>
+			$('#stravaCategoriesModal').modal('show');
+		</script>
+	{% endif %}
 {% endblock %}
 
 {% block app_content %}
@@ -93,4 +99,26 @@
 		</div>
 		{{ categories_form.submit() }}
 	</form>
+
+	<!-- Modal for pointing people at Manage Categories -->
+	{% if show_strava_categories_modal %}
+		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
+		  <div class="modal-dialog" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+		        <h5 class="modal-title" id="stravaCategoriesModalLabel">Choose colours for your Strava activities</h5>
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+		      </div>
+		      <div class="modal-body">
+		        <p>Enter values of <strong>Run</strong>, <strong>Ride</strong> and/or <strong>Swim</strong> into the coloured boxes on this page, and Training Ticks will automatically associate the Strava activities you've imported with these categories. Click <strong>Save Changes</strong> once you're happy.</p>
+		    	<p>The colours you choose will be used throughout the rest of the site (e.g. activity pages, charts etc.) to help you analyse your activity more effectively.</p>
+		        <p>
+		        	<button class="btn btn-primary" data-dismiss="modal" aria-label="Close">Understood!</button>
+		        </p>
+		    </div>
+		  </div>
+		</div>
+	{% endif %}
 {% endblock %}

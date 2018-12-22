@@ -68,7 +68,7 @@ def index():
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
-	# TODO: Check for the has_uncategorised_activity_types=True param and generate modal if True
+	# Check for the has_uncategorised_activity_types=True param and generate modal if True
 	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
 	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
 		show_strava_categories_modal = True
@@ -679,8 +679,15 @@ def categories():
 	for current_category in current_categories:
 		categories_form[current_category.category_key].data = current_category.category_name
 
+	# Check for the show_strava_categories_modal=True param and generate modal if True
+	show_strava_categories_modal = request.args.get("show_strava_categories_modal")
+	if show_strava_categories_modal and show_strava_categories_modal == "True": #It's coming from query param so is a string still
+		show_strava_categories_modal = True
+	else:
+		show_strava_categories_modal = False
+
 	track_event(category="Manage", action="Exercise Categories page loaded", userId = str(current_user.id))
-	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form)
+	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form, show_strava_categories_modal=show_strava_categories_modal)
 
 
 @app.route("/import_strava_activity")
