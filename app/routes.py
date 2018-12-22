@@ -3,7 +3,9 @@ import os
 import calendar
 import requests
 import statistics
-from flask import render_template, flash, redirect, url_for, request, session
+import time
+import threading
+from flask import render_template, flash, redirect, url_for, request, session, Response
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField
@@ -41,7 +43,6 @@ def track_event(category, action, label=None, value=0, userId="0"):
 
 
 # Routes
-
 @app.route("/")
 @app.route("/index")
 @login_required
@@ -67,8 +68,16 @@ def index():
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
+	# TODO: Check for the has_uncategorised_activity_types=True param and generate modal if True
+	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
+	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
+		show_strava_categories_modal = True
+	else:
+		show_strava_categories_modal = False
+
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
-							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule, utils=utils)
+							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule,
+							show_strava_categories_modal=show_strava_categories_modal, utils=utils)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -727,11 +736,17 @@ def import_strava_activity():
 	current_week = current_day.calendar_week_start_date
 	analysis.evaluate_cadence_goals(week=current_week)
 
+	# Add a URL param that we can use to offer to redirect to Categories page	
+	if len(current_user.uncategorised_activity_types().all()) > 0:
+		has_uncategorised_activity_types = True
+	else:
+		has_uncategorised_activity_types = False
+
 	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 	next_page = request.args.get("next")
 	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-		return redirect(url_for("index"))
-	return redirect(next_page)
+		return redirect(url_for("index", has_uncategorised_activity_types=has_uncategorised_activity_types))
+	return redirect("{next_page}?has_uncategorised_activity_types={has_uncategorised_activity_types}".format(next_page=next_page, has_uncategorised_activity_types=has_uncategorised_activity_types))
 
 
 @app.route("/activity_analysis/<id>")

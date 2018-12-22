@@ -6,6 +6,12 @@
 	<script>
 		$("#home-nav").addClass("active");
 	</script>
+
+	{% if show_strava_categories_modal %}
+		<script>
+			$('#stravaCategoriesModal').modal('show');
+		</script>
+	{% endif %}
 {% endblock %}
 
 {% block app_content %}
@@ -195,4 +201,28 @@
 			{% endfor %}
 		</div>
 	</div>
+
+
+	<!-- Modal for pointing people at Manage Categories -->
+	{% if show_strava_categories_modal %}
+		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
+		  <div class="modal-dialog" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+		        <h5 class="modal-title" id="stravaCategoriesModalLabel">Colour-code your Strava activities</h5>
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+		      </div>
+		      <div class="modal-body">
+		        <p>Exercise Categories enable you to colour code your runs, rides and swims throughout the Training Ticks interface.</p>
+		    	<p>Would you like to set these up now?</p>
+		        <p>
+		        	<a href="{{ url_for('categories') }}" class="btn btn-primary">Yes please!</a>
+		        	<button class="btn btn-secondary" data-dismiss="modal" aria-label="Close">No thanks, not now</button>
+		        </p>
+		    </div>
+		  </div>
+		</div>
+	{% endif %}
 {% endblock %}
