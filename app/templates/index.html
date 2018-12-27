@@ -46,7 +46,8 @@
 	{% if recent_activities|length > 0 %}
 		<div class="row align-items-end">
 			<div class="col-md">
-				<h3>Recently added activity</h3>
+				<h4>Recently added activity</h4>
+				<p>(Check out <a href="{{ url_for('weekly_activity', year='2018') }}">Analysis & Goals</a> to see more of your activity)</p>
 			</div>
 			<div class="col-md">
 				<nav>
@@ -65,7 +66,7 @@
 	<table class="table table-sm table-hover">
 		{% for activity in recent_activities %}
 			<tr>
-				<td>{{ moment(activity.created_datetime).calendar() }}</td>
+				<td>{{ moment(activity.activity_datetime).calendar() }}</td>
 				<td>
 					{% if activity.scheduled_exercise_id %}
 						<i class="fa fa-check-square-o"></i>
