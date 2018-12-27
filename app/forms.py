@@ -88,6 +88,10 @@ class CadenceGoalForm(FlaskForm):
 	target_minutes_above_cadence = IntegerField("Target Minutes Above Cadence", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
 
+	def validate_cadence(self, cadence):
+		if cadence.data % 2 == 1:
+			raise ValidationError("Cadence must be an even number due to precision at which data is stored.")
+
 class ExerciseSetsGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
 	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
