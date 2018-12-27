@@ -33,11 +33,10 @@
 				</ol>
 			</div>
 			<div class="col-md-6">
-				<h6>"I want to track or plan my cross-training exercises"</h6>
+				<h6>"I want to track my cross-training exercises"</h6>
 				<ol>
 					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a></li>
 					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a></li>
-					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a></li>
 				</ol>
 
 			</div>
@@ -160,7 +159,7 @@
 
 	<div class="card mt-2">
 		<div class="card-header">
-			<h4>Log {% if scheduled_exercises or has_completed_schedule %}adhoc{% endif %} exercises</h4>
+			<h4>Log adhoc exercises</h4>
 		</div>
 		<div class="card-body exercise-buttons">
 			<a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
@@ -202,6 +201,20 @@
 			{% endfor %}
 		</div>
 	</div>
+
+	{% if not (scheduled_exercises or has_completed_schedule) %}
+		<div class="card mt-2">
+			<div class="card-header">
+				<h4>Log exercises from Training Plan</h4>
+			</div>
+			<div class="card-body">
+				<div class="alert alert-success">
+				<p>You don't yet have an exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
+				<p><a href="{{ url_for('schedule', schedule_freq='weekly') }}" class="btn btn-primary btn-sm">Set up weekly training plan</a></p>
+			</div>
+			</div>
+		</div>
+	{% endif %}
 
 	<!-- Modal for pointing people at Manage Categories -->
 	{% if show_strava_categories_modal %}
