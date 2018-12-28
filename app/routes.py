@@ -55,16 +55,16 @@ def index():
 
 	today = date.today()
 	current_day = calendar.day_abbr[today.weekday()]
-	scheduled_exercises_remaining = current_user.scheduled_exercises_remaining(scheduled_day=current_day, exercise_date=today).all()
+	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
 
 	has_completed_schedule = False
 
-	if not scheduled_exercises_remaining:
-		if current_user.scheduled_exercises(scheduled_day=current_day).all():
+	if not exercises_for_today_remaining:
+		if current_user.exercises_for_today().all():
 		   has_completed_schedule = True
 
 	exercise_types = current_user.exercise_types_ordered().all()
-	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in scheduled_exercises_remaining]
+	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
@@ -76,7 +76,7 @@ def index():
 		show_strava_categories_modal = False
 
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
-							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule,
+							exercise_types=other_exercise_types, scheduled_exercises=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
 							show_strava_categories_modal=show_strava_categories_modal, utils=utils)
 
 

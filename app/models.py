@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct
@@ -149,8 +149,8 @@ class User(UserMixin, db.Model):
 			).filter(ExerciseType.owner == self
 			).order_by(ExerciseType.name)
 
-	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
-		scheduled_exercises_remaining = db.session.query(
+	def exercises_for_today_remaining(self):
+		exercises_for_today_remaining = db.session.query(
 					ScheduledExercise.id,
 					ExerciseType.id.label("exercise_type_id"),
 					ExerciseType.name,
@@ -162,12 +162,11 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.seconds,
 					func.count(Exercise.id).label("completed_sets")
 				).join(ExerciseType.scheduled_exercises
+				).join(ScheduledExercise.exercise_scheduled_today
 				).outerjoin(ExerciseType.exercise_category
 				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
-										   (func.date(Exercise.exercise_datetime) == exercise_date))
+										   (func.date(Exercise.exercise_datetime) == date.today()))
 				).filter(ExerciseType.owner == self
-				).filter(ScheduledExercise.scheduled_day == scheduled_day
-				).filter(ScheduledExercise.is_removed == False
 				).group_by(
 					ScheduledExercise.id,
 					ExerciseType.id,
@@ -180,7 +179,7 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.seconds
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
-		return scheduled_exercises_remaining
+		return exercises_for_today_remaining
 
 	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(
