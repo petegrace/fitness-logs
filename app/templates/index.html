@@ -98,7 +98,7 @@
 		{% endfor %}
 	</table>
 
-	{% if scheduled_exercises or has_completed_schedule %}
+	{% if original_exercises_for_today %}
 		<div class="card">
 			<div class="card-header">
 				<h4>Log exercises from Training Plan</h4>
@@ -109,7 +109,7 @@
 						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned exercises for today!
 					</div>
 				{% endif %}
-				{% for scheduled_exercise in scheduled_exercises %}
+				{% for scheduled_exercise in exercises_for_today_remaining %}
 					<a class="btn btn-sm
 					{% if scheduled_exercise.category_key is none %}
 						btn-outline-secondary
@@ -144,7 +144,10 @@
 						</small>
 					</a>
 				{% endfor %}
-				<p class="mt-2 mb-0"><a href="{{ url_for('schedule', schedule_freq='weekly') }}">Edit Training Plan</a></p>
+				<p class="mt-2 mb-0">
+					<a href="#" data-toggle="modal" data-target="#editTodayPlanModal">Change Today's Plan</a> |
+					<a href="{{ url_for('schedule', schedule_freq='weekly') }}">Full Training Plan</a>
+				</p>
 			</div>
 		</div>
 	{% endif %}
@@ -203,7 +206,7 @@
 		</div>
 	</div>
 
-	{% if not (scheduled_exercises or has_completed_schedule) %}
+	{% if not original_exercises_for_today %}
 		<div class="card mt-2">
 			<div class="card-header">
 				<h4>Log exercises from Training Plan</h4>
@@ -239,4 +242,58 @@
 		  </div>
 		</div>
 	{% endif %}
+
+	<!-- Modal for changing today's training plan: This would really benefit from some async stuff -->
+	<div class="modal fade" id="editTodayPlanModal" tabindex="-1" role="dialog" aria-labelledby="editTodayPlanModalLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="editTodayPlanModalLabel">Change your plan for today!</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	      	<h6>Currently planned exercises</h6>
+	        {% if original_exercises_for_today|length == 0 %}
+				<p>You don't currently have any exercises planned for today.</p>
+			{% else %}
+			<table class="table table-sm table-hover">
+				{% for exercise_for_today in original_exercises_for_today %}
+					<tr>
+						<td>{{ exercise_for_today.scheduled_exercise.type.name }}</td>
+						<td>{{ exercise_for_today.scheduled_exercise.sets }} sets</td>
+						<td>
+							{% if exercise_for_today.scheduled_exercise.type.measured_by == "reps" %}
+								{{ exercise_for_today.scheduled_exercise.reps }} reps
+							{% elif exercise_for_today.scheduled_exercise.type.measured_by == "seconds" %}
+								{{ exercise_for_today.scheduled_exercise.seconds }} secs
+							{% endif %}
+						</td>
+						<td>
+							<ul class="nav justify-content-end">
+								<li class="nav-item mr-5">
+									<a href="{{ url_for('remove_exercise_for_today', id=exercise_for_today.id) }}">
+										<i class="fa fa-trash"></i> Remove</a>
+								</li>
+							</ul>
+						</td>
+					</tr>
+				{% endfor %}
+			</table>
+			{% endif %}
+			<h6>Add exercises</h6>
+			<p>Busy on another day and needing to rejig your plan? Just click below to pull in exercises for any day.</p>
+			<p>
+				<a href="{{ url_for('add_to_today', selected_day='Mon') }}" class="btn btn-primary btn-sm">Mon</a>
+				<a href="{{ url_for('add_to_today', selected_day='Tue') }}" class="btn btn-primary btn-sm">Tue</a>
+				<a href="{{ url_for('add_to_today', selected_day='Wed') }}" class="btn btn-primary btn-sm">Wed</a>
+				<a href="{{ url_for('add_to_today', selected_day='Thu') }}" class="btn btn-primary btn-sm">Thu</a>
+				<a href="{{ url_for('add_to_today', selected_day='Fri') }}" class="btn btn-primary btn-sm">Fri</a>
+				<a href="{{ url_for('add_to_today', selected_day='Sat') }}" class="btn btn-primary btn-sm">Sat</a>
+				<a href="{{ url_for('add_to_today', selected_day='Sun') }}" class="btn btn-primary btn-sm">Sun</a>
+			</p>
+	    </div>
+	  </div>
+	</div>
 {% endblock %}
