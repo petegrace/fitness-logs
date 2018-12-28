@@ -10,6 +10,7 @@
 
 {% block app_content %}
 	<h2>Training Plan</h2>
+	<p>Create yourself a weekly schedule of exercises to keep yourself in shape and improve your strength for running. Just add the exercises you want for each day using the buttons below, or check out the <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
 	<ul class="nav nav-tabs">
 		{% for day in schedule_days %}
 			<li class="nav-item">
@@ -18,6 +19,9 @@
 		{% endfor %}
 	</ul>
 
+	{% if scheduled_exercises|length == 0 %}
+		<p>You don't currently have any exercises planned for {{ selected_day }}.</p>
+	{% else %}
 	<table class="table table-sm table-hover">
 		{% for scheduled_exercise in scheduled_exercises %}
 			<tr>
@@ -45,6 +49,7 @@
 			</tr>
 		{% endfor %}
 	</table>
+	{% endif %}
 
 	<div class="card">
 		<div class="card-header">

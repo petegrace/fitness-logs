@@ -502,7 +502,7 @@ def schedule(schedule_freq, selected_day=None):
 	if selected_day is None:
 		selected_day = calendar.day_abbr[date.today().weekday()]
 
-	scheduled_exercises = current_user.scheduled_exercises(selected_day)
+	scheduled_exercises = current_user.scheduled_exercises(selected_day).all()
 
 	exercise_types = current_user.exercise_types_ordered()
 
