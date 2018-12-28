@@ -143,6 +143,12 @@ class User(UserMixin, db.Model):
 			).filter(ScheduledExercise.scheduled_day == scheduled_day
 			).order_by(ExerciseType.name)
 
+	def exercises_for_today(self):
+		return ExerciseForToday.query.join(ScheduledExercise, (ScheduledExercise.id == ExerciseForToday.scheduled_exercise_id)
+			).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+			).filter(ExerciseType.owner == self
+			).order_by(ExerciseType.name)
+
 	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
 		scheduled_exercises_remaining = db.session.query(
 					ScheduledExercise.id,
