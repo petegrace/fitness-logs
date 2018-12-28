@@ -21,9 +21,14 @@ class User(UserMixin, db.Model):
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
+	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
+
+	@property
+	def last_login_date(self):
+		return self.last_login_datetime.date()
 
 	def set_password(self, password):
 		self.password_hash = generate_password_hash(password)
@@ -495,9 +500,20 @@ class ScheduledExercise(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_removed = db.Column(db.Boolean, default=False)
 	exercises = db.relationship("Exercise", backref="scheduled_exercise", lazy="dynamic")
+	exercise_scheduled_today = db.relationship("ExerciseForToday", backref="scheduled_exercise", lazy="dynamic")
 
 	def __repr__(self):
 		return "<ScheduledExercise {name} for {user} on {day}>".format(
+			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+
+
+class ExerciseForToday(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_exercise_id = db.Column(db.Integer, db.ForeignKey("scheduled_exercise.id"))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ExerciseForToday {name} for {user} on {day}>".format(
 			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
 
 
