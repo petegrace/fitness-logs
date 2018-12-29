@@ -82,10 +82,16 @@ def index():
 	else:
 		show_strava_categories_modal = False
 
+	is_not_using_categories = request.args.get("is_not_using_categories")
+	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
+		show_exercise_categories_modal = True
+	else:
+		show_exercise_categories_modal = False
+
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
 							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
-							original_exercises_for_today = original_exercises_for_today, utils=utils,
-							show_new_user_modal=show_new_user_modal, show_strava_categories_modal=show_strava_categories_modal)
+							original_exercises_for_today = original_exercises_for_today, utils=utils, show_new_user_modal=show_new_user_modal,
+							show_exercise_categories_modal=show_exercise_categories_modal, show_strava_categories_modal=show_strava_categories_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -159,6 +165,13 @@ def new_exercise(context, selected_day=None):
 
 			db.session.commit()
 			flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
+			
+			# Show a modal to encourage use of categories after a certain number of exercise types have been used
+			if current_user.is_categories_user == False:
+				exercise_types_count = len(current_user.exercise_types.all())
+				if exercise_types_count == 3 or exercise_types_count == 10 or exercise_types_count == 20:
+					return redirect(url_for("index", is_not_using_categories=True))
+
 			return redirect(url_for("index"))
 		elif context == "scheduling":
 			scheduled_exercise = ScheduledExercise(type=exercise_type,
@@ -173,6 +186,13 @@ def new_exercise(context, selected_day=None):
 
 			db.session.commit()
 			flash("Added {type} and scheduled for {scheduled_day}".format(type=exercise_type.name, scheduled_day=scheduled_exercise.scheduled_day))
+			
+			# Show a modal to encourage use of categories after a certain number of exercise types have been used
+			if current_user.is_categories_user == False:
+				exercise_types_count = len(current_user.exercise_types.all())
+				if exercise_types_count == 3 or exercise_types_count == 10 or exercise_types_count == 20:
+					return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day, is_not_using_categories=True))
+			
 			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
 
 	#for the get...
@@ -522,8 +542,15 @@ def schedule(schedule_freq, selected_day=None):
 
 	exercise_types = current_user.exercise_types_ordered()
 
+	# Determine whether to show modal to encourage use of categories
+	is_not_using_categories = request.args.get("is_not_using_categories")
+	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
+		show_exercise_categories_modal = True
+	else:
+		show_exercise_categories_modal = False
+
 	return render_template("schedule.html", title="Schedule", schedule_days=days, schedule_freq=schedule_freq, selected_day=selected_day,
-				scheduled_exercises=scheduled_exercises, exercise_types=exercise_types)
+				scheduled_exercises=scheduled_exercises, exercise_types=exercise_types, show_exercise_categories_modal=show_exercise_categories_modal)
 
 
 @app.route("/schedule_exercise/<id>/<selected_day>")
@@ -723,6 +750,9 @@ def categories():
 				if category:
 					db.session.delete(category)
 
+		if not current_user.is_categories_user:
+			current_user.is_categories_user = True
+
 		db.session.commit()
 
 		flash("Changes to Exercise Categories have been saved.")
@@ -732,15 +762,22 @@ def categories():
 	for current_category in current_categories:
 		categories_form[current_category.category_key].data = current_category.category_name
 
-	# Check for the show_strava_categories_modal=True param and generate modal if True
+	# Check for the show modal params and generate modal if True
 	show_strava_categories_modal = request.args.get("show_strava_categories_modal")
 	if show_strava_categories_modal and show_strava_categories_modal == "True": #It's coming from query param so is a string still
 		show_strava_categories_modal = True
 	else:
 		show_strava_categories_modal = False
+	
+	show_exercise_categories_modal = request.args.get("show_exercise_categories_modal")
+	if show_exercise_categories_modal and show_exercise_categories_modal == "True": #It's coming from query param so is a string still
+		show_exercise_categories_modal = True
+	else:
+		show_exercise_categories_modal = False
 
 	track_event(category="Manage", action="Exercise Categories page loaded", userId = str(current_user.id))
-	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form, show_strava_categories_modal=show_strava_categories_modal)
+	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form,
+			show_strava_categories_modal=show_strava_categories_modal, show_exercise_categories_modal=show_exercise_categories_modal)
 
 
 @app.route("/import_strava_activity")

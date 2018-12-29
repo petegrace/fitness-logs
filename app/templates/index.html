@@ -13,6 +13,12 @@
 		</script>
 	{% endif %}
 
+	{% if show_exercise_categories_modal %}
+		<script>
+			$('#exerciseCategoriesModal').modal('show');
+		</script>
+	{% endif %}
+
 	{% if show_new_user_modal %}
 		<script>
 			$('#newUserModal').modal('show');
@@ -231,7 +237,12 @@
 		</div>
 	{% endif %}
 
-	<!-- Modal for pointing people at Manage Categories -->
+	<!-- Modal for pointing people at Manage Categories-->
+	{% if show_exercise_categories_modal %}
+		{% include '_exercise_categories_modal.html' %}
+	{% endif %}
+
+	<!-- Modal for pointing people at Manage Categories if they've imported Strava activities -->
 	{% if show_strava_categories_modal %}
 		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
 		  <div class="modal-dialog" role="document">

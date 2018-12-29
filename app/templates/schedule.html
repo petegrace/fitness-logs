@@ -6,6 +6,12 @@
 	<script>
 		$("#schedule-nav").addClass("active");
 	</script>
+
+	{% if show_exercise_categories_modal %}
+		<script>
+			$('#exerciseCategoriesModal').modal('show');
+		</script>
+	{% endif %}
 {% endblock %}
 
 {% block app_content %}
@@ -95,4 +101,9 @@
 			{% endfor %}
 		</div>
 	</div>
+
+	<!-- Modal for pointing people at Manage Categories-->
+	{% if show_exercise_categories_modal %}
+		{% include '_exercise_categories_modal.html' %}
+	{% endif %}
 {% endblock %}

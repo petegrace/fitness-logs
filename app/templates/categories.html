@@ -13,6 +13,12 @@
 			$('#stravaCategoriesModal').modal('show');
 		</script>
 	{% endif %}
+
+	{% if show_exercise_categories_modal %}
+		<script>
+			$('#exerciseCategoriesModal').modal('show');
+		</script>
+	{% endif %}
 {% endblock %}
 
 {% block app_content %}
@@ -100,7 +106,30 @@
 		{{ categories_form.submit() }}
 	</form>
 
-	<!-- Modal for pointing people at Manage Categories -->
+	<!-- Modal for helping people set up categories -->
+	{% if show_exercise_categories_modal %}
+		<div class="modal fade" id="exerciseCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="exerciseCategoriesModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exerciseCategoriesModalLabel">Set up your exercise categories</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<p>Choose names and colours for the categories that you want to use, and then click <strong>Save Changes</strong>. Note that values of <strong>Run</strong>, <strong>Ride</strong> and <strong>Swim</strong> will be automatically associated with any Strava activities of these types.</p>
+				<p>After you've saved your categories you can go to the <strong>Exercise Types</strong> tab to edit the ones you have so far and select a category.</p>
+				<p>The colours you choose will be used throughout the rest of the site (e.g. activity pages, charts etc.) to help you analyse your activity more effectively.</p>
+				<p>
+					<button class="btn btn-primary" data-dismiss="modal" aria-label="Close">Understood!</button>
+					<a href="#" class="btn btn-primary" data-toggle="modal" data-target="#howToCategoriseExercisesModal">Show me step by step</a>
+				</p>
+			</div>
+		</div>
+		</div>
+	{% endif %}
+
 	{% if show_strava_categories_modal %}
 		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
 		  <div class="modal-dialog" role="document">
