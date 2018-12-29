@@ -14,7 +14,7 @@ from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
 from app.app_classes import TempCadenceAggregate
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -55,16 +55,17 @@ def index():
 
 	today = date.today()
 	current_day = calendar.day_abbr[today.weekday()]
-	scheduled_exercises_remaining = current_user.scheduled_exercises_remaining(scheduled_day=current_day, exercise_date=today).all()
+	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
+	original_exercises_for_today = current_user.exercises_for_today().all()
 
 	has_completed_schedule = False
 
-	if not scheduled_exercises_remaining:
-		if current_user.scheduled_exercises(scheduled_day=current_day).all():
+	if not exercises_for_today_remaining:
+		if current_user.exercises_for_today().all():
 		   has_completed_schedule = True
 
 	exercise_types = current_user.exercise_types_ordered().all()
-	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in scheduled_exercises_remaining]
+	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
@@ -75,9 +76,9 @@ def index():
 	else:
 		show_strava_categories_modal = False
 
-	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
-							exercise_types=other_exercise_types, scheduled_exercises=scheduled_exercises_remaining, has_completed_schedule=has_completed_schedule,
-							show_strava_categories_modal=show_strava_categories_modal, utils=utils)
+	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
+							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
+							original_exercises_for_today = original_exercises_for_today, show_strava_categories_modal=show_strava_categories_modal, utils=utils)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -502,7 +503,7 @@ def schedule(schedule_freq, selected_day=None):
 	if selected_day is None:
 		selected_day = calendar.day_abbr[date.today().weekday()]
 
-	scheduled_exercises = current_user.scheduled_exercises(selected_day)
+	scheduled_exercises = current_user.scheduled_exercises(selected_day).all()
 
 	exercise_types = current_user.exercise_types_ordered()
 
@@ -532,6 +533,9 @@ def schedule_exercise(id, selected_day):
 											   seconds=exercise_type.default_seconds)
 		db.session.add(scheduled_exercise)
 		flash("Added {type} to schedule for {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
+
+		if current_user.is_training_plan_user == False:
+			current_user.is_training_plan_user = True
 
 	db.session.commit()
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
@@ -582,6 +586,40 @@ def remove_scheduled_exercise(id):
 	flash("Removed exercise {exercise} from schedule for {day}".format(exercise=scheduled_exercise.type.name, day=scheduled_exercise.scheduled_day))
 
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_exercise.scheduled_day))
+
+
+@app.route('/remove_exercise_for_today/<id>')
+@login_required
+def remove_exercise_for_today(id):
+	exercise_for_today = ExerciseForToday.query.get(int(id))
+	track_event(category="Schedule", action="Exercise for today removed", userId = str(current_user.id))
+	flash("Removed exercise {exercise} from today's planned exercises".format(exercise=exercise_for_today.scheduled_exercise.type.name))
+
+	db.session.delete(exercise_for_today)
+	db.session.commit()
+
+	return redirect(url_for("index"))
+
+
+@app.route('/add_to_today/<selected_day>')
+@login_required
+def add_to_today(selected_day):
+	#exercise_for_today = ExerciseForToday.query.get(int(id))
+	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))
+
+	existing_exercises_for_today = current_user.exercises_for_today().all()
+	existing_scheduled_exercise_ids = [exercises_for_today.scheduled_exercise_id for exercises_for_today in existing_exercises_for_today]
+
+	for scheduled_exercise in current_user.scheduled_exercises(scheduled_day=selected_day):
+		if scheduled_exercise.id not in existing_scheduled_exercise_ids:
+			new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
+			db.session.add(new_exercise_for_today)
+
+	db.session.commit()
+
+	flash("Added exercises from {selected_day} to today's plan".format(selected_day=selected_day))
+
+	return redirect(url_for("index"))
 
 
 @app.route("/exercise_types")

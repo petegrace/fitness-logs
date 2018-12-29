@@ -113,3 +113,4 @@ config.py
 app.yaml
 strava_testing.py
 .idea/
+.vscode/

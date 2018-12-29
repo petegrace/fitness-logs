@@ -4,11 +4,13 @@ from werkzeug.urls import url_parse
 from app import app, db #, oauth2
 from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm
-from app.models import User
+from app.models import User, ExerciseForToday
 from requests_oauth2.services import GoogleClient
 from requests_oauth2 import OAuth2BearerToken
+from datetime import datetime, date, timedelta
 import requests
 import json
+import calendar
 
 
 # Helpers
@@ -47,7 +49,26 @@ def login():
 			register_form.google_email = google_email
 			return render_template("auth/register.html", title="Complete Registration", form=register_form)			
 		else:
-			login_user(user)
+			login_user(user) # From the flask_login library, does the session management bit
+
+			# Run some application stuff to set things up (TODO: Probably doesn't belong in Auth, can refator later)...
+			today = date.today()
+			current_day = calendar.day_abbr[today.weekday()]
+
+			if current_user.last_login_date != datetime.date(datetime.today()):
+				# Clear out the exercises for today and reload
+				for exercise_for_today in current_user.exercises_for_today():
+					db.session.delete(exercise_for_today)
+
+				for scheduled_exercise in current_user.scheduled_exercises(scheduled_day=current_day):
+					new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
+					db.session.add(new_exercise_for_today)
+
+				db.session.commit()
+
+			current_user.last_login_datetime = datetime.utcnow()
+			db.session.commit()
+
 			# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 			next_page = request.args.get("next")
 			if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website

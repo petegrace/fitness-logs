@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct
@@ -21,9 +21,19 @@ class User(UserMixin, db.Model):
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
+	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	is_exercises_user = db.Column(db.Boolean, default=False)
+	is_strava_user = db.Column(db.Boolean, default=False)
+	is_categories_user = db.Column(db.Boolean, default=False)
+	is_training_plan_user = db.Column(db.Boolean, default=False)
+	is_training_goals_user = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
+
+	@property
+	def last_login_date(self):
+		return self.last_login_datetime.date()
 
 	def set_password(self, password):
 		self.password_hash = generate_password_hash(password)
@@ -138,8 +148,14 @@ class User(UserMixin, db.Model):
 			).filter(ScheduledExercise.scheduled_day == scheduled_day
 			).order_by(ExerciseType.name)
 
-	def scheduled_exercises_remaining(self, scheduled_day, exercise_date):
-		scheduled_exercises_remaining = db.session.query(
+	def exercises_for_today(self):
+		return ExerciseForToday.query.join(ScheduledExercise, (ScheduledExercise.id == ExerciseForToday.scheduled_exercise_id)
+			).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+			).filter(ExerciseType.owner == self
+			).order_by(ExerciseType.name)
+
+	def exercises_for_today_remaining(self):
+		exercises_for_today_remaining = db.session.query(
 					ScheduledExercise.id,
 					ExerciseType.id.label("exercise_type_id"),
 					ExerciseType.name,
@@ -151,12 +167,11 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.seconds,
 					func.count(Exercise.id).label("completed_sets")
 				).join(ExerciseType.scheduled_exercises
+				).join(ScheduledExercise.exercise_scheduled_today
 				).outerjoin(ExerciseType.exercise_category
 				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
-										   (func.date(Exercise.exercise_datetime) == exercise_date))
+										   (func.date(Exercise.exercise_datetime) == date.today()))
 				).filter(ExerciseType.owner == self
-				).filter(ScheduledExercise.scheduled_day == scheduled_day
-				).filter(ScheduledExercise.is_removed == False
 				).group_by(
 					ScheduledExercise.id,
 					ExerciseType.id,
@@ -169,7 +184,7 @@ class User(UserMixin, db.Model):
 					ScheduledExercise.seconds
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
-		return scheduled_exercises_remaining
+		return exercises_for_today_remaining
 
 	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(
@@ -495,9 +510,20 @@ class ScheduledExercise(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_removed = db.Column(db.Boolean, default=False)
 	exercises = db.relationship("Exercise", backref="scheduled_exercise", lazy="dynamic")
+	exercise_scheduled_today = db.relationship("ExerciseForToday", backref="scheduled_exercise", lazy="dynamic")
 
 	def __repr__(self):
 		return "<ScheduledExercise {name} for {user} on {day}>".format(
+			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+
+
+class ExerciseForToday(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_exercise_id = db.Column(db.Integer, db.ForeignKey("scheduled_exercise.id"))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ExerciseForToday {name} for {user} on {day}>".format(
 			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
 
 

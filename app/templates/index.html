@@ -33,11 +33,10 @@
 				</ol>
 			</div>
 			<div class="col-md-6">
-				<h6>"I want to track or plan my cross-training exercises"</h6>
+				<h6>"I want to track my cross-training exercises"</h6>
 				<ol>
 					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a></li>
 					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a></li>
-					<li><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a></li>
 				</ol>
 
 			</div>
@@ -99,18 +98,21 @@
 		{% endfor %}
 	</table>
 
-	{% if scheduled_exercises or has_completed_schedule %}
+	{% if current_user.is_training_plan_user %}
 		<div class="card">
 			<div class="card-header">
 				<h4>Log exercises from Training Plan</h4>
 			</div>
 			<div class="card-body exercise-buttons">
+
 				{% if has_completed_schedule %}
 					<div class="alert alert-success">
 						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned exercises for today!
 					</div>
+				{% elif not original_exercises_for_today %}
+					<p>You don't have any exercises planned for today. Chill out and let your muscles recover!</p>
 				{% endif %}
-				{% for scheduled_exercise in scheduled_exercises %}
+				{% for scheduled_exercise in exercises_for_today_remaining %}
 					<a class="btn btn-sm
 					{% if scheduled_exercise.category_key is none %}
 						btn-outline-secondary
@@ -145,6 +147,10 @@
 						</small>
 					</a>
 				{% endfor %}
+				<p class="mt-2 mb-0">
+					<a href="#" data-toggle="modal" data-target="#editTodayPlanModal">Change Today's Plan</a> |
+					<a href="{{ url_for('schedule', schedule_freq='weekly') }}">Full Training Plan</a>
+				</p>
 			</div>
 		</div>
 	{% endif %}
@@ -160,7 +166,7 @@
 
 	<div class="card mt-2">
 		<div class="card-header">
-			<h4>Log {% if scheduled_exercises or has_completed_schedule %}adhoc{% endif %} exercises</h4>
+			<h4>Log adhoc exercises</h4>
 		</div>
 		<div class="card-body exercise-buttons">
 			<a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
@@ -203,6 +209,20 @@
 		</div>
 	</div>
 
+	{% if not current_user.is_training_plan_user %}
+		<div class="card mt-2">
+			<div class="card-header">
+				<h4>Log exercises from Training Plan</h4>
+			</div>
+			<div class="card-body">
+				<div class="alert alert-success">
+				<p>You don't yet have any exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
+				<p><a href="{{ url_for('schedule', schedule_freq='weekly') }}" class="btn btn-primary btn-sm">Set up weekly training plan</a></p>
+			</div>
+			</div>
+		</div>
+	{% endif %}
+
 	<!-- Modal for pointing people at Manage Categories -->
 	{% if show_strava_categories_modal %}
 		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
@@ -225,4 +245,58 @@
 		  </div>
 		</div>
 	{% endif %}
+
+	<!-- Modal for changing today's training plan: This would really benefit from some async stuff -->
+	<div class="modal fade" id="editTodayPlanModal" tabindex="-1" role="dialog" aria-labelledby="editTodayPlanModalLabel">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="editTodayPlanModalLabel">Change your plan for today!</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="modal-body">
+	      	<h6>Currently planned exercises</h6>
+	        {% if original_exercises_for_today|length == 0 %}
+				<p>You don't currently have any exercises planned for today.</p>
+			{% else %}
+			<table class="table table-sm table-hover">
+				{% for exercise_for_today in original_exercises_for_today %}
+					<tr>
+						<td>{{ exercise_for_today.scheduled_exercise.type.name }}</td>
+						<td>{{ exercise_for_today.scheduled_exercise.sets }} sets</td>
+						<td>
+							{% if exercise_for_today.scheduled_exercise.type.measured_by == "reps" %}
+								{{ exercise_for_today.scheduled_exercise.reps }} reps
+							{% elif exercise_for_today.scheduled_exercise.type.measured_by == "seconds" %}
+								{{ exercise_for_today.scheduled_exercise.seconds }} secs
+							{% endif %}
+						</td>
+						<td>
+							<ul class="nav justify-content-end">
+								<li class="nav-item mr-5">
+									<a href="{{ url_for('remove_exercise_for_today', id=exercise_for_today.id) }}">
+										<i class="fa fa-trash"></i> Remove</a>
+								</li>
+							</ul>
+						</td>
+					</tr>
+				{% endfor %}
+			</table>
+			{% endif %}
+			<h6>Add exercises</h6>
+			<p>Busy on another day and needing to rejig your plan? Just click below to pull in exercises for any day.</p>
+			<p>
+				<a href="{{ url_for('add_to_today', selected_day='Mon') }}" class="btn btn-primary btn-sm">Mon</a>
+				<a href="{{ url_for('add_to_today', selected_day='Tue') }}" class="btn btn-primary btn-sm">Tue</a>
+				<a href="{{ url_for('add_to_today', selected_day='Wed') }}" class="btn btn-primary btn-sm">Wed</a>
+				<a href="{{ url_for('add_to_today', selected_day='Thu') }}" class="btn btn-primary btn-sm">Thu</a>
+				<a href="{{ url_for('add_to_today', selected_day='Fri') }}" class="btn btn-primary btn-sm">Fri</a>
+				<a href="{{ url_for('add_to_today', selected_day='Sat') }}" class="btn btn-primary btn-sm">Sat</a>
+				<a href="{{ url_for('add_to_today', selected_day='Sun') }}" class="btn btn-primary btn-sm">Sun</a>
+			</p>
+	    </div>
+	  </div>
+	</div>
 {% endblock %}
