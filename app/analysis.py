@@ -103,6 +103,11 @@ def parse_cadence_stream(activity):
 
 		activity.median_cadence = cadence_df["cadence"].median()*2
 		flash("Processed cadence data for {activity}".format(activity=activity.name))
+
+		# TODO: This probably goes into import at some point (or somewhere similarly generic) when we have more than just cadence analysis
+		if current_user.is_strava_user == False:
+			current_user.is_strava_user = True
+
 		db.session.commit()
 		return "Success"
 	else:

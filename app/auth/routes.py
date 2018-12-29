@@ -25,7 +25,7 @@ def register_user(user):
 	db.session.commit()
 	flash("Congratulations! You are now a registered user of Training Ticks")
 	login_user(user)
-	return redirect(url_for("index"))
+	return redirect(url_for("index", is_new_user=True))
 
 
 # Routes
@@ -69,11 +69,10 @@ def login():
 			current_user.last_login_datetime = datetime.utcnow()
 			db.session.commit()
 
-			# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
-			next_page = request.args.get("next")
-			if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-				return redirect(url_for("index"))
-			return redirect(next_page)
+			# If the user hasn't activated any features yet then we want to encourage them...
+			if not current_user.is_activated_user:
+				return redirect(url_for("index", is_new_user=True))
+			return redirect(url_for("index"))
 
 	# for the get...
 	authorization_url = google_auth.authorize_url(

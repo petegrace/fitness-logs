@@ -35,6 +35,10 @@ class User(UserMixin, db.Model):
 	def last_login_date(self):
 		return self.last_login_datetime.date()
 
+	@property
+	def is_activated_user(self):
+		return (self.is_exercises_user or self.is_strava_user or self.is_categories_user or self.is_training_plan_user or self.is_training_goals_user)
+
 	def set_password(self, password):
 		self.password_hash = generate_password_hash(password)
 

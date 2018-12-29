@@ -69,7 +69,13 @@ def index():
 
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
-	# Check for the has_uncategorised_activity_types=True param and generate modal if True
+	# Check for the flags we're using to present modals for encouraging engagement
+	is_new_user = request.args.get("is_new_user")
+	if is_new_user and is_new_user == "True": #It's coming from query param so is a string still
+		show_new_user_modal = True
+	else:
+		show_new_user_modal = False
+
 	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
 	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
 		show_strava_categories_modal = True
@@ -78,7 +84,8 @@ def index():
 
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
 							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
-							original_exercises_for_today = original_exercises_for_today, show_strava_categories_modal=show_strava_categories_modal, utils=utils)
+							original_exercises_for_today = original_exercises_for_today, utils=utils,
+							show_new_user_modal=show_new_user_modal, show_strava_categories_modal=show_strava_categories_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -146,6 +153,10 @@ def new_exercise(context, selected_day=None):
 								reps=form.reps.data,
 								seconds=form.seconds.data)		
 			db.session.add(exercise)
+
+			if current_user.is_exercises_user == False:
+				current_user.is_exercises_user = True
+
 			db.session.commit()
 			flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
 			return redirect(url_for("index"))
@@ -156,6 +167,10 @@ def new_exercise(context, selected_day=None):
 												   reps=form.reps.data,
 												   seconds=form.seconds.data)
 			db.session.add(scheduled_exercise)
+
+			if current_user.is_training_plan_user == False:
+				current_user.is_training_plan_user = True
+
 			db.session.commit()
 			flash("Added {type} and scheduled for {scheduled_day}".format(type=exercise_type.name, scheduled_day=scheduled_exercise.scheduled_day))
 			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
