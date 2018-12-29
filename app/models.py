@@ -22,6 +22,11 @@ class User(UserMixin, db.Model):
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
 	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	is_exercises_user = db.Column(db.Boolean, default=False)
+	is_strava_user = db.Column(db.Boolean, default=False)
+	is_categories_user = db.Column(db.Boolean, default=False)
+	is_training_plan_user = db.Column(db.Boolean, default=False)
+	is_training_goals_user = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
