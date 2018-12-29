@@ -98,16 +98,19 @@
 		{% endfor %}
 	</table>
 
-	{% if original_exercises_for_today %}
+	{% if current_user.is_training_plan_user %}
 		<div class="card">
 			<div class="card-header">
 				<h4>Log exercises from Training Plan</h4>
 			</div>
 			<div class="card-body exercise-buttons">
+
 				{% if has_completed_schedule %}
 					<div class="alert alert-success">
 						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned exercises for today!
 					</div>
+				{% elif not original_exercises_for_today %}
+					<p>You don't have any exercises planned for today. Chill out and let your muscles recover!</p>
 				{% endif %}
 				{% for scheduled_exercise in exercises_for_today_remaining %}
 					<a class="btn btn-sm
@@ -206,14 +209,14 @@
 		</div>
 	</div>
 
-	{% if not original_exercises_for_today %}
+	{% if not current_user.is_training_plan_user %}
 		<div class="card mt-2">
 			<div class="card-header">
 				<h4>Log exercises from Training Plan</h4>
 			</div>
 			<div class="card-body">
 				<div class="alert alert-success">
-				<p>You don't yet have an exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
+				<p>You don't yet have any exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
 				<p><a href="{{ url_for('schedule', schedule_freq='weekly') }}" class="btn btn-primary btn-sm">Set up weekly training plan</a></p>
 			</div>
 			</div>

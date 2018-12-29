@@ -76,7 +76,7 @@ def index():
 	else:
 		show_strava_categories_modal = False
 
-	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url,
+	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
 							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
 							original_exercises_for_today = original_exercises_for_today, show_strava_categories_modal=show_strava_categories_modal, utils=utils)
 
@@ -533,6 +533,9 @@ def schedule_exercise(id, selected_day):
 											   seconds=exercise_type.default_seconds)
 		db.session.add(scheduled_exercise)
 		flash("Added {type} to schedule for {day}".format(type=exercise_type.name, day=scheduled_exercise.scheduled_day))
+
+		if current_user.is_training_plan_user == False:
+			current_user.is_training_plan_user = True
 
 	db.session.commit()
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
