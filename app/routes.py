@@ -300,6 +300,10 @@ def weekly_activity(year, week=None):
 			db.session.add(weekly_goal)
 			track_event(category="Analysis", action="New weekly goal for cadence created", userId = str(current_user.id))
 			flash("Created new goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
+
+		if not current_user.is_training_goals_user:
+			current_user.is_training_goals_user = True
+
 		db.session.commit()
 
 		# Evaluate the goals in case there's already progress made
@@ -332,6 +336,10 @@ def weekly_activity(year, week=None):
 			db.session.add(weekly_goal)
 			track_event(category="Analysis", action="New weekly goal for exercise sets created", userId = str(current_user.id))
 			flash("Created new goal for exercise sets completed")
+
+		if not current_user.is_training_goals_user:
+			current_user.is_training_goals_user = True
+			
 		db.session.commit()
 
 	# Now start getting the data that we need for a get (as well as after a post)
@@ -495,7 +503,7 @@ def weekly_activity(year, week=None):
 
 	weekly_summary_plot_script, weekly_summary_plot_div = components(weekly_summary_plot)
 
-	return render_template("weekly_activity.html", title="Weekly Activity",utils=utils,
+	return render_template("weekly_activity.html", title="Weekly Activity", utils=utils, current_user=current_user,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,

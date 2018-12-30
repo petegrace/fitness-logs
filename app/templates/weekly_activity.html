@@ -78,8 +78,16 @@
 			</div>
 			<div class="tab-content" id="analysis-tabContent">
 				<div class="tab-pane fade show active" id="nav-goals" role="tabpanel">
-					<p class="mt-2">You can add new goals by clicking and tapping within the other graphs on the metric you want to set a goal for.</p>
-					{{ current_goals_plot_div|safe }}
+					{% if current_user.is_training_goals_user %}
+						<p class="mt-2">You can add new goals by clicking and tapping within the other graphs on the metric you want to set a goal for.</p>
+						{{ current_goals_plot_div|safe }}
+					{% else %}
+						<div class="alert alert-success mt-2">
+							<h5 class="mt-0">Set yourself a goal!</h5>
+							<p>You haven't set any training goals for yourself yet.  Why not start using goals to keep yourself motivated and improve your performance?</p>
+							<p>Check out the  <a href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How To guide</a> if you need some help, or create your first goal by clicking into the charts on the tabs that follow.</p>
+						</div>
+					{% endif %}
 				</div>
 				<div class="tab-pane fade" id="nav-cadence" role="tabpanel">
 					{{ above_cadence_plot_div|safe }}
