@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 
 def convert_m_to_km(m):
 	km = round((m / 1000), 2)
@@ -11,7 +11,7 @@ def convert_mps_to_km_pace(mps):
 
 	km_per_sec = mps / 1000
 	secs_per_km = int(1 / km_per_sec)
-	pace_timedelta = datetime.timedelta(seconds=secs_per_km)
+	pace_timedelta = timedelta(seconds=secs_per_km)
 	return pace_timedelta
 
 def format_timedelta_minutes(timedelta):
@@ -43,3 +43,6 @@ def format_goal_units(goal_metric, value):
 		return "{sets} sets".format(sets=value)
 	elif goal_metric == "Time Spent Above Cadence":
 		return convert_seconds_to_minutes_formatted(value)
+
+def current_year():
+	return datetime.today().year

@@ -27,6 +27,21 @@
 {% endblock %}
 
 {% block app_content %}
+	<h4 class="mt-3">Your {{ utils.current_year() }} Stats</h4>
+	<div class="row">
+		{% for activity_type_stat in current_user.current_year_activity_stats().all() %}
+			<div class="col {{ activity_type_stat.category_key }} m-2">
+				<small>{{ activity_type_stat.activity_type }}:</small></br />
+				<span class="display-4">{{ activity_type_stat.total_distance }}</span> km
+			</div>
+		{% endfor %}
+		{% for exercise_category_stat in current_user.current_year_exercise_stats().all() %}
+			<div class="col {{ exercise_category_stat.category_key }} m-2">
+				<small>{{ exercise_category_stat.category_name }}:</small></br />
+				<span class="display-4">{{ exercise_category_stat.total_sets }}</span> sets
+			</div>
+		{% endfor %}
+	</div>
 	{% if recent_activities|length > 0 %}
 		<div class="row align-items-end">
 			<div class="col-md">

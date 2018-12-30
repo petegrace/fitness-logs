@@ -39,6 +39,10 @@ class User(UserMixin, db.Model):
 	def is_activated_user(self):
 		return (self.is_exercises_user or self.is_strava_user or self.is_categories_user or self.is_training_plan_user or self.is_training_goals_user)
 
+	@login.user_loader
+	def load_user(id):
+		return User.query.get(int(id))
+
 	def set_password(self, password):
 		self.password_hash = generate_password_hash(password)
 
@@ -76,9 +80,39 @@ class User(UserMixin, db.Model):
 
 		return first_active_year
 
-	@login.user_loader
-	def load_user(id):
-		return User.query.get(int(id))
+	def current_year_activity_stats(self):
+		current_year_activity_stats = db.session.query(
+						Activity.activity_type,
+						func.coalesce(ExerciseCategory.category_key, Activity.activity_type).label("category_key"),
+						func.div(func.sum(Activity.distance), 1000).label("total_distance")
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
+				).filter(Activity.owner == self
+				).filter(Activity.activity_type.in_(["Run", "Ride", "Swim"])
+				).filter(CalendarDay.calendar_year == datetime.today().year
+				).group_by(
+						ExerciseCategory.category_key,
+						Activity.activity_type
+				)
+
+		return current_year_activity_stats
+
+	def current_year_exercise_stats(self):
+		current_year_exercise_stats = db.session.query(
+						func.coalesce(ExerciseCategory.category_name, "Uncategorised").label("category_name"),
+						func.coalesce(ExerciseCategory.category_key, "Uncategorised").label("category_key"),
+						func.count(Exercise.id).label("total_sets")
+				).join(ExerciseType.exercises
+				).outerjoin(ExerciseType.exercise_category
+				).join(CalendarDay, func.date(Exercise.exercise_datetime)==CalendarDay.calendar_date
+				).filter(ExerciseType.owner == self
+				).filter(CalendarDay.calendar_year == datetime.today().year
+				).group_by(
+						ExerciseCategory.category_key,
+						ExerciseCategory.category_name
+				)
+
+		return current_year_exercise_stats
 
 	def exercises(self):
 		return Exercise.query.join(ExerciseType,
