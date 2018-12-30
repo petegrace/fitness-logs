@@ -246,6 +246,9 @@ def weekly_activity(year, week=None):
 	cadence_goal_form = CadenceGoalForm()	
 	exercise_sets_goal_form = ExerciseSetsGoalForm()
 
+	if year == "current":
+		year = utils.current_year()
+
 	# Bit of a haack to reduce avoid duplicate errors when unioning exercises and activities
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	exercise_sets_goal_form.exercise_category_id.choices = category_choices
@@ -959,7 +962,7 @@ def backfill_cadence_data():
 				return redirect(url_for("connect_strava", action="authorize"))
 
 	track_event(category="Strava", action="Cadence backfill completed", userId = str(current_user.id))
-	return redirect(url_for("weekly_activity", year=2018))
+	return redirect(url_for("weekly_activity", year="current"))
 
 @app.route("/privacy")
 def privacy_policy():
