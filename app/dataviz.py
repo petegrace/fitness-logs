@@ -226,7 +226,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	# TODO: This will need to be more flexible for data other than cadence
 	if dimension_type == "continuous":
-		y_ticker = SingleIntervalTicker(interval=4, num_minor_ticks=2)
+		y_ticker = SingleIntervalTicker(interval=2*dimension_interval, num_minor_ticks=2)
 		y_axis = LinearAxis(ticker=y_ticker)
 	else:
 		y_axis = CategoricalAxis()

@@ -484,11 +484,11 @@ class Activity(db.Model):
 
 	@property
 	def distance_formatted(self):
-		if self.distance >= 1000:
-			distance_formatted = "{value} km".format(value=utils.convert_m_to_km(self.distance))
-		else:
-			distance_formatted = "{value} m".format(value=self.distance)
-		return distance_formatted
+		# if self.distance >= 1000:
+		# 	distance_formatted = "{value} km".format(value=utils.convert_m_to_km(self.distance))
+		# else:
+		# 	distance_formatted = "{value} m".format(value=self.distance)
+		return utils.format_distance(self.distance)
 
 	@property
 	def average_pace_formatted(self):
@@ -537,6 +537,14 @@ class ActivityGradientAggregate(db.Model):
 	@property
 	def total_seconds_above_gradient_formatted(self):
 		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_gradient))
+
+	@property
+	def total_metres_at_gradient_formatted(self):
+		return utils.format_distance(m=self.total_metres_at_gradient)
+
+	@property
+	def total_metres_above_gradient_formatted(self):
+		return utils.format_distance(m=self.total_metres_above_gradient)
 
 
 class Exercise(db.Model):

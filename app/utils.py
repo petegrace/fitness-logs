@@ -14,6 +14,13 @@ def convert_mps_to_km_pace(mps):
 	pace_timedelta = timedelta(seconds=secs_per_km)
 	return pace_timedelta
 
+def format_distance(m):
+	if m >= 1000:
+		distance_formatted = "{value} km".format(value=convert_m_to_km(m))
+	else:
+		distance_formatted = "{value} m".format(value=m)
+	return distance_formatted
+
 def format_timedelta_minutes(timedelta):
 	minutes, seconds = divmod(timedelta.seconds, 60)
 	timedelta_formatted = "%d:%02d" % (minutes, seconds)

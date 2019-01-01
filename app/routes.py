@@ -911,16 +911,16 @@ def activity_analysis(id):
 	# Gradient charts
 	if activity.activity_gradient_aggregates.first():
 		at_gradient_plot = generate_bar(dataset=activity.activity_gradient_aggregates, plot_height=300,
-			dimension_name="gradient", measure_name="total_metres_at_gradient", dimension_interval=1,
+			dimension_name="gradient", measure_name="total_metres_at_gradient", dimension_interval=1, measure_label_name="total_metres_at_gradient_formatted",
 			fill_color=fill_color, line_color=line_color)
 		at_gradient_plot_script, at_gradient_plot_div = components(at_gradient_plot)
-		at_gradient_plot_container = PlotComponentContainer(name="Distance Climbing at Gradient", plot_div=at_gradient_plot_div, plot_script=at_gradient_plot_script)
+		at_gradient_plot_container = PlotComponentContainer(name="Distance Climbing at Gradient %", plot_div=at_gradient_plot_div, plot_script=at_gradient_plot_script)
 
 		above_gradient_plot = generate_bar(dataset=activity.activity_gradient_aggregates, plot_height=300,
-			dimension_name="gradient", measure_name="total_metres_above_gradient", dimension_interval=1,
+			dimension_name="gradient", measure_name="total_metres_above_gradient", dimension_interval=1, measure_label_name="total_metres_above_gradient_formatted",
 			fill_color=fill_color, line_color=line_color)
 		above_gradient_plot_script, above_gradient_plot_div = components(above_gradient_plot)
-		above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
+		above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient %", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
 	else:
 		at_gradient_plot_container = None
 		above_gradient_plot_container = None
