@@ -15,7 +15,7 @@ from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
-from app.app_classes import TempCadenceAggregate
+from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
 from requests_oauth2.services import OAuth2
@@ -873,18 +873,24 @@ def activity_analysis(id):
 		result = analysis.parse_cadence_stream(activity)
 		if result == "Not authorized":
 			return redirect(url_for("connect_strava", action="authorize"))
+		
+	# TODO: Consolidate the cadence stuff into this function and replace the call to parse_cadence_streams() a few lines up
+	if not activity.activity_gradient_aggregates.first():
+		result = analysis.parse_streams(activity)
+
+	# Find out colour-coding req's for the charts that follow
+	run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
+	if run_category is not None:
+		fill_color = run_category.fill_color
+		line_color = run_category.line_color
+	else:
+		fill_color = None
+		line_color = None
 	
+	# Cadence charts
 	if activity.median_cadence is not None:
 		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
 		max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
-
-		run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
-		if run_category is not None:
-			fill_color = run_category.fill_color
-			line_color = run_category.line_color
-		else:
-			fill_color = None
-			line_color = None
 
 		at_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
 			dimension_name="cadence", measure_name="total_seconds_at_cadence", measure_label_name="total_seconds_at_cadence_formatted", max_dimension_range=max_dimension_range,
@@ -894,16 +900,34 @@ def activity_analysis(id):
 		above_cadence_plot = generate_bar(dataset=activity.activity_cadence_aggregates, plot_height=300,
 			dimension_name="cadence", measure_name="total_seconds_above_cadence", measure_label_name="total_seconds_above_cadence_formatted", max_dimension_range=max_dimension_range,
 			fill_color=fill_color, line_color=line_color)
-		#above_cadence_plot
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 	else:
 		max_dimension_range = None
 		at_cadence_plot_script, at_cadence_plot_div = ("", "")
 		above_cadence_plot_script, above_cadence_plot_div = ("", "")
 
+	# Gradient charts
+	if activity.activity_gradient_aggregates.first():
+		at_gradient_plot = generate_bar(dataset=activity.activity_gradient_aggregates, plot_height=300,
+			dimension_name="gradient", measure_name="total_metres_at_gradient", dimension_interval=1,
+			fill_color=fill_color, line_color=line_color)
+		at_gradient_plot_script, at_gradient_plot_div = components(at_gradient_plot)
+		at_gradient_plot_container = PlotComponentContainer(name="Distance Climbing at Gradient", plot_div=at_gradient_plot_div, plot_script=at_gradient_plot_script)
+
+		above_gradient_plot = generate_bar(dataset=activity.activity_gradient_aggregates, plot_height=300,
+			dimension_name="gradient", measure_name="total_metres_above_gradient", dimension_interval=1,
+			fill_color=fill_color, line_color=line_color)
+		above_gradient_plot_script, above_gradient_plot_div = components(above_gradient_plot)
+		above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
+	else:
+		at_gradient_plot_container = None
+		above_gradient_plot_container = None
+
+
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
 		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
-		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div)
+		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div,
+		at_gradient_plot_container=at_gradient_plot_container, above_gradient_plot_container=above_gradient_plot_container)
 
 
 @app.route("/connect_strava/<action>")

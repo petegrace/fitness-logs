@@ -2,12 +2,13 @@ from flask import flash, redirect, url_for, request, session
 from flask_login import current_user
 from bokeh.embed import components
 from app import app, db, utils
-from app.models import TrainingGoal, ActivityCadenceAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
+from app.models import TrainingGoal, ActivityCadenceAggregate, ActivityGradientAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_line_chart
 from sqlalchemy import func, or_
 from stravalib.client import Client
 import pandas as pd
+import math
 from datetime import datetime, timedelta
 
 def evaluate_cadence_goals(week):
@@ -107,6 +108,88 @@ def parse_cadence_stream(activity):
 		# TODO: This probably goes into import at some point (or somewhere similarly generic) when we have more than just cadence analysis
 		if current_user.is_strava_user == False:
 			current_user.is_strava_user = True
+
+		db.session.commit()
+		return "Success"
+	else:
+		return "No cadence data available"
+
+
+def parse_streams(activity):
+	strava_client = Client()
+
+	if not session.get("strava_access_token"):
+		return "Not authorized"
+
+	access_token = session["strava_access_token"]
+	strava_client.access_token = access_token
+
+	stream_types = ["time", "cadence", "distance", "altitude", "grade_smooth"]
+
+	try:
+		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
+	except:
+		return "Not authorized"
+
+	if activity_streams is not None:
+		#cadence_records = []
+		data_points_df = pd.DataFrame(columns=["start_time", "duration", "distance_travelled", "cadence", "gradient"])
+		dp_ind = 0
+		df_ind = 0
+
+		# construct a data frame
+		for time_data_point in activity_streams["time"].data:
+			if dp_ind > 1:
+				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
+				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
+				altitude_gain = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1]) # Not used currently but we could do some stuff with it
+
+				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
+					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
+												  duration,
+												  distance_travelled,
+												  activity_streams["cadence"].data[dp_ind],
+												  math.floor(activity_streams["grade_smooth"].data[dp_ind])]
+					df_ind += 1
+			dp_ind += 1
+
+		gradient_duration_aggregation = data_points_df.groupby(["gradient"])["duration"].sum()
+		gradient_distance_aggregation = data_points_df.groupby(["gradient"])["distance_travelled"].sum().round(decimals=1)
+		gradient_data = list(zip(gradient_duration_aggregation.index, gradient_duration_aggregation, gradient_distance_aggregation))
+		gradient_data.reverse()
+
+		running_total_duration = 0
+		running_total_distance = 0
+		this_aggregate_total_duration = 0
+		this_aggregate_total_distance = 0
+
+		for gradient_group in gradient_data:
+			running_total_duration += gradient_group[1]
+			running_total_distance += gradient_group[2]
+			this_aggregate_total_duration += gradient_group[1]
+			this_aggregate_total_distance += gradient_group[2]
+			
+			# We don't care about anything < 2 as it's not going to be significant enough
+			if gradient_group[0] < 2:
+				break
+
+			# Group up any outliers with seconds < 5 seconds into the next aggregate
+			if this_aggregate_total_duration > 5:
+				activity_gradient_aggregate = ActivityGradientAggregate(activity=activity,
+																	  	gradient=gradient_group[0],
+																	  	total_seconds_at_gradient=this_aggregate_total_duration,
+																	  	total_seconds_above_gradient=running_total_duration,
+																	  	total_metres_at_gradient=this_aggregate_total_distance,
+																	  	total_metres_above_gradient=running_total_distance)
+				db.session.add(activity_gradient_aggregate)
+				this_aggregate_total_duration = 0
+				this_aggregate_total_distance = 0
+
+		# TODO: Need to be able to flag an activity as having been analysed, probably just a simple flag will do
+		flash("Processed gradient data for {activity}".format(activity=activity.name))
+
+		if current_user.is_strava_user == False:
+		 	current_user.is_strava_user = True
 
 		db.session.commit()
 		return "Success"

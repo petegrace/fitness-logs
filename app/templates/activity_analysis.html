@@ -16,18 +16,34 @@
 	<script src="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.13.0.min.js"></script>
 	{{ at_cadence_plot_script|safe }}
 	{{ above_cadence_plot_script|safe }}
+	{% if at_gradient_plot_container %}
+		{{ at_gradient_plot_container.plot_script|safe }}
+		{{ above_gradient_plot_container.plot_script|safe }}
+	{% endif %}
 {% endblock %}
 
 {% block app_content %}
 	{% include '_activity_summary.html' %}
 	<div class="row mt-4">
 		<div class="col-md-6">
-			<h6>Time Spent at Cadence</h5>
+			<h6>Time Spent at Cadence</h6>
 			{{ at_cadence_plot_div|safe }}
 		</div>
 		<div class="col-md-6">
-			<h6>Time Spent above Cadence</h5>
+			<h6>Time Spent above Cadence</h6>
 			{{ above_cadence_plot_div|safe }}
 		</div>
 	</div>
+	{% if at_gradient_plot_container %}
+	<div class="row mt-4">
+		<div class="col-md-6">
+			<h6>{{ at_gradient_plot_container.name }}</h6>
+			{{ at_gradient_plot_container.plot_div|safe }}
+		</div>
+		<div class="col-md-6">
+			<h6>{{ above_gradient_plot_container.name }}</h6>
+			{{ above_gradient_plot_container.plot_div|safe }}
+		</div>
+	</div>
+	{% endif %}
 {% endblock %}

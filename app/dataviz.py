@@ -131,7 +131,7 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 
 
 def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, category_field=None, fill_color=None, line_color=None,
-		dimension_type="continuous", max_dimension_range=None, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", goal_label_function=None, tap_tool_callback=None):
+		dimension_type="continuous", max_dimension_range=None, dimension_interval=2, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", goal_label_function=None, tap_tool_callback=None):
 	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
 	dimension_values = []
 	measure_values = []
@@ -197,8 +197,8 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	if dimension_type == "continuous":
 		dimension_range = (dimension_range_min-1, dimension_range_max+1)
-		bar_height = 1.2
-		goal_bar_height = 1.8
+		bar_height = 0.6 * dimension_interval
+		goal_bar_height = 0.9 * dimension_interval
 	elif dimension_type == "discrete":
 		dimension_range = dimension_values
 		bar_height = 0.6
