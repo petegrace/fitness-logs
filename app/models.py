@@ -468,6 +468,7 @@ class Activity(db.Model):
 	average_heartrate = db.Column(db.Numeric())
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	activity_cadence_aggregates = db.relationship("ActivityCadenceAggregate", backref="activity", lazy="dynamic")
+	activity_gradient_aggregates = db.relationship("ActivityGradientAggregate", backref="activity", lazy="dynamic")
 
 	def __repr__(self):
 		return "<Activity {name} with external ID of {external_id}>".format(name=self.name, external_id=self.external_id)
@@ -514,6 +515,28 @@ class ActivityCadenceAggregate(db.Model):
 	@property
 	def total_seconds_above_cadence_formatted(self):
 		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_cadence))
+
+
+class ActivityGradientAggregate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"))
+	gradient = db.Column(db.Integer)
+	total_seconds_at_gradient = db.Column(db.Integer)
+	total_seconds_above_gradient = db.Column(db.Integer)
+	total_metres_at_gradient = db.Column(db.Integer)
+	total_metres_above_gradient = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	
+	def __repr__(self):
+		return "<ActivityGradientAggregate for {gradient} on {name}>".format(cadence=self.gradient, name=self.activity.name)
+
+	@property
+	def total_seconds_at_gradient_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_at_gradient))
+
+	@property
+	def total_seconds_above_gradient_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_gradient))
 
 
 class Exercise(db.Model):
