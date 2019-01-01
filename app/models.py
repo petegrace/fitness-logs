@@ -460,12 +460,16 @@ class Activity(db.Model):
 	activity_type = db.Column(db.String(50))
 	is_race = db.Column(db.Boolean, default=False)
 	distance = db.Column(db.Numeric())
+	total_elevation_gain = db.Column(db.Numeric())
 	elapsed_time = db.Column(db.Interval())
 	moving_time = db.Column(db.Interval())
 	average_speed = db.Column(db.Numeric())
 	average_cadence = db.Column(db.Numeric())
 	median_cadence = db.Column(db.Numeric())
 	average_heartrate = db.Column(db.Numeric())
+	description = db.Column(db.String(1000))
+	is_fully_parsed = db.Column(db.Boolean, default=False)
+	is_bad_elevation_data = db.Column(db.Boolean, default=False)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	activity_cadence_aggregates = db.relationship("ActivityCadenceAggregate", backref="activity", lazy="dynamic")
 	activity_gradient_aggregates = db.relationship("ActivityGradientAggregate", backref="activity", lazy="dynamic")
@@ -495,6 +499,10 @@ class Activity(db.Model):
 		km_pace = utils.convert_mps_to_km_pace(self.average_speed)
 		average_pace_formatted = "{value} /km".format(value=utils.format_timedelta_minutes(km_pace))
 		return average_pace_formatted
+
+	@property
+	def average_climbing_gradient(self):
+		return (self.total_elevation_gain / self.distance) * 100 #TODO: Check if this needs any additional conversion
 
 
 class ActivityCadenceAggregate(db.Model):
