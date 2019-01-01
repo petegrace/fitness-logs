@@ -35,15 +35,15 @@
 		</div>
 	</div>
 	{% if at_gradient_plot_container %}
-	<div class="row mt-4">
-		<div class="col-md-6">
-			<h6>{{ at_gradient_plot_container.name }}</h6>
-			{{ at_gradient_plot_container.plot_div|safe }}
+		<div class="row mt-4">
+			<div class="col-md-6">
+				<h6>{{ at_gradient_plot_container.name }}</h6>
+				{{ at_gradient_plot_container.plot_div|safe }}
+			</div>
+			<div class="col-md-6">
+				<h6>{{ above_gradient_plot_container.name }}</h6>
+				{{ above_gradient_plot_container.plot_div|safe }}
+			</div>
 		</div>
-		<div class="col-md-6">
-			<h6>{{ above_gradient_plot_container.name }}</h6>
-			{{ above_gradient_plot_container.plot_div|safe }}
-		</div>
-	</div>
 	{% endif %}
 {% endblock %}

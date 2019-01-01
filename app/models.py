@@ -528,7 +528,7 @@ class ActivityGradientAggregate(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	
 	def __repr__(self):
-		return "<ActivityGradientAggregate for {gradient} on {name}>".format(cadence=self.gradient, name=self.activity.name)
+		return "<ActivityGradientAggregate for {gradient} on {name}>".format(gradient=self.gradient, name=self.activity.name)
 
 	@property
 	def total_seconds_at_gradient_formatted(self):

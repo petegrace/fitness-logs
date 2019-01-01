@@ -877,6 +877,8 @@ def activity_analysis(id):
 	# TODO: Consolidate the cadence stuff into this function and replace the call to parse_cadence_streams() a few lines up
 	if not activity.activity_gradient_aggregates.first():
 		result = analysis.parse_streams(activity)
+		if result == "Not authorized":
+			return redirect(url_for("connect_strava", action="authorize"))
 
 	# Find out colour-coding req's for the charts that follow
 	run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
