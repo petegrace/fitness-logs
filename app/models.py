@@ -495,6 +495,10 @@ class Activity(db.Model):
 		return utils.format_distance(self.distance)
 
 	@property
+	def total_elevation_gain_formatted(self):
+		return "{metres} m".format(metres=self.total_elevation_gain)
+
+	@property
 	def average_pace_formatted(self):
 		km_pace = utils.convert_mps_to_km_pace(self.average_speed)
 		average_pace_formatted = "{value} /km".format(value=utils.format_timedelta_minutes(km_pace))
@@ -502,7 +506,11 @@ class Activity(db.Model):
 
 	@property
 	def average_climbing_gradient(self):
-		return (self.total_elevation_gain / self.distance) * 100 #TODO: Check if this needs any additional conversion
+		return round((self.total_elevation_gain / self.distance) * 100, 1)
+
+	@property
+	def average_climbing_gradient_formatted(self):
+		return "{gradient} %".format(gradient=self.average_climbing_gradient)
 
 
 class ActivityCadenceAggregate(db.Model):

@@ -826,11 +826,13 @@ def import_strava_activity():
 							activity_type = strava_activity.type,
 							is_race = True if strava_activity.workout_type == "1" else False,
 							distance = strava_activity.distance.num,
+							total_elevation_gain = strava_activity.total_elevation_gain.num,
 							elapsed_time =strava_activity.elapsed_time,
 							moving_time = strava_activity.moving_time,
 							average_speed = strava_activity.average_speed.num,
 							average_cadence = (strava_activity.average_cadence * 2) if (strava_activity.type == "Run" and strava_activity.average_cadence is not None) else strava_activity.average_cadence,
-							average_heartrate = strava_activity.average_heartrate)
+							average_heartrate = strava_activity.average_heartrate,
+							description = (strava_activity.description[:1000] if strava_activity.description else None)) #limit to first 1000 characters just in case
 
 		db.session.add(activity)
 		new_activity_count += 1

@@ -51,12 +51,20 @@
 						<td><small>Avg. Heart Rate:</small></td><td>{{ activity.average_heartrate }}</td>
 					</tr>
 					<tr>			
-						<td colspan="2"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></td>
+						<td><small>Elevation Gain:</small></td><td>{{ activity.total_elevation_gain_formatted }}</td>
 					</tr>
 					<tr>			
-						<td></td>
+						<td><small>Avg. Climbing Gradient:</small></td><td>{{ activity.average_climbing_gradient_formatted }}</td>
 					</tr>
 				</table>
+			</div>
+		</div>
+		<div class="row mt-3">
+			<div class="col-12">
+				{% if activity.description %}
+					<p><small>Description:</small> {{ activity.description }}</p>
+				{% endif %}
+				<p class="mb-1"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></p>
 			</div>
 		</div>
 	</div>
