@@ -496,7 +496,7 @@ class Activity(db.Model):
 
 	@property
 	def total_elevation_gain_formatted(self):
-		return "{metres} m".format(metres=self.total_elevation_gain)
+		return "{metres} m".format(metres=self.total_elevation_gain) if self.total_elevation_gain else None
 
 	@property
 	def average_pace_formatted(self):
@@ -506,11 +506,11 @@ class Activity(db.Model):
 
 	@property
 	def average_climbing_gradient(self):
-		return round((self.total_elevation_gain / self.distance) * 100, 1)
+		return round((self.total_elevation_gain / self.distance) * 100, 1) if self.total_elevation_gain else None
 
 	@property
 	def average_climbing_gradient_formatted(self):
-		return "{gradient} %".format(gradient=self.average_climbing_gradient)
+		return "{gradient} %".format(gradient=self.average_climbing_gradient) if self.average_climbing_gradient else None
 
 
 class ActivityCadenceAggregate(db.Model):

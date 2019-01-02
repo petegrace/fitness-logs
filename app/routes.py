@@ -869,6 +869,14 @@ def activity_analysis(id):
 		flash("Invalid activity")
 		return redirect(url_for("index"))
 
+	# TODO: Flesh this out to incorporate what we need
+	if not activity.is_fully_parsed:
+		pass
+		# 1. Get the activity from Strava again and update what we have in DB
+		# 2. Run analysis.parse_streams(), which we want to...
+			# (a) Include parsing cadence
+			# (b) For all parsing, only do so if there's not an activity.activity______aggregates.first() => happy not to be able to restate for now
+
 	# Grab the cadence data from Strava if we don't already have it
 	if activity.median_cadence is None:
 		track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
