@@ -798,7 +798,7 @@ def import_strava_activity():
 	strava_client = Client()
 
 	if not session.get("strava_access_token"):
-		return redirect(url_for("connect_strava", action="prompt"))
+		return redirect(url_for("connect_strava", action="authorize"))
 
 	access_token = session["strava_access_token"]
 	strava_client.access_token = access_token
@@ -806,7 +806,7 @@ def import_strava_activity():
 	try:
 		athlete = strava_client.get_athlete()
 	except:
-		return redirect(url_for("connect_strava", action="prompt"))
+		return redirect(url_for("connect_strava", action="authorize"))
 
 	most_recent_strava_activity_datetime = current_user.most_recent_strava_activity_datetime()
 	activities = strava_client.get_activities(after = most_recent_strava_activity_datetime)
@@ -869,26 +869,60 @@ def activity_analysis(id):
 		flash("Invalid activity")
 		return redirect(url_for("index"))
 
-	# TODO: Flesh this out to incorporate what we need
 	if not activity.is_fully_parsed:
-		pass
+		track_event(category="Strava", action="Activity parsed from Strava", userId = str(current_user.id))
+
 		# 1. Get the activity from Strava again and update what we have in DB
+		strava_client = Client()
+
+		if not session.get("strava_access_token"):
+			return redirect(url_for("connect_strava", action="authorize"))
+
+		access_token = session["strava_access_token"]
+		strava_client.access_token = access_token
+
+		try:
+			strava_activity = strava_client.get_activity(activity_id=activity.external_id)
+		except:
+			return redirect(url_for("connect_strava", action="authorize"))
+
+		activity.name = strava_activity.name
+		activity.start_datetime = strava_activity.start_date
+		activity.activity_type = strava_activity.type
+		activity.is_race = True if strava_activity.workout_type == "1" else False
+		activity.distance = strava_activity.distance.num
+		activity.total_elevation_gain = strava_activity.total_elevation_gain.num
+		activity.elapsed_time =strava_activity.elapsed_time
+		activity.moving_time = strava_activity.moving_time
+		activity.average_speed = strava_activity.average_speed.num
+		activity.average_cadence = (strava_activity.average_cadence * 2) if (strava_activity.type == "Run" and strava_activity.average_cadence is not None) else strava_activity.average_cadence
+		activity.average_heartrate = strava_activity.average_heartrate
+		activity.description = (strava_activity.description[:1000] if strava_activity.description else None) #limit to first 1000 characters just in case
+
+		db.session.commit()
+
 		# 2. Run analysis.parse_streams(), which we want to...
-			# (a) Include parsing cadence
-			# (b) For all parsing, only do so if there's not an activity.activity______aggregates.first() => happy not to be able to restate for now
+		analysis.parse_streams(activity)
+
+		# 3. Set the activity to is_fully_parsed and confirm user to be Strava user
+		activity.is_fully_parsed = True
+
+		if current_user.is_strava_user == False:
+			current_user.is_strava_user = True
+
+		db.session.commit()
 
 	# Grab the cadence data from Strava if we don't already have it
-	if activity.median_cadence is None:
-		track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
-		result = analysis.parse_cadence_stream(activity)
-		if result == "Not authorized":
-			return redirect(url_for("connect_strava", action="authorize"))
+	# if activity.median_cadence is None:
+	# 	track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
+	# 	result = analysis.parse_cadence_stream(activity)
+	# 	if result == "Not authorized":
+	# 		return redirect(url_for("connect_strava", action="authorize"))
 		
-	# TODO: Consolidate the cadence stuff into this function and replace the call to parse_cadence_streams() a few lines up
-	if not activity.activity_gradient_aggregates.first():
-		result = analysis.parse_streams(activity)
-		if result == "Not authorized":
-			return redirect(url_for("connect_strava", action="authorize"))
+	# if not activity.activity_gradient_aggregates.first():
+	# 	result = analysis.parse_streams(activity)
+	# 	if result == "Not authorized":
+	# 		return redirect(url_for("connect_strava", action="authorize"))
 
 	# Find out colour-coding req's for the charts that follow
 	run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
@@ -900,7 +934,7 @@ def activity_analysis(id):
 		line_color = None
 	
 	# Cadence charts
-	if activity.median_cadence is not None:
+	if activity.median_cadence:
 		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
 		max_dimension_range = (int(activity.median_cadence-30), int(activity.median_cadence+30))
 

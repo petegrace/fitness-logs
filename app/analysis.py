@@ -114,6 +114,14 @@ def parse_cadence_stream(activity):
 	else:
 		return "No cadence data available"
 
+def aggregate_stream_data(data_points_df, groupby_field):
+	duration_aggregation = data_points_df.groupby([groupby_field])["duration"].sum()
+	distance_aggregation = data_points_df.groupby([groupby_field])["distance_travelled"].sum().round(decimals=1)
+	grouped_data = list(zip(duration_aggregation.index, duration_aggregation, distance_aggregation))
+	grouped_data.reverse()
+	
+	return grouped_data
+
 
 def parse_streams(activity):
 	strava_client = Client()
@@ -148,53 +156,71 @@ def parse_streams(activity):
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
 												  duration,
 												  distance_travelled,
-												  activity_streams["cadence"].data[dp_ind],
-												  math.floor(activity_streams["grade_smooth"].data[dp_ind])]
+												  activity_streams["cadence"].data[dp_ind] if "cadence" in activity_streams else "null",
+												  math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else "null"]
 					df_ind += 1
 			dp_ind += 1
 
-		gradient_duration_aggregation = data_points_df.groupby(["gradient"])["duration"].sum()
-		gradient_distance_aggregation = data_points_df.groupby(["gradient"])["distance_travelled"].sum().round(decimals=1)
-		gradient_data = list(zip(gradient_duration_aggregation.index, gradient_duration_aggregation, gradient_distance_aggregation))
-		gradient_data.reverse()
+		# Perform aggregations for cadence if needed
+		if not activity.activity_cadence_aggregates.first() and "cadence" in activity_streams:
+			cadence_data = aggregate_stream_data(data_points_df, groupby_field="cadence")
 
-		running_total_duration = 0
-		running_total_distance = 0
-		this_aggregate_total_duration = 0
-		this_aggregate_total_distance = 0
+			running_total = 0
+			this_aggregate_total = 0
 
-		for gradient_group in gradient_data:
-			running_total_duration += gradient_group[1]
-			running_total_distance += gradient_group[2]
-			this_aggregate_total_duration += gradient_group[1]
-			this_aggregate_total_distance += gradient_group[2]
-			
-			# We don't care about anything < 2 as it's not going to be significant enough
-			if gradient_group[0] < 2:
-				break
+			for cadence_group in cadence_data:
+				running_total += cadence_group[1]
+				this_aggregate_total += cadence_group[1]
+				
+				# Group up any outliers with seconds < 10 seconds into the next aggregate
+				if this_aggregate_total > 10:
+					activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
+																		  cadence=cadence_group[0]*2,
+																		  total_seconds_at_cadence=this_aggregate_total,
+																		  total_seconds_above_cadence=running_total)
+					db.session.add(activity_cadence_aggregate)
+					this_aggregate_total = 0
 
-			# Group up any outliers with seconds < 5 seconds into the next aggregate
-			if this_aggregate_total_duration > 5:
-				activity_gradient_aggregate = ActivityGradientAggregate(activity=activity,
-																	  	gradient=gradient_group[0],
-																	  	total_seconds_at_gradient=this_aggregate_total_duration,
-																	  	total_seconds_above_gradient=running_total_duration,
-																	  	total_metres_at_gradient=this_aggregate_total_distance,
-																	  	total_metres_above_gradient=running_total_distance)
-				db.session.add(activity_gradient_aggregate)
-				this_aggregate_total_duration = 0
-				this_aggregate_total_distance = 0
+			activity.median_cadence = data_points_df["cadence"].median()*2
+			flash("Processed cadence data for {activity}".format(activity=activity.name))
 
-		# TODO: Need to be able to flag an activity as having been analysed, probably just a simple flag will do
-		flash("Processed gradient data for {activity}".format(activity=activity.name))
+		# Perform aggregations for gradient if needed
+		if not activity.activity_gradient_aggregates.first() and "grade_smooth" in activity_streams:
+			gradient_data = aggregate_stream_data(data_points_df, groupby_field="gradient")
 
-		if current_user.is_strava_user == False:
-		 	current_user.is_strava_user = True
+			running_total_duration = 0
+			running_total_distance = 0
+			this_aggregate_total_duration = 0
+			this_aggregate_total_distance = 0
+
+			for gradient_group in gradient_data:
+				running_total_duration += gradient_group[1]
+				running_total_distance += gradient_group[2]
+				this_aggregate_total_duration += gradient_group[1]
+				this_aggregate_total_distance += gradient_group[2]
+				
+				# We don't care about anything < 2% as it's not going to be significant enough
+				if gradient_group[0] < 2:
+					break
+
+				# Group up any outliers with seconds < 5 seconds into the next aggregate
+				if this_aggregate_total_duration > 5:
+					activity_gradient_aggregate = ActivityGradientAggregate(activity=activity,
+																			gradient=gradient_group[0],
+																			total_seconds_at_gradient=this_aggregate_total_duration,
+																			total_seconds_above_gradient=running_total_duration,
+																			total_metres_at_gradient=this_aggregate_total_distance,
+																			total_metres_above_gradient=running_total_distance)
+					db.session.add(activity_gradient_aggregate)
+					this_aggregate_total_duration = 0
+					this_aggregate_total_distance = 0
+
+			flash("Processed gradient data for {activity}".format(activity=activity.name))
 
 		db.session.commit()
 		return "Success"
 	else:
-		return "No cadence data available"
+		return "No activity streams available"
 
 
 def calculate_weekly_cadence_aggregations(week):
