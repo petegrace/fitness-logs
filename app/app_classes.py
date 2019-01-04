@@ -7,7 +7,18 @@ class TempCadenceAggregate():
 		self.total_seconds_above_cadence = total_seconds_above_cadence
 
 	def __repr__(self):
-		return "<TempCadenceAggregate for {cadence}>".format(cadence=self.cadence)#
+		return "<TempCadenceAggregate for {cadence}>".format(cadence=self.cadence)
+
+class TempGradientAggregate():
+	gradient = None
+	total_metres_above_gradient = None
+
+	def __init__(self, gradient, total_metres_above_gradient):
+		self.gradient = gradient
+		self.total_metres_above_gradient = total_metres_above_gradient
+
+	def __repr__(self):
+		return "<TempCadenceAggregate for {gradient}>".format(gradient=self.gradient)
 
 class PlotComponentContainer():
 	name = None

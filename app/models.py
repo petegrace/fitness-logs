@@ -287,6 +287,24 @@ class User(UserMixin, db.Model):
 
 		return weekly_cadence_stats
 
+	def weekly_gradient_stats(self, week=None):
+		weekly_gradient_stats = db.session.query(
+						ActivityGradientAggregate.gradient,
+						CalendarDay.calendar_week_start_date,
+						func.sum(ActivityGradientAggregate.total_metres_at_gradient).label("total_metres_at_gradient"),
+						func.sum(ActivityGradientAggregate.total_metres_above_gradient).label("total_seconds_above_gradient"),
+						literal("").label("total_metres_above_gradient_formatted")
+				).join(ActivityGradientAggregate.activity
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).filter(Activity.owner == self
+				).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
+				).group_by(
+						ActivityGradientAggregate.gradient,
+						CalendarDay.calendar_week_start_date
+				).order_by(ActivityGradientAggregate.gradient.desc()) # Descending to support running total calcs
+
+		return weekly_gradient_stats
+
 	def daily_activity_summary(self):
 		daily_exercise_summary = db.session.query(
 					ExerciseType.id,

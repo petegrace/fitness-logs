@@ -387,6 +387,16 @@ def weekly_activity(year, week=None):
 	# Evaluate the exercise sets goals at this point
 	analysis.evaluate_exercise_set_goals(current_week)
 
+	# Get the category in use for runs so we can use across run-related charts
+	run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
+
+	if run_category is not None:
+		run_fill_color = run_category.fill_color
+		run_line_color = run_category.line_color
+	else:
+		run_fill_color = None
+		run_line_color = None
+	
 	# Data and plotting for weekly cadence analysis graph
 	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
 
@@ -431,22 +441,33 @@ def weekly_activity(year, week=None):
 			}}
 			"""
 
-		run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()
-		if run_category is not None:
-			cadence_fill_color = run_category.fill_color
-			cadence_line_color = run_category.line_color
-		else:
-			cadence_fill_color = None
-			cadence_line_color = None
-
 		max_dimension_range = (min_significant_cadence, max_significant_cadence)
 		above_cadence_plot = generate_bar(dataset=weekly_cadence_summary, plot_height=120, dimension_name="cadence", measure_name="total_seconds_above_cadence",
-				measure_label_function=utils.convert_seconds_to_minutes_formatted, fill_color=cadence_fill_color, line_color=cadence_line_color, max_dimension_range=max_dimension_range,
+				measure_label_function=utils.convert_seconds_to_minutes_formatted, fill_color=run_fill_color, line_color=run_line_color, max_dimension_range=max_dimension_range,
 				goals_dataset=weekly_cadence_goals, tap_tool_callback=set_cadence_goal_callback)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 
 	# Data and plotting for historic performance against current cadence goals
 	cadence_goal_history_charts = analysis.get_cadence_goal_history_charts(week=current_week)
+
+	# Data and plotting for weekly gradient analysis graph
+	weekly_gradient_aggregations = analysis.calculate_weekly_gradient_aggregations(current_week)
+
+	if len(weekly_gradient_aggregations["summary"]) == 0:
+		above_gradient_plot_script=None
+		above_gradient_plot_div=None
+	else:
+		weekly_gradient_summary = weekly_gradient_aggregations["summary"]
+		min_significant_gradient = weekly_gradient_aggregations["min_significant_gradient"]
+		max_significant_gradient = weekly_gradient_aggregations["max_significant_gradient"]
+
+		max_dimension_range = (min_significant_gradient, max_significant_gradient+0.4)
+		above_gradient_plot = generate_bar(dataset=weekly_gradient_summary, plot_height=120, dimension_name="gradient", measure_name="total_metres_above_gradient",
+				measure_label_function=utils.format_distance, fill_color=run_fill_color, line_color=run_line_color,
+				dimension_interval=1, max_dimension_range=max_dimension_range)
+		above_gradient_plot_script, above_gradient_plot_div = components(above_gradient_plot)
+	
+	above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient %", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
 
 	# Data and plotting for the exercise sets by day graph
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
@@ -510,6 +531,7 @@ def weekly_activity(year, week=None):
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
+		above_gradient_plot_container = above_gradient_plot_container,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
 		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
 		cadence_goal_history_charts=cadence_goal_history_charts, exercise_set_goal_history_charts=exercise_set_goal_history_charts)
@@ -911,18 +933,6 @@ def activity_analysis(id):
 			current_user.is_strava_user = True
 
 		db.session.commit()
-
-	# Grab the cadence data from Strava if we don't already have it
-	# if activity.median_cadence is None:
-	# 	track_event(category="Strava", action="Cadence stream parsed for new activity", userId = str(current_user.id))
-	# 	result = analysis.parse_cadence_stream(activity)
-	# 	if result == "Not authorized":
-	# 		return redirect(url_for("connect_strava", action="authorize"))
-		
-	# if not activity.activity_gradient_aggregates.first():
-	# 	result = analysis.parse_streams(activity)
-	# 	if result == "Not authorized":
-	# 		return redirect(url_for("connect_strava", action="authorize"))
 
 	# Find out colour-coding req's for the charts that follow
 	run_category = ExerciseCategory.query.filter(ExerciseCategory.owner == current_user).filter(ExerciseCategory.category_name == "Run").first()

@@ -3,7 +3,7 @@ from flask_login import current_user
 from bokeh.embed import components
 from app import app, db, utils
 from app.models import TrainingGoal, ActivityCadenceAggregate, ActivityGradientAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
-from app.app_classes import TempCadenceAggregate, PlotComponentContainer
+from app.app_classes import TempCadenceAggregate, TempGradientAggregate, PlotComponentContainer
 from app.dataviz import generate_line_chart
 from sqlalchemy import func, or_
 from stravalib.client import Client
@@ -257,6 +257,42 @@ def calculate_weekly_cadence_aggregations(week):
 									   min_significant_cadence = min_significant_cadence,
 									   max_significant_cadence = max_significant_cadence)
 	return weekly_cadence_aggregations
+
+
+def calculate_weekly_gradient_aggregations(week):
+	weekly_gradient_stats = current_user.weekly_gradient_stats(week=week).all()
+	min_significant_gradient = 1
+	max_significant_gradient = 100
+	previous_gradient = 0
+	weekly_running_total = 0
+
+	weekly_gradient_summary = []
+
+	# For the lower range in graph look for aything more than 5 minutes
+	for gradient_aggregate in weekly_gradient_stats:
+		# Fill in any gaps
+		if gradient_aggregate.gradient < previous_gradient - 1:
+			gap_gradient = previous_gradient - 1
+			while gap_gradient > gradient_aggregate.gradient:
+				weekly_gradient_summary.append(TempGradientAggregate(gradient=gap_gradient,
+														   		     total_metres_above_gradient=weekly_running_total))
+				gap_gradient -= 1
+
+		# Now get on with adding the current gradient
+		weekly_running_total += gradient_aggregate.total_metres_at_gradient
+		if gradient_aggregate.total_metres_at_gradient >= 100 and max_significant_gradient==100: # only overwrite the max once (we're iterating in descing order)
+			max_significant_gradient = gradient_aggregate.gradient 
+		if gradient_aggregate.total_metres_at_gradient >= 100: # keep overwriting until we get to the end and have the min
+			min_significant_gradient = gradient_aggregate.gradient
+		weekly_gradient_summary.append(TempGradientAggregate(gradient=gradient_aggregate.gradient,
+														   	 total_metres_above_gradient=weekly_running_total))
+		# Set the previous_gradient so we can detect gaps
+		previous_gradient = gradient_aggregate.gradient
+
+	weekly_gradient_aggregations = dict(summary = weekly_gradient_summary,
+									    min_significant_gradient = min_significant_gradient,
+									    max_significant_gradient = max_significant_gradient)
+	return weekly_gradient_aggregations
 
 
 def get_cadence_goal_history_charts(week):

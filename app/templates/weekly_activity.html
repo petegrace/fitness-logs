@@ -22,6 +22,9 @@
 	{% if above_cadence_plot_script != None %}
 		{{ above_cadence_plot_script|safe }}
 	{% endif %}
+	{% if above_gradient_plot_container.plot_script != None %}
+		{{ above_gradient_plot_container.plot_script|safe }}
+	{% endif %}
 	{% if exercise_sets_plot_script != None %}
 		{{ exercise_sets_plot_script|safe }}
 	{% endif %}
@@ -73,8 +76,9 @@
 		<div class="card-body">
 			<div class="nav nav-tabs" id="analysis-tab" role="tablist">
 				<a class="nav-item nav-link active" id="nav-goals-tab" data-toggle="tab" href="#nav-goals" role="tab">Goal Progress</a>
-				<a class="nav-item nav-link" id="nav-cadence-tab" data-toggle="tab" href="#nav-cadence" role="tab">Time Spent Above Cadence</a>
-				<a class="nav-item nav-link" id="nav-exerciseSets-tab" data-toggle="tab" href="#nav-exerciseSets" role="tab">Exercise Sets</a>
+				<a class="nav-item nav-link" id="nav-cadence-tab" data-toggle="tab" href="#nav-cadence" role="tab">Cadence</a>
+				<a class="nav-item nav-link" id="nav-climbing-tab" data-toggle="tab" href="#nav-climbing" role="tab">Climbing</a>
+				<a class="nav-item nav-link" id="nav-exerciseSets-tab" data-toggle="tab" href="#nav-exerciseSets" role="tab">Exercises</a>
 			</div>
 			<div class="tab-content" id="analysis-tabContent">
 				<div class="tab-pane fade show active" id="nav-goals" role="tabpanel">
@@ -94,6 +98,7 @@
 					{% endif %}
 				</div>
 				<div class="tab-pane fade" id="nav-cadence" role="tabpanel">
+					<h6 class="mt-3 tt-heading">Time Spent above Cadence</h6>
 					{{ above_cadence_plot_div|safe }}
 					{% for chart in cadence_goal_history_charts %}
 						<h6 class="mt-3 tt-heading">{{ chart.name }}</h6>
@@ -103,7 +108,12 @@
 						<p class="mt-3">Missing historic data?  You might need to <a href="{{ url_for('backfill_cadence_data') }}">backfill your cadence data</a>. Note this can take several minutes.</p>
 					{% endif %}
 				</div>
+				<div class="tab-pane fade" id="nav-climbing" role="tabpanel">
+					<h6 class="mt-3 tt-heading">{{ above_gradient_plot_container.name }}</h6>
+					{{ above_gradient_plot_container.plot_div|safe }}
+				</div>
 				<div class="tab-pane fade" id="nav-exerciseSets" role="tabpanel">
+					<h6 class="mt-3 tt-heading">Exercise Sets Completed</h6>
 					{{ exercise_sets_plot_div|safe }}
 					{% for chart in exercise_set_goal_history_charts %}
 						<h6 class="mt-3 tt-heading">{{ chart.name }}</h6>
