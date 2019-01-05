@@ -118,7 +118,7 @@
 						<h6 class="mt-3 tt-heading">{{ chart.name }}</h6>
 						{{ chart.plot_div|safe }}
 					{% endfor %}
-					{% if utils.length_of_list(cadence_goal_history_charts) > 0 %}
+					{% if utils.length_of_list(gradient_goal_history_charts) > 0 %}
 						<p class="mt-3">Missing historic data?  You might need to <a href="{{ url_for('backfill_stream_data') }}">backfill your gradient data</a>. Note this can take several minutes but can be interrupted and resumed if necessary.</p>
 					{% endif %}
 				</div>
