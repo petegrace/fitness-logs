@@ -84,7 +84,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 				goal.goal_status = "Missed"
 
 	db.session.commit()
-	
+
 
 def aggregate_stream_data(data_points_df, groupby_field):
 	duration_aggregation = data_points_df.groupby([groupby_field])["duration"].sum()
@@ -96,7 +96,7 @@ def aggregate_stream_data(data_points_df, groupby_field):
 
 
 def parse_streams(activity):
-	if activity.activity_type not in ["Run", "Ride", "Swim"]:
+	if activity.activity_type != "Run":
 		return "Invalid activity type"
 
 	strava_client = Client()
