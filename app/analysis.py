@@ -125,14 +125,17 @@ def parse_streams(activity):
 			if dp_ind > 1:
 				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
 				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
-				altitude_gain = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1]) if "altitude" in activity_streams else "null" # Not used currently but we could do some stuff with it
+				gradient = math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else None
+
+				# Extra cleansing of gradient to deal with dodgy value during barometer calibration
+				gradient = None if time_data_point < 60 and gradient > 10 else gradient
 
 				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
 												  duration,
 												  distance_travelled,
-												  activity_streams["cadence"].data[dp_ind] if "cadence" in activity_streams else "null",
-												  math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else "null"]
+												  activity_streams["cadence"].data[dp_ind] if "cadence" in activity_streams else None,
+												  gradient]
 					df_ind += 1
 			dp_ind += 1
 
