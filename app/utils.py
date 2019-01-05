@@ -50,6 +50,8 @@ def format_goal_units(goal_metric, value):
 		return "{sets} sets".format(sets=value)
 	elif goal_metric == "Time Spent Above Cadence":
 		return convert_seconds_to_minutes_formatted(value)
+	elif goal_metric == "Distance Climbing Above Gradient":
+		return format_distance(value)
 
 def current_year():
 	return datetime.today().year

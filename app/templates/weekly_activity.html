@@ -77,7 +77,7 @@
 			<div class="nav nav-tabs" id="analysis-tab" role="tablist">
 				<a class="nav-item nav-link active" id="nav-goals-tab" data-toggle="tab" href="#nav-goals" role="tab">Goal Progress</a>
 				<a class="nav-item nav-link" id="nav-cadence-tab" data-toggle="tab" href="#nav-cadence" role="tab">Cadence</a>
-				<a class="nav-item nav-link" id="nav-climbing-tab" data-toggle="tab" href="#nav-climbing" role="tab">Climbing</a>
+				<a class="nav-item nav-link" id="nav-climbing-tab" data-toggle="tab" href="#nav-climbing" role="tab">Hills</a>
 				<a class="nav-item nav-link" id="nav-exerciseSets-tab" data-toggle="tab" href="#nav-exerciseSets" role="tab">Exercises</a>
 			</div>
 			<div class="tab-content" id="analysis-tabContent">
@@ -179,6 +179,19 @@
 	      </div>
 	      <div class="modal-body">
 	        {{ wtf.quick_form(cadence_goal_form) }}
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div class="modal fade" id="setGradientGoal-modal" tabindex="-1" role="dialog">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="setGradientGoal-modalLabel">Set Weekly Goal</h5>
+	        <button type="button" class="close" data-dismiss="modal"><i class="fa fa-window-close"></i></button>
+	      </div>
+	      <div class="modal-body">
+	        {{ wtf.quick_form(gradient_goal_form) }}
 	      </div>
 	    </div>
 	  </div>

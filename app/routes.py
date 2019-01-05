@@ -13,7 +13,8 @@ import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm, CadenceGoalForm, ExerciseSetsGoalForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.forms import CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
@@ -40,6 +41,75 @@ def track_event(category, action, label=None, value=0, userId="0"):
 
     response = requests.post(
         'https://www.google-analytics.com/collect', data=data)
+
+
+def goal_callback_function_js(modal_id, dimension_input_id, target_input_id):
+	goal_callback = """
+			$('{modal_id}').modal('show')
+			selection = require('core/util/selection')
+			indices = selection.get_indices(source)
+			for (i = 0; i < indices.length; i++) {{
+			    ind = indices[i]
+			    selected_dimension_value = source.data['dimension'][ind]
+			}}
+			try {{
+				goal_indices = selection.get_indices(goals_source)
+				for (i = 0; i < goal_indices.length; i++) {{
+				    ind = goal_indices[i]
+				    selected_dimension_value = goals_source.data['dimension'][ind]
+				    current_target = goals_source.data['measure'][ind] / 60
+				}}
+			}}
+			catch(err) {{
+				goal_indices = []
+			}}
+			$('{dimension_input_id}').val(selected_dimension_value)
+			if (goal_indices.length > 0) {{
+				$('{target_input_id}').val(current_target)
+			}}
+			else {{
+				$('{target_input_id}').val('')
+			}}
+			""".format(modal_id=modal_id, dimension_input_id=dimension_input_id, target_input_id=target_input_id)
+
+	return goal_callback
+
+
+def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metric_units, metric_multiplier, calculate_weekly_aggregations_function):
+	# Example use: form=cadence_goal_form, current_week=week_options[0], goal_type="cadence", goal_metric="Time Spent Above Cadence", goal_metric_units="seconds", metric_multiplier = 60, evaluate_goal_function=analysis.evaluate_cadence_goals
+	if form.goal_relative_week.data == "this":
+		goal_start_date = current_week.calendar_week_start_date
+	elif form.goal_relative_week.data == "next":
+		goal_start_date = current_week.calendar_week_start_date + timedelta(days=7)
+
+	weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
+		).filter_by(goal_metric=goal_metric
+		).filter_by(goal_dimension_value=str(form.get_dimension_value_input().data)).first()
+	if weekly_goal is not None:
+		weekly_goal.goal_target = form.get_target_input().data * 60
+		track_event(category="Analysis", action="Existing weekly goal for {goal_type} updated".format(goal_type=goal_type), userId = str(current_user.id))
+		flash("Updated goal for {dimension_value}".format(dimension_value=weekly_goal.goal_dimension_value))
+	else:
+		weekly_goal = TrainingGoal(owner=current_user,
+									goal_period='week',
+									goal_start_date=goal_start_date,
+									goal_metric=goal_metric,
+									goal_metric_units=goal_metric_units,
+									goal_dimension_value=str(form.get_dimension_value_input().data),
+									goal_target=form.get_target_input().data * metric_multiplier,
+									goal_status="In Progress",
+									current_metric_value=0)
+		db.session.add(weekly_goal)
+		track_event(category="Analysis", action="New weekly goal for {goal_type} created".format(goal_type=goal_type), userId = str(current_user.id))
+		flash("Created new {goal_type} goal for {dimension_value}".format(goal_type=goal_type, dimension_value=weekly_goal.goal_dimension_value))
+
+	if not current_user.is_training_goals_user:
+		current_user.is_training_goals_user = True
+
+	db.session.commit()
+
+	# Evaluate the goals in case there's already progress made
+	analysis.evaluate_running_goals(week=goal_start_date, goal_metric=goal_metric, calculate_weekly_aggregations_function=calculate_weekly_aggregations_function)
 
 
 # Routes
@@ -243,13 +313,14 @@ def edit_exercise(id):
 @login_required
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
-	cadence_goal_form = CadenceGoalForm()	
+	cadence_goal_form = CadenceGoalForm()
+	gradient_goal_form = GradientGoalForm()
 	exercise_sets_goal_form = ExerciseSetsGoalForm()
 
 	if year == "current":
 		year = utils.current_year()
 
-	# Bit of a haack to reduce avoid duplicate errors when unioning exercises and activities
+	# Bit of a hack to reduce avoid duplicate errors when unioning exercises and activities
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	exercise_sets_goal_form.exercise_category_id.choices = category_choices
 
@@ -278,39 +349,13 @@ def weekly_activity(year, week=None):
 
 	# Create a new cadence goal or update an existing one if it's a post
 	if cadence_goal_form.validate_on_submit():
-		if cadence_goal_form.goal_relative_week.data == "this":
-			goal_start_date = week_options[0].calendar_week_start_date
-		elif cadence_goal_form.goal_relative_week.data == "next":
-			goal_start_date = week_options[0].calendar_week_start_date + timedelta(days=7)
+		handle_goal_form_post(form=cadence_goal_form, current_week=week_options[0], goal_type="cadence", goal_metric="Time Spent Above Cadence", goal_metric_units="seconds", metric_multiplier = 60,
+							evaluate_goal_function=analysis.evaluate_cadence_goals, calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 
-		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
-			).filter_by(goal_metric="Time Spent Above Cadence"
-			).filter_by(goal_dimension_value=str(cadence_goal_form.cadence.data)).first()
-		if weekly_goal is not None:
-			weekly_goal.goal_target = cadence_goal_form.target_minutes_above_cadence.data * 60
-			track_event(category="Analysis", action="Existing weekly goal for cadence updated", userId = str(current_user.id))
-			flash("Updated goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
-		else:
-			weekly_goal = TrainingGoal(owner=current_user,
-									   goal_period='week',
-									   goal_start_date=goal_start_date,
-									   goal_metric="Time Spent Above Cadence",
-									   goal_metric_units="seconds",
-									   goal_dimension_value=str(cadence_goal_form.cadence.data),
-									   goal_target=cadence_goal_form.target_minutes_above_cadence.data * 60,
-									   goal_status="In Progress",
-									   current_metric_value=0)
-			db.session.add(weekly_goal)
-			track_event(category="Analysis", action="New weekly goal for cadence created", userId = str(current_user.id))
-			flash("Created new goal for {cadence}".format(cadence=weekly_goal.goal_dimension_value))
-
-		if not current_user.is_training_goals_user:
-			current_user.is_training_goals_user = True
-
-		db.session.commit()
-
-		# Evaluate the goals in case there's already progress made
-		analysis.evaluate_cadence_goals(goal_start_date)
+	# Create a new cadence goal or update an existing one if it's a post
+	if gradient_goal_form.validate_on_submit():
+		handle_goal_form_post(form=gradient_goal_form, current_week=week_options[0], goal_type="gradient", goal_metric="Distance Climbing Above Gradient", goal_metric_units="metres", metric_multiplier = 1000,
+							calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 
 	# Create a new exercise sets goal for or update an existing one if it's a post
 	if exercise_sets_goal_form.validate_on_submit():
@@ -451,6 +496,11 @@ def weekly_activity(year, week=None):
 	cadence_goal_history_charts = analysis.get_cadence_goal_history_charts(week=current_week)
 
 	# Data and plotting for weekly gradient analysis graph
+	weekly_gradient_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Distance Climbing Above Gradient").all()
+
+	if len(weekly_gradient_goals) == 0:
+		weekly_gradient_goals = None
+
 	weekly_gradient_aggregations = analysis.calculate_weekly_gradient_aggregations(current_week)
 
 	if len(weekly_gradient_aggregations["summary"]) == 0:
@@ -461,10 +511,13 @@ def weekly_activity(year, week=None):
 		min_significant_gradient = weekly_gradient_aggregations["min_significant_gradient"]
 		max_significant_gradient = weekly_gradient_aggregations["max_significant_gradient"]
 
+		set_gradient_goal_callback = goal_callback_function_js(modal_id="#setGradientGoal-modal", dimension_input_id="#gradient", target_input_id="#target_km_above_gradient")
+
 		max_dimension_range = (min_significant_gradient, max_significant_gradient+0.4)
 		above_gradient_plot = generate_bar(dataset=weekly_gradient_summary, plot_height=120, dimension_name="gradient", measure_name="total_metres_above_gradient",
 				measure_label_function=utils.format_distance, fill_color=run_fill_color, line_color=run_line_color,
-				dimension_interval=1, max_dimension_range=max_dimension_range)
+				dimension_interval=1, max_dimension_range=max_dimension_range,
+				goals_dataset=weekly_gradient_goals, tap_tool_callback=set_gradient_goal_callback)
 		above_gradient_plot_script, above_gradient_plot_div = components(above_gradient_plot)
 	
 	above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient %", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
@@ -531,7 +584,7 @@ def weekly_activity(year, week=None):
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
-		above_gradient_plot_container = above_gradient_plot_container,
+		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
 		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
 		cadence_goal_history_charts=cadence_goal_history_charts, exercise_set_goal_history_charts=exercise_set_goal_history_charts)
