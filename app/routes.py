@@ -920,6 +920,8 @@ def import_strava_activity():
 	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
 	current_week = current_day.calendar_week_start_date
 	analysis.evaluate_cadence_goals(week=current_week)
+	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
+	
 
 	# Add a URL param that we can use to offer to redirect to Categories page	
 	if len(current_user.uncategorised_activity_types().all()) > 0:
