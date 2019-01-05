@@ -45,5 +45,10 @@
 				{{ above_gradient_plot_container.plot_div|safe }}
 			</div>
 		</div>
+		<div class="row mt-3">
+			<div class="col-12">
+				<p>Bad elevation and gradient data? <a href="{{ url_for('flag_bad_elevation_data', activity_id=activity.id) }}">Ignore gradient data from this activity</a>.</p>
+			</div>
+		</div>
 	{% endif %}
 {% endblock %}

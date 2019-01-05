@@ -51,10 +51,24 @@
 						<td><small>Avg. Heart Rate:</small></td><td>{{ activity.average_heartrate }}</td>
 					</tr>
 					<tr>			
-						<td><small>Elevation Gain:</small></td><td>{{ activity.total_elevation_gain_formatted }}</td>
+						<td><small>Elevation Gain:</small></td>
+						<td>
+							{% if activity.is_bad_elevation_data %}
+								Bad Data
+							{% else %}
+								{{ activity.total_elevation_gain_formatted }}
+							{% endif %}
+						</td>
 					</tr>
 					<tr>			
-						<td><small>Avg. Climbing Gradient:</small></td><td>{{ activity.average_climbing_gradient_formatted }}</td>
+						<td><small>Avg. Climbing Gradient:</small></td>
+						<td>
+							{% if activity.is_bad_elevation_data %}
+								Bad Data
+							{% else %}
+								{{ activity.average_climbing_gradient_formatted }}
+							{% endif %}							
+						</td>
 					</tr>
 				</table>
 			</div>

@@ -140,7 +140,7 @@ def parse_streams(activity):
 			dp_ind += 1
 
 		# Perform aggregations for cadence if needed
-		if not activity.activity_cadence_aggregates.first() and "cadence" in activity_streams:
+		if not activity.activity_cadence_aggregates.first() and not activity.is_bad_elevation_data and "cadence" in activity_streams:
 			cadence_data = aggregate_stream_data(data_points_df, groupby_field="cadence")
 
 			running_total = 0

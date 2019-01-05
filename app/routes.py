@@ -1101,6 +1101,23 @@ def backfill_stream_data():
 	track_event(category="Strava", action="Streams backfill completed", userId = str(current_user.id))
 	return redirect(url_for("weekly_activity", year="current"))
 
+@app.route("/flag_bad_elevation_data/<activity_id>")
+@login_required
+def flag_bad_elevation_data(activity_id):
+	track_event(category="Analysis", action="Elevation data flagged as bad", userId = str(current_user.id))
+
+	activity = Activity.query.get(int(activity_id))
+	activity.is_bad_elevation_data = True
+	activity.total_elevation_gain = None
+
+	for gradient_aggregate in activity.activity_gradient_aggregates:
+		db.session.delete(gradient_aggregate)
+
+	db.session.commit()
+	flash("Elevation and gradient for {activity_name} flagged as bad and will be ignored from now on.".format(activity_name=activity.name))
+
+	return redirect(url_for('activity_analysis', id=activity.id))
+
 @app.route("/privacy")
 def privacy_policy():
 	return render_template("privacy.html", title="Privacy Policy")
