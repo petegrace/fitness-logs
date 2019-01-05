@@ -84,73 +84,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 				goal.goal_status = "Missed"
 
 	db.session.commit()
-
-
-def parse_cadence_stream(activity):
-	strava_client = Client()
-
-	if not session.get("strava_access_token"):
-		return "Not authorized"
-
-	access_token = session["strava_access_token"]
-	strava_client.access_token = access_token
-
-	stream_types = ["time", "cadence"]
-
-	try:
-		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
-	except:
-		return "Not authorized"
-
-	if activity_streams is not None and "cadence" in activity_streams:
-		cadence_records = []
-		cadence_df = pd.DataFrame(columns=["cadence", "start_time", "duration"])
-		dp_ind = 0
-		df_ind = 0
-
-		# construct a data frame
-		for cadence_data_point in activity_streams["cadence"].data:
-			if cadence_data_point > 0 and dp_ind > 1:
-				duration = (activity_streams["time"].data[dp_ind] - activity_streams["time"].data[dp_ind-1])
-
-				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
-					cadence_df.loc[df_ind] = [cadence_data_point, activity_streams["time"].data[dp_ind-1], duration]
-					df_ind += 1
-			dp_ind += 1
-
-		cadence_aggregation = cadence_df.groupby(["cadence"])["duration"].sum()
-		cadence_data = list(zip(cadence_aggregation.index, cadence_aggregation))
-		cadence_data_desc = cadence_data
-		cadence_data_desc.reverse()
-
-		running_total = 0
-		this_aggregate_total = 0
-		#above_cadence_data = []
-
-		for cadence_group in cadence_data_desc:
-			running_total += cadence_group[1]
-			this_aggregate_total += cadence_group[1]
-			
-			# Group up any outliers with seconds < 10 seconds into the next aggregate
-			if this_aggregate_total > 10:
-				activity_cadence_aggregate = ActivityCadenceAggregate(activity=activity,
-																	  cadence=cadence_group[0]*2,
-																	  total_seconds_at_cadence=this_aggregate_total,
-																	  total_seconds_above_cadence=running_total)
-				db.session.add(activity_cadence_aggregate)
-				this_aggregate_total = 0
-
-		activity.median_cadence = cadence_df["cadence"].median()*2
-		flash("Processed cadence data for {activity}".format(activity=activity.name))
-
-		# TODO: This probably goes into import at some point (or somewhere similarly generic) when we have more than just cadence analysis
-		if current_user.is_strava_user == False:
-			current_user.is_strava_user = True
-
-		db.session.commit()
-		return "Success"
-	else:
-		return "No cadence data available"
+	
 
 def aggregate_stream_data(data_points_df, groupby_field):
 	duration_aggregation = data_points_df.groupby([groupby_field])["duration"].sum()
@@ -162,6 +96,9 @@ def aggregate_stream_data(data_points_df, groupby_field):
 
 
 def parse_streams(activity):
+	if activity.activity_type not in ["Run", "Ride", "Swim"]:
+		return "Invalid activity type"
+
 	strava_client = Client()
 
 	if not session.get("strava_access_token"):
@@ -188,7 +125,7 @@ def parse_streams(activity):
 			if dp_ind > 1:
 				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
 				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
-				altitude_gain = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1]) # Not used currently but we could do some stuff with it
+				altitude_gain = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1]) if "altitude" in activity_streams else "null" # Not used currently but we could do some stuff with it
 
 				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
@@ -255,6 +192,7 @@ def parse_streams(activity):
 
 			flash("Processed gradient data for {activity}".format(activity=activity.name))
 
+		activity.is_fully_parsed = True
 		db.session.commit()
 		return "Success"
 	else:
@@ -392,16 +330,57 @@ def get_goal_history_charts(week, goal_metric):
 
 	goal_plot_containers = []
 
-	for goal in weekly_goals:
-		if goal.goal_dimension_value == "None":
-			line_color = "#292b2c"
-			goal_category_name = "Uncategorised"
-		else:
-			goal_category = ExerciseCategory.query.get(int(goal.goal_dimension_value))
-			line_color = goal_category.line_color
-			goal_category_name = goal_category.category_name
+	# Set line colors for runs, which we'll override for Exercise Sets goals
+	run_category = current_user.exercise_categories.filter_by(category_name="Run").first()
+	if run_category is not None:
+		line_color = run_category.line_color
+	else:
+		line_color = None
 
-		if goal_metric == "Exercise Sets Completed":
+	for goal in weekly_goals:
+		if goal_metric == "Time Spent Above Cadence":
+			goal_history = db.session.query(
+					CalendarDay.calendar_week_start_date,
+					func.sum(ActivityCadenceAggregate.total_seconds_at_cadence).label("total_seconds_above_cadence")
+				).join(ActivityCadenceAggregate.activity
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).filter(Activity.owner == current_user
+				).filter(ActivityCadenceAggregate.cadence >= int(goal.goal_dimension_value)
+				).filter(Activity.start_datetime >= (week - timedelta(days=365))
+				).filter(Activity.start_datetime < (week + timedelta(days=7))
+				).group_by(CalendarDay.calendar_week_start_date
+				).order_by(CalendarDay.calendar_week_start_date).all()
+
+			plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal.goal_dimension_value)
+			goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_seconds_above_cadence", line_color=line_color,
+											y_tick_function_code="return parseInt(tick / 60);")
+
+		elif goal_metric == "Distance Climbing Above Gradient":
+			goal_history = db.session.query(
+					CalendarDay.calendar_week_start_date,
+					func.sum(ActivityGradientAggregate.total_metres_at_gradient).label("total_metres_above_gradient")
+				).join(ActivityGradientAggregate.activity
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).filter(Activity.owner == current_user
+				).filter(ActivityGradientAggregate.gradient >= int(goal.goal_dimension_value)
+				).filter(Activity.start_datetime >= (week - timedelta(days=365))
+				).filter(Activity.start_datetime < (week + timedelta(days=7))
+				).group_by(CalendarDay.calendar_week_start_date
+				).order_by(CalendarDay.calendar_week_start_date).all()
+
+			plot_name = "Historic {metric} of {dimension_value}%".format(metric=goal.goal_metric , dimension_value=goal.goal_dimension_value)
+			goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name="total_metres_above_gradient", line_color=line_color,
+											y_tick_function_code="return parseInt(tick / 1000);")
+
+		elif goal_metric == "Exercise Sets Completed":
+			if goal.goal_dimension_value == "None":
+				line_color = "#292b2c"
+				goal_category_name = "Uncategorised"
+			else:
+				goal_category = ExerciseCategory.query.get(int(goal.goal_dimension_value))
+				line_color = goal_category.line_color
+				goal_category_name = goal_category.category_name
+
 			goal_history = db.session.query(
 					CalendarDay.calendar_week_start_date,
 					func.count(Exercise.id).label("exercise_sets_completed")
@@ -413,11 +392,11 @@ def get_goal_history_charts(week, goal_metric):
 				).filter(Exercise.exercise_datetime < (week + timedelta(days=7))
 				).group_by(CalendarDay.calendar_week_start_date
 				).order_by(CalendarDay.calendar_week_start_date).all()
-
+		
 			measure_name = "exercise_sets_completed"
-
-		plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal_category_name)
-		goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name=measure_name, line_color=line_color)
+			plot_name = "Historic {metric} of {dimension_value}".format(metric=goal.goal_metric , dimension_value=goal_category_name)
+			goal_history_plot = generate_line_chart(dataset=goal_history, plot_height=100, dimension_name="calendar_week_start_date", measure_name=measure_name, line_color=line_color)
+		
 		goal_history_plot_script, goal_history_plot_div = components(goal_history_plot)
 		goal_plot_container = PlotComponentContainer(name=plot_name, plot_div=goal_history_plot_div, plot_script=goal_history_plot_script)
 		goal_plot_containers.append(goal_plot_container)

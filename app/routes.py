@@ -522,6 +522,9 @@ def weekly_activity(year, week=None):
 	
 	above_gradient_plot_container = PlotComponentContainer(name="Distance Climbing above Gradient %", plot_div=above_gradient_plot_div, plot_script=above_gradient_plot_script)
 
+	# Data and plotting for historic performance against current gradient goals
+	gradient_goal_history_charts = analysis.get_goal_history_charts(week=current_week, goal_metric="Distance Climbing Above Gradient")
+
 	# Data and plotting for the exercise sets by day graph
 	exercises_by_category_and_day = current_user.exercises_by_category_and_day(week=current_week)
 	weekly_exercise_set_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Exercise Sets Completed").all()
@@ -584,7 +587,7 @@ def weekly_activity(year, week=None):
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
-		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form,
+		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form, gradient_goal_history_charts=gradient_goal_history_charts,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
 		current_goals_plot_script=current_goals_plot_script, current_goals_plot_div=current_goals_plot_div,
 		cadence_goal_history_charts=cadence_goal_history_charts, exercise_set_goal_history_charts=exercise_set_goal_history_charts)
@@ -1083,20 +1086,19 @@ def connect_strava(action="prompt"):
 	return render_template("connect_strava.html", title="Connect to Strava")
 
 
-@app.route("/backfill_cadence_data")
+@app.route("/backfill_stream_data")
 @login_required
-def backfill_cadence_data():
-	track_event(category="Strava", action="Cadence backfill triggered", userId = str(current_user.id))
-	activities = current_user.activities.filter(Activity.median_cadence == None).filter(Activity.average_cadence != None).order_by(Activity.start_datetime.desc()).all()
-	flash("Getting cadence data for {count} activities".format(count=len(activities)))
+def backfill_stream_data():
+	track_event(category="Strava", action="Streams backfill triggered", userId = str(current_user.id))
+	activities = current_user.activities.filter(Activity.is_fully_parsed == False).order_by(Activity.start_datetime.desc()).all()
+	flash("Getting detailed run data for {count} activities".format(count=len(activities)))
 
 	for activity in activities:
-		if activity.median_cadence is None:
-			result = analysis.parse_cadence_stream(activity)
-			if result == "Not authorized":
-				return redirect(url_for("connect_strava", action="authorize"))
+		result = analysis.parse_streams(activity)
+		if result == "Not authorized":
+			return redirect(url_for("connect_strava", action="authorize"))
 
-	track_event(category="Strava", action="Cadence backfill completed", userId = str(current_user.id))
+	track_event(category="Strava", action="Streams backfill completed", userId = str(current_user.id))
 	return redirect(url_for("weekly_activity", year="current"))
 
 @app.route("/privacy")
