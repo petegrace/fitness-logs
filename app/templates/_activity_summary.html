@@ -78,7 +78,12 @@
 				{% if activity.description %}
 					<p><small>Description:</small> {{ activity.description }}</p>
 				{% endif %}
-				<p class="mb-1"><a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a></p>
+				<p class="mb-1">
+					{% if "activity_analysis" not in request.path %}
+						<a href="{{ url_for('activity_analysis', id=activity.id) }}">Analyse Activity</a> |
+					{% endif %}
+					<a href="https://www.strava.com/activities/{{ activity.external_id }}">View on Strava</a>
+				</p>
 			</div>
 		</div>
 	</div>
