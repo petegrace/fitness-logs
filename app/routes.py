@@ -350,7 +350,7 @@ def weekly_activity(year, week=None):
 	# Create a new cadence goal or update an existing one if it's a post
 	if cadence_goal_form.validate_on_submit():
 		handle_goal_form_post(form=cadence_goal_form, current_week=week_options[0], goal_type="cadence", goal_metric="Time Spent Above Cadence", goal_metric_units="seconds", metric_multiplier = 60,
-							evaluate_goal_function=analysis.evaluate_cadence_goals, calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
+							calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 
 	# Create a new cadence goal or update an existing one if it's a post
 	if gradient_goal_form.validate_on_submit():
