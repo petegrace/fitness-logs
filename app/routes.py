@@ -1121,3 +1121,7 @@ def flag_bad_elevation_data(activity_id):
 @app.route("/privacy")
 def privacy_policy():
 	return render_template("privacy.html", title="Privacy Policy")
+
+@app.route("/test")
+def test():
+	return render_template("test.html")
