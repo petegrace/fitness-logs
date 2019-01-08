@@ -76,7 +76,6 @@ def goal_callback_function_js(modal_id, dimension_input_id, target_input_id):
 
 
 def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metric_units, metric_multiplier, calculate_weekly_aggregations_function):
-	# Example use: form=cadence_goal_form, current_week=week_options[0], goal_type="cadence", goal_metric="Time Spent Above Cadence", goal_metric_units="seconds", metric_multiplier = 60, evaluate_goal_function=analysis.evaluate_cadence_goals
 	if form.goal_relative_week.data == "this":
 		goal_start_date = current_week.calendar_week_start_date
 	elif form.goal_relative_week.data == "next":
@@ -922,7 +921,7 @@ def import_strava_activity():
 	# Evaluate any goals that the user has, including processing any additional data e.g. cadence
 	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
 	current_week = current_day.calendar_week_start_date
-	analysis.evaluate_cadence_goals(week=current_week)
+	analysis.evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 	
 

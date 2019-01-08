@@ -11,43 +11,6 @@ import pandas as pd
 import math
 from datetime import datetime, timedelta
 
-def evaluate_cadence_goals(week):
-	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
-	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric="Time Spent Above Cadence").all()
-
-	weeks_to_evaluate = []
-	[weeks_to_evaluate.append(goal.goal_start_date) for goal in current_goals if goal.goal_start_date not in weeks_to_evaluate]
-	
-	for week in weeks_to_evaluate:
-		run_activities = current_user.activities_filtered(activity_type="Run", week=week).all()
-
-		# 2. Ensure that all Run activities for the week have cadence calculated, bearing in mind that if user hasn't sync'ed for a few weeks we might need to look back at a historic week
-		for run in run_activities:
-			if run.median_cadence is None:
-				result = parse_cadence_stream(activity=run)
-				if result == "Not authorized":
-					return redirect(url_for("connect_strava", action="authorize"))
-
-		# 3. Get weekly cadence stats as for the graph
-		weekly_cadence_aggregations = calculate_weekly_cadence_aggregations(week)
-		weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric="Time Spent Above Cadence").all()
-	
-		for goal in weekly_cadence_goals:
-			goal_cadence = int(goal.goal_dimension_value)
-			# 4. Compare the current stats vs. goal where they're for the same cadence
-			for cadence_aggregate in weekly_cadence_aggregations["summary"]:
-				if cadence_aggregate.cadence == goal_cadence:
-					goal.current_metric_value = cadence_aggregate.total_seconds_above_cadence
-					# 5. Set to success if the target has been hit and flash a congrats message
-					if goal.current_metric_value >= goal.goal_target:
-						goal.goal_status = "Successful"
-			# 6. Set to missed if if the time period has expired
-			if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
-				goal.goal_status = "Missed"
-
-	db.session.commit()
-
-
 def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_function):
 	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
 	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric=goal_metric).all()
