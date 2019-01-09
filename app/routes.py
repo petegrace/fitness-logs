@@ -147,7 +147,7 @@ def index():
 
 	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
 	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
-		show_strava_categories_modal = True
+		show_strava_categories_modal = False # change to see what path users take without this prompt, potentially re-introduce it for 2nd time users
 	else:
 		show_strava_categories_modal = False
 
