@@ -29,22 +29,27 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 					flash("Some activities relevant to your goal may not be fully parsed.  Please Connect with Strava when you get chance.")
 					break
 
-		# 3. Get weekly cadence stats as for the graph
-		weekly_aggregations = calculate_weekly_aggregations_function(week)
-		weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
-		
-		for goal in weekly_goals:
-			goal_dimension_value = int(goal.goal_dimension_value)
-			# 4. Compare the current stats vs. goal where they're for the same cadence
-			for aggregate in weekly_aggregations["summary"]:
-				if aggregate.get_dimension_value() == goal_dimension_value:
-					goal.current_metric_value = aggregate.get_metric_value()
-					# 5. Set to success if the target has been hit and flash a congrats message
-					if goal.current_metric_value >= goal.goal_target:
-						goal.goal_status = "Successful"
-			# 6. Set to missed if if the time period has expired
-			if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
-				goal.goal_status = "Missed"
+		if goal_metric == "Runs Completed Over Distance":
+			# TODO: Need to evaluate this still
+			pass
+
+		elif goal_metric in (["Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
+			# 3. Get weekly stats as for the graph
+			weekly_aggregations = calculate_weekly_aggregations_function(week)
+			weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
+			
+			for goal in weekly_goals:
+				goal_dimension_value = int(goal.goal_dimension_value)
+				# 4. Compare the current stats vs. goal where they're for the same cadence
+				for aggregate in weekly_aggregations["summary"]:
+					if aggregate.get_dimension_value() == goal_dimension_value:
+						goal.current_metric_value = aggregate.get_metric_value()
+						# 5. Set to success if the target has been hit and flash a congrats message
+						if goal.current_metric_value >= goal.goal_target:
+							goal.goal_status = "Successful"
+				# 6. Set to missed if if the time period has expired
+				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+					goal.goal_status = "Missed"
 
 	db.session.commit()
 

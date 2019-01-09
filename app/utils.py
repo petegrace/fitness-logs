@@ -56,6 +56,8 @@ def length_of_list(list):
 def format_goal_units(goal_metric, value):
 	if goal_metric == "Exercise Sets Completed":
 		return "{sets} sets".format(sets=value)
+	elif goal_metric == "Runs Completed Over Distance":
+		return "{runs} run(s)".format(runs=value)
 	elif goal_metric == "Time Spent Above Cadence":
 		return convert_seconds_to_minutes_formatted(value)
 	elif goal_metric == "Distance Climbing Above Gradient":

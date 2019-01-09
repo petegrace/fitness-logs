@@ -97,51 +97,61 @@
 						<div class="alert alert-success mt-2">
 							<h5 class="mt-0">Set yourself a goal!</h5>
 							<p>You haven't set any training goals for yourself yet.  Why not start using goals to keep yourself motivated and improve your performance?</p>
-							<p>Check out the  <a href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How To guide</a> if you need some help, or create your first goal by clicking into the charts on the tabs that follow.</p>
+							<p>Check out the  <a href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How To guide</a> if you need some help, or create your first goal by clicking into the tabs that follow.</p>
 						</div>
 					{% endif %}
 				</div>
 				<div class="tab-pane fade" id="nav-summaryStats" role="tabpanel">
 					<table>
 						<tr>
-							<td>Runs Completed:<br/>(<a href="#">Set Goal</a>)</td>
-							<td>
-								<div class="{{ summary_stats.category_key }} p-2 m-2 text-center">
-									<span class="display-4">{{ summary_stats.activities_completed }}</span> run
-								</div>
-							</td>
+							<td>Runs Completed:<br/>(<a href="#" data-toggle="modal" data-target="#setActivitiesCompletedGoal-modal">Set Goal</a>)</td>
+							{% for activity_type in summary_stats %}
+								<td>
+									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
+										<span class="display-4">{{ activity_type.activities_completed }}</span> run
+									</div>
+								</td>
+							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Distance:<br/>(<a href="#">Set Goal</a>)</td>
-							<td>
-								<div class="{{ summary_stats.category_key }} p-2 m-2 text-center">
-									<span class="display-4">{{ utils.convert_m_to_km(summary_stats.total_distance) }}</span> km
-								</div>
-							</td>
+							<td>Total Distance:</td>
+							{% for activity_type in summary_stats %}
+								<td>
+									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
+										<span class="display-4">{{ utils.convert_m_to_km(activity_type.total_distance) }}</span> km
+									</div>
+								</td>
+							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Moving Time:<br/>(<a href="#">Set Goal</a>)</td>
-							<td>
-								<div class="{{ summary_stats.category_key }} p-2 m-2 text-center">
-									<span class="display-4">{{ utils.convert_timedelta_to_minutes_split(summary_stats.total_moving_time)["minutes"] }}</span>:{{ utils.convert_timedelta_to_minutes_split(summary_stats.total_moving_time)["seconds"] }}
-								</div>
-							</td>
+							<td>Total Moving Time:</td>
+							{% for activity_type in summary_stats %}
+								<td>
+									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
+										<span class="display-4">{{ utils.convert_timedelta_to_minutes_split(activity_type.total_moving_time)["minutes"] }}</span>:{{ utils.convert_timedelta_to_minutes_split(activity_type.total_moving_time)["seconds"] }}
+									</div>
+								</td>
+							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Elevation Gain:<br/>(<a href="#">Set Goal</a>)</td>
-							<td>
-								<div class="{{ summary_stats.category_key }} p-2 m-2 text-center">
-									<span class="display-4">{{ summary_stats.total_elevation_gain }}</span> m
-								</div>
-							</td>
+							<td>Total Elevation Gain:</td>
+							{% for activity_type in summary_stats %}
+								<td>
+									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
+										<span class="display-4">{{ activity_type.total_elevation_gain }}</span> m
+									</div>
+								</td>
+							{% endfor %}
 						</tr>
 						<tr>
-							<td>Longest Run:<br/>(<a href="#">Set Goal</a>)</td>
-							<td>
-								<div class="{{ summary_stats.category_key }} p-2 m-2 text-center">
-									<span class="display-4">{{ utils.convert_m_to_km(summary_stats.longest_distance) }}</span> km
-								</div>
-							</td>
+							<td>Longest Run:<br/>(<a href="#" data-toggle="modal" data-target="#setActivitiesCompletedGoal-modal">Set Goal</a>)</td>
+							{% for activity_type in summary_stats %}
+								<td>
+									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
+										<span class="display-4">{{ utils.convert_m_to_km(activity_type.longest_distance) }}</span> km
+									</div>
+								</td>
+							{% endfor %}
 						</tr>
 					</table>
 				</div>
@@ -228,6 +238,19 @@
 		{% endfor %}
 	{% endfor %}
 	<!-- Content for modals -->
+	<div class="modal fade" id="setActivitiesCompletedGoal-modal" tabindex="-1" role="dialog">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="setActivitiesCompletedGoal-modalLabel">Set Weekly Goal</h5>
+	        <button type="button" class="close" data-dismiss="modal"><i class="fa fa-window-close"></i></button>
+	      </div>
+	      <div class="modal-body">
+	        {{ wtf.quick_form(activities_completed_goal_form) }}
+	      </div>
+	    </div>
+	  </div>
+	</div>
 	<div class="modal fade" id="setCadenceGoal-modal" tabindex="-1" role="dialog">
 	  <div class="modal-dialog" role="document">
 	    <div class="modal-content">

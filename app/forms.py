@@ -82,6 +82,18 @@ class ExerciseCategoriesForm(FlaskForm):
 	cat_yellow_outline = StringField(validators=[Length(max=25)], render_kw={"placeholder": "Enter a category name", "class": "form-control"})
 	submit = SubmitField("Save Changes", render_kw={"class": "btn btn-light border border-secondary"})
 
+class ActivitiesCompletedGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
+	target_activities_to_complete = IntegerField("Target Runs to Complete", validators=[DataRequired()])
+	minimum_distance = IntegerField("Of at least... (km)", validators=[DataRequired()])
+	submit = SubmitField("Set Goal")
+
+	def get_dimension_value_input(self):
+		return self.minimum_distance
+
+	def get_target_input(self):
+		return self.target_activities_to_complete
+
 class CadenceGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
 	cadence = IntegerField("Cadence", validators=[DataRequired()])

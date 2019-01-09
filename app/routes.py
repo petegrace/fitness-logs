@@ -14,7 +14,7 @@ from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
-from app.forms import CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
+from app.forms import ActivitiesCompletedGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
@@ -312,6 +312,7 @@ def edit_exercise(id):
 @login_required
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
+	activities_completed_goal_form = ActivitiesCompletedGoalForm()
 	cadence_goal_form = CadenceGoalForm()
 	gradient_goal_form = GradientGoalForm()
 	exercise_sets_goal_form = ExerciseSetsGoalForm()
@@ -345,6 +346,11 @@ def weekly_activity(year, week=None):
 		else: # assume milliseconds
 			current_week_ms = int(week)
 			current_week = datetime.date(datetime.fromtimestamp(current_week_ms/1000.0))
+
+	# Create a new runs/activities completed goal
+	if activities_completed_goal_form.validate_on_submit():
+		handle_goal_form_post(form=activities_completed_goal_form, current_week=week_options[0], goal_type="runs completed", goal_metric="Runs Completed Over Distance", goal_metric_units="runs", metric_multiplier = 1,
+							calculate_weekly_aggregations_function=None)
 
 	# Create a new cadence goal or update an existing one if it's a post
 	if cadence_goal_form.validate_on_submit():
@@ -442,7 +448,7 @@ def weekly_activity(year, week=None):
 		run_line_color = None
 
 	# Data for the summary stats
-	summary_stats = current_user.weekly_activity_type_stats(week=current_week).first()
+	summary_stats = current_user.weekly_activity_type_stats(week=current_week).all()
 	
 	# Data and plotting for weekly cadence analysis graph
 	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
@@ -588,7 +594,7 @@ def weekly_activity(year, week=None):
 	return render_template("weekly_activity.html", title="Weekly Activity", utils=utils, current_user=current_user,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
-		summary_stats=summary_stats,
+		summary_stats=summary_stats, activities_completed_goal_form=activities_completed_goal_form,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
 		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form, gradient_goal_history_charts=gradient_goal_history_charts,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,
