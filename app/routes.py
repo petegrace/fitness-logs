@@ -200,7 +200,7 @@ def new_exercise(context, selected_day=None):
 	elif context == "scheduling":
 		form = ScheduleNewExerciseTypeForm()
 
-	# Bit of a haack to reduce avoid duplicate errors when unioning exercises and activities
+	# Bit of a hack to reduce avoid duplicate errors when unioning exercises and activities
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	form.exercise_category_id.choices = category_choices
 
@@ -440,6 +440,9 @@ def weekly_activity(year, week=None):
 	else:
 		run_fill_color = None
 		run_line_color = None
+
+	# Data for the summary stats
+	summary_stats = current_user.weekly_activity_type_stats(week=current_week).first()
 	
 	# Data and plotting for weekly cadence analysis graph
 	weekly_cadence_goals = current_user.training_goals.filter_by(goal_start_date=current_week).filter_by(goal_metric="Time Spent Above Cadence").all()
@@ -585,6 +588,7 @@ def weekly_activity(year, week=None):
 	return render_template("weekly_activity.html", title="Weekly Activity", utils=utils, current_user=current_user,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
+		summary_stats=summary_stats,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
 		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form, gradient_goal_history_charts=gradient_goal_history_charts,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,

@@ -277,8 +277,8 @@ class User(UserMixin, db.Model):
 						func.count(Activity.id).label("activities_completed"),
 						func.sum(Activity.distance).label("total_distance"),
 						func.sum(Activity.moving_time).label("total_moving_time"),
-						func.sum(Activity.elevation_gain).label("total_elevation_gain"),
-						func.max(Activity.distance).label("total_distance")
+						func.sum(Activity.total_elevation_gain).label("total_elevation_gain"),
+						func.max(Activity.distance).label("longest_distance")
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
 				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
 				).filter(Activity.owner == self
