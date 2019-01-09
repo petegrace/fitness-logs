@@ -685,7 +685,7 @@ class TrainingGoal(db.Model):
 	def goal_category(self):
 		if self.goal_metric == "Exercise Sets Completed" and self.goal_dimension_value != "None":
 			category = ExerciseCategory.query.get(int(self.goal_dimension_value))
-		elif self.goal_metric == "Time Spent Above Cadence" or self.goal_metric == "Distance Climbing Above Gradient":
+		elif self.goal_metric in (["Runs Completed Over Distance", "Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
 			category = ExerciseCategory.query.filter(ExerciseCategory.owner == self.owner).filter(ExerciseCategory.category_name == "Run").first()
 		else:
 			category=None
