@@ -43,6 +43,25 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
 					goal.goal_status = "Missed"
 
+		if goal_metric in (["Weekly Distance", "Weekly Moving Time", "Weekly Elevation Gain"]):
+			for goal in weekly_goals:
+				# 3. Get the stats we need
+				weekly_summary_stats = current_user.weekly_activity_type_stats(week=week).filter(Activity.activity_type=="Run").all()
+				# 4. Compare the current stats vs. goal where they're for the same cadence
+				for row in weekly_summary_stats: # Use a for loop to deal with it potentially being zero rows
+					if goal_metric == "Weekly Distance":
+						goal.current_metric_value = row.total_distance
+					elif goal_metric == "Weekly Moving Time":
+						goal.current_metric_value = row.total_moving_time.seconds
+					elif goal_metric == "Weekly Elevation Gain":
+						goal.current_metric_value = row.total_elevation_gain
+				# 5. Set to success if the target has been hit and flash a congrats message
+				if goal.current_metric_value >= goal.goal_target:
+					goal.goal_status = "Successful"
+				# 6. Set to missed if if the time period has expired
+				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+					goal.goal_status = "Missed"
+
 		elif goal_metric in (["Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
 			# 3. Get weekly stats as for the graph
 			weekly_aggregations = calculate_weekly_aggregations_function(week)

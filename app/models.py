@@ -679,7 +679,13 @@ class TrainingGoal(db.Model):
 			goal_dimension_friendly_value = ExerciseCategory.query.get(int(self.goal_dimension_value)).category_name
 		else:	
 			goal_dimension_friendly_value = self.goal_dimension_value
-		return "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
+
+		if goal_dimension_friendly_value is None:
+			goal_description = metric=self.goal_metric
+		else:
+			goal_description = "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
+			
+		return goal_description
 
 	@property
 	def goal_category(self):

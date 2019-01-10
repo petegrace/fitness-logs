@@ -14,7 +14,7 @@ from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
-from app.forms import ActivitiesCompletedGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
+from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
@@ -75,26 +75,31 @@ def goal_callback_function_js(modal_id, dimension_input_id, target_input_id):
 	return goal_callback
 
 
-def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metric_units, metric_multiplier, calculate_weekly_aggregations_function):
+def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metric_units, metric_multiplier, calculate_weekly_aggregations_function=None):
 	if form.goal_relative_week.data == "this":
 		goal_start_date = current_week.calendar_week_start_date
 	elif form.goal_relative_week.data == "next":
 		goal_start_date = current_week.calendar_week_start_date + timedelta(days=7)
 
-	weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
-		).filter_by(goal_metric=goal_metric
-		).filter_by(goal_dimension_value=str(form.get_dimension_value_input().data)).first()
+	if form.get_dimension_value_input() is None:
+		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
+			).filter_by(goal_metric=goal_metric).first()
+	else:
+		weekly_goal = current_user.training_goals.filter_by(goal_start_date=goal_start_date
+			).filter_by(goal_metric=goal_metric
+			).filter_by(goal_dimension_value=str(form.get_dimension_value_input().data)).first()
+
 	if weekly_goal is not None:
-		weekly_goal.goal_target = form.get_target_input().data * 60
+		weekly_goal.goal_target = form.get_target_input().data * metric_multiplier
 		track_event(category="Analysis", action="Existing weekly goal for {goal_type} updated".format(goal_type=goal_type), userId = str(current_user.id))
-		flash("Updated goal for {dimension_value}".format(dimension_value=weekly_goal.goal_dimension_value))
+		flash("Updated {goal_type} goal for {dimension_value}".format(goal_type=goal_type, dimension_value=weekly_goal.goal_dimension_value))
 	else:
 		weekly_goal = TrainingGoal(owner=current_user,
 									goal_period='week',
 									goal_start_date=goal_start_date,
 									goal_metric=goal_metric,
 									goal_metric_units=goal_metric_units,
-									goal_dimension_value=str(form.get_dimension_value_input().data),
+									goal_dimension_value=str(form.get_dimension_value_input().data) if form.get_dimension_value_input() is not None else None,
 									goal_target=form.get_target_input().data * metric_multiplier,
 									goal_status="In Progress",
 									current_metric_value=0)
@@ -313,6 +318,9 @@ def edit_exercise(id):
 def weekly_activity(year, week=None): 
 	track_event(category="Analysis", action="Weekly Activity page opened or refreshed", userId = str(current_user.id))
 	activities_completed_goal_form = ActivitiesCompletedGoalForm()
+	total_distance_goal_form = TotalDistanceGoalForm()
+	total_moving_time_goal_form = TotalMovingTimeGoalForm()
+	total_elevation_gain_goal_form = TotalElevationGainGoalForm()
 	cadence_goal_form = CadenceGoalForm()
 	gradient_goal_form = GradientGoalForm()
 	exercise_sets_goal_form = ExerciseSetsGoalForm()
@@ -351,6 +359,18 @@ def weekly_activity(year, week=None):
 	if activities_completed_goal_form.validate_on_submit():
 		handle_goal_form_post(form=activities_completed_goal_form, current_week=week_options[0], goal_type="runs completed", goal_metric="Runs Completed Over Distance", goal_metric_units="runs", metric_multiplier = 1,
 							calculate_weekly_aggregations_function=None)
+
+	# Create a new distance goal
+	if total_distance_goal_form.validate_on_submit():
+		handle_goal_form_post(form=total_distance_goal_form, current_week=week_options[0], goal_type="weekly distance", goal_metric="Weekly Distance", goal_metric_units="metres", metric_multiplier = 1000)
+
+	# Create a new moving time goal
+	if total_moving_time_goal_form.validate_on_submit():
+		handle_goal_form_post(form=total_moving_time_goal_form, current_week=week_options[0], goal_type="weekly moving time", goal_metric="Weekly Moving Time", goal_metric_units="seconds", metric_multiplier = 60)
+
+	# Create a new elevation gain goal
+	if total_elevation_gain_goal_form.validate_on_submit():
+		handle_goal_form_post(form=total_elevation_gain_goal_form, current_week=week_options[0], goal_type="weekly elevation gain", goal_metric="Weekly Elevation Gain", goal_metric_units="metres", metric_multiplier = 1)
 
 	# Create a new cadence goal or update an existing one if it's a post
 	if cadence_goal_form.validate_on_submit():
@@ -594,7 +614,8 @@ def weekly_activity(year, week=None):
 	return render_template("weekly_activity.html", title="Weekly Activity", utils=utils, current_user=current_user,
 		weekly_summary=weekly_summary, weekly_summary_plot_script=weekly_summary_plot_script, weekly_summary_plot_div=weekly_summary_plot_div,
 		year_options=year_options, week_options=week_options, current_year=int(year), current_week=current_week, current_week_dataset=current_week_dataset,
-		summary_stats=summary_stats, activities_completed_goal_form=activities_completed_goal_form,
+		summary_stats=summary_stats, activities_completed_goal_form=activities_completed_goal_form, total_distance_goal_form=total_distance_goal_form,
+		total_moving_time_goal_form=total_moving_time_goal_form, total_elevation_gain_goal_form=total_elevation_gain_goal_form,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div, cadence_goal_form=cadence_goal_form,
 		above_gradient_plot_container = above_gradient_plot_container, gradient_goal_form=gradient_goal_form, gradient_goal_history_charts=gradient_goal_history_charts,
 		exercise_sets_plot_script=exercise_sets_plot_script, exercise_sets_plot_div=exercise_sets_plot_div, exercise_sets_goal_form=exercise_sets_goal_form,

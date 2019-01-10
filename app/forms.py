@@ -94,6 +94,39 @@ class ActivitiesCompletedGoalForm(FlaskForm):
 	def get_target_input(self):
 		return self.target_activities_to_complete
 
+class TotalDistanceGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
+	target_distance = IntegerField("Target Weekly Distance (km)", validators=[DataRequired()])
+	submit = SubmitField("Set Goal")
+
+	def get_dimension_value_input(self):
+		return None
+
+	def get_target_input(self):
+		return self.target_distance
+
+class TotalMovingTimeGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
+	target_moving_time = IntegerField("Target Moving Time (minutes)", validators=[DataRequired()])
+	submit = SubmitField("Set Goal")
+
+	def get_dimension_value_input(self):
+		return None
+
+	def get_target_input(self):
+		return self.target_moving_time
+
+class TotalElevationGainGoalForm(FlaskForm):
+	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
+	target_elevation_gain = IntegerField("Target Elevation Gain (m)", validators=[DataRequired()])
+	submit = SubmitField("Set Goal")
+
+	def get_dimension_value_input(self):
+		return None
+
+	def get_target_input(self):
+		return self.target_elevation_gain
+
 class CadenceGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
 	cadence = IntegerField("Cadence", validators=[DataRequired()])

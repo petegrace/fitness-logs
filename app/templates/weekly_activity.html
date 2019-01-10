@@ -108,13 +108,13 @@
 							{% for activity_type in summary_stats %}
 								<td>
 									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
-										<span class="display-4">{{ activity_type.activities_completed }}</span> run
+										<span class="display-4">{{ activity_type.activities_completed }}</span> run(s)
 									</div>
 								</td>
 							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Distance:</td>
+							<td>Total Distance:<br/>(<a href="#" data-toggle="modal" data-target="#setTotalDistanceGoal-modal">Set Goal</a>)</td>
 							{% for activity_type in summary_stats %}
 								<td>
 									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
@@ -124,7 +124,7 @@
 							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Moving Time:</td>
+							<td>Total Moving Time:<br/>(<a href="#" data-toggle="modal" data-target="#setTotalMovingTimeGoal-modal">Set Goal</a>)</td>
 							{% for activity_type in summary_stats %}
 								<td>
 									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
@@ -134,7 +134,7 @@
 							{% endfor %}
 						</tr>
 						<tr>
-							<td>Total Elevation Gain:</td>
+							<td>Total Elevation Gain:<br/>(<a href="#" data-toggle="modal" data-target="#setTotalElevationGainGoal-modal">Set Goal</a>)</td>
 							{% for activity_type in summary_stats %}
 								<td>
 									<div class="{{ activity_type.category_key }} p-2 m-2 text-center">
@@ -247,6 +247,45 @@
 	      </div>
 	      <div class="modal-body">
 	        {{ wtf.quick_form(activities_completed_goal_form) }}
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div class="modal fade" id="setTotalDistanceGoal-modal" tabindex="-1" role="dialog">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="setTotalDistanceGoal-modalLabel">Set Weekly Goal</h5>
+	        <button type="button" class="close" data-dismiss="modal"><i class="fa fa-window-close"></i></button>
+	      </div>
+	      <div class="modal-body">
+	        {{ wtf.quick_form(total_distance_goal_form) }}
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div class="modal fade" id="setTotalMovingTimeGoal-modal" tabindex="-1" role="dialog">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="setTotalMovingTimeGoal-modalLabel">Set Weekly Goal</h5>
+	        <button type="button" class="close" data-dismiss="modal"><i class="fa fa-window-close"></i></button>
+	      </div>
+	      <div class="modal-body">
+	        {{ wtf.quick_form(total_moving_time_goal_form) }}
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div class="modal fade" id="setTotalElevationGainGoal-modal" tabindex="-1" role="dialog">
+	  <div class="modal-dialog" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="setTotalElevationGainGoal-modalLabel">Set Weekly Goal</h5>
+	        <button type="button" class="close" data-dismiss="modal"><i class="fa fa-window-close"></i></button>
+	      </div>
+	      <div class="modal-body">
+	        {{ wtf.quick_form(total_elevation_gain_goal_form) }}
 	      </div>
 	    </div>
 	  </div>
