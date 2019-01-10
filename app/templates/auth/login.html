@@ -4,78 +4,79 @@
 {% block app_content %}
 
 <!-- Main jumbotron for a primary marketing message or call to action -->
-      <div class="jumbotron">
-        <div class="container">
-          <h1 class="display-3">Get started<div class="d-none d-md-inline"> now</div>!</h1>
-          <p>Log yourself in, or if you're a new user simply use your existing Google account to sign yourself up and start using Training Ticks straight away.<div class="d-none d-md-inline"> Or if you need some convincing on why you should use Training Ticks then scroll down to check out the features available to enhance your training and help keep yourself motivated!</div></p>
-          <p><a href="{{ authorization_url }}"><img src="/static/img/btn_google_signin_dark_normal_web.png" /></a></p>
-        </div>
+    <div class="jumbotron">
+      <div class="container">
+        <h1 class="display-3">Get started<div class="d-none d-md-inline"> now</div>!</h1>
+        <p>Log yourself in, or if you're a new user simply use your existing Google account to sign yourself up and start using Training Ticks straight away.<div class="d-none d-md-inline"> Or if you need some convincing on why you should use Training Ticks then scroll down to check out the features available to enhance your training and help keep yourself motivated!</div></p>
+        <p><a href="{{ authorization_url }}"><img src="/static/img/btn_google_signin_dark_normal_web.png" /></a></p>
       </div>
+    </div>
 
-		<div class="row featurette pt-2 pb-2">
-          <div class="col-md-8">
-            <h2 class="featurette-heading">Record cross-training exercises with just one click.</h2>
-            <p class="lead">Training Ticks gives you an easy-to-use tool for tracking your strengthening and stretching exercises, or whatever other activities you like to include in your training. Once you've logged an exercise type once it becomes available as a new button to record completed exercises based on how you normally do them.</p>
-            <p class="lead">If you've already recorded your activity in Strava then just Connect With Strava to see all of your training in one place.</p>
-          </div>
-          <div class="col-md-4">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/one-click.jpg" alt="One-click activities">
-          </div>
-        </div>
+    <div class="row featurette mt-5 pt-2 pb-2">
+      <div class="col-md-4">
+        <h2 class="featurette-heading">Set and track weekly goals.</h2>
+        <p class="lead">You can set training goals for anything from how many runs you want to complete in a week or what distance you're looking to get up to, through to more complex goals based on cadence or hill training.</p>
+        <p class="lead">Setting goals is easily done from the same interface as you analyse your activity. Your progress is then easily visibly, and you can track multiple goals for the week.</p>
+      </div>
+      <div class="col-md-4">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/create-goal.jpg" alt="Create goal">
+      </div>
+      <div class="col-md-4">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/track_goals.jpg" alt="Track goals">
+      </div>
+    </div>
 
-        <div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
-          <div class="col-md-7 order-md-2">
-            <h2 class="featurette-heading">Cadence analysis on your Strava activities.</h2>
-            <p class="lead">If your Strava activity includes cadence data then Training Ticks will import it and provide you with insightful visualisations so you can understand your natural cadence and how it changes from activity to activity.  Great for interval training training and working on your leg speed.</p>
-          </div>
-          <div class="col-md-5 order-md-1">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/activity_analysis.jpg" alt="Activity Analysis">
-          </div>
-        </div>
+    <div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
+      <div class="col-md-7 order-md-2">
+        <h2 class="featurette-heading">Cadence analysis on your Strava activities.</h2>
+        <p class="lead">If your Strava activity includes cadence data then Training Ticks will import it and provide you with insightful visualisations so you can understand your natural cadence and how it changes from activity to activity.  Great for interval training training and working on your leg speed.</p>
+      </div>
+      <div class="col-md-5 order-md-1">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/activity_analysis.jpg" alt="Activity Analysis">
+      </div>
+    </div>
 
-        <div class="row featurette mt-5 pt-2 pb-2">
-          <div class="col-md-4">
-            <h2 class="featurette-heading">Analyse your activity for the week.</h2>
-            <p class="lead">The Analysis & Goals section lets you see all of your activity for the week in one place under a simple, expandable interface. Charts at the top aggregate your data up to a weekly level and allow you to set and track goals.</p>
-          </div>
-          <div class="col-md-4">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/weekly_analysis.jpg" alt="Weekly Analysis">
-          </div>
-          <div class="col-md-4">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/one_place.jpg" alt="Weekly Activity">
-          </div>
-        </div>
+    <div class="row featurette mt-5 pt-2 pb-2">
+      <div class="col-md-4">
+        <h2 class="featurette-heading">Analyse your activity for the week.</h2>
+        <p class="lead">The Analysis & Goals section lets you see all of your activity for the week in one place under a simple, expandable interface. Charts at the top aggregate your data up to a weekly level and allow you to set and track goals.</p>
+      </div>
+      <div class="col-md-4">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/weekly_analysis.jpg" alt="Weekly Analysis">
+      </div>
+      <div class="col-md-4">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/one_place.jpg" alt="Weekly Activity">
+      </div>
+    </div>
 
-        <div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
-          <div class="col-md-8 order-md-2">
-            <h2 class="featurette-heading">Create your own training plan.</h2>
-            <p class="lead">Schedule your preferred exercises across a recurring weekly training plan so that you're prompted with your exercises to do each day.</p>
-          </div>
-          <div class="col-md-4 order-md-1">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/training_plan.jpg" alt="Create training plan">
-          </div>
-        </div>
+		<div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
+      <div class="col-md-8">
+        <h2 class="featurette-heading">Record cross-training exercises with just one click.</h2>
+        <p class="lead">Training Ticks gives you an easy-to-use tool for tracking your strengthening and stretching exercises, or whatever other activities you like to include in your training. Once you've logged an exercise type once it becomes available as a new button to record completed exercises based on how you normally do them.</p>
+        <p class="lead">If you've already recorded your activity in Strava then just Connect With Strava to see all of your training in one place.</p>
+      </div>
+      <div class="col-md-4">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/one-click.jpg" alt="One-click activities">
+      </div>
+    </div>
 
-        <div class="row featurette mt-5 pt-2 pb-2">
-          <div class="col-md-4">
-            <h2 class="featurette-heading">Set and track weekly goals.</h2>
-            <p class="lead">You can set for cadence and completed exercise sets (more options coming soon!) simply by clicking within the charts, either for the current or upcoming week. Your progress for all goals you have each week is then easily visibly from the same page.</p>
-          </div>
-          <div class="col-md-4">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/create-goal.jpg" alt="Create goal">
-          </div>
-          <div class="col-md-4">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/track_goals.jpg" alt="Track goals">
-          </div>
-        </div>
+    <div class="row featurette mt-5 pt-2 pb-2">
+      <div class="col-md-8 order-md-2">
+        <h2 class="featurette-heading">Create your own training plan.</h2>
+        <p class="lead">Schedule your preferred exercises across a recurring weekly training plan so that you're prompted with your exercises to do each day.</p>
+      </div>
+      <div class="col-md-4 order-md-1">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/training_plan.jpg" alt="Create training plan">
+      </div>
+    </div>
 
-        <div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
-          <div class="col-md-7 order-md-2">
-            <h2 class="featurette-heading">Categorisation and colour-coding.</h2>
-            <p class="lead">Set your own categories for activities and exercises to give yourself a more user-friendly interface through colour-coding of activities, and allow you to segment your activities when analysing.</p>
-          </div>
-          <div class="col-md-5 order-md-1">
-            <img class="featurette-image img-fluid mx-auto" src="/static/img/categories.jpg" alt="Categories">
-          </div>
-        </div>
+    <div class="row featurette mt-5 pt-2 pb-2" style="background-color: #efefef">
+      <div class="col-md-7 order-md-2">
+        <h2 class="featurette-heading">Categorisation and colour-coding.</h2>
+        <p class="lead">Set your own categories for activities and exercises to give yourself a more user-friendly interface through colour-coding of activities, and allow you to segment your activities when analysing.</p>
+      </div>
+      <div class="col-md-5 order-md-1">
+        <img class="featurette-image img-fluid mx-auto" src="/static/img/categories.jpg" alt="Categories">
+      </div>
+    </div>
 {% endblock %}
