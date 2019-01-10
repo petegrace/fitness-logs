@@ -141,7 +141,7 @@ def index():
 	# Check for the flags we're using to present modals for encouraging engagement
 	is_new_user = request.args.get("is_new_user")
 	if is_new_user and is_new_user == "True": #It's coming from query param so is a string still
-		show_new_user_modal = True
+		show_new_user_modal = False # let user discover the site for themselves for now
 	else:
 		show_new_user_modal = False
 
