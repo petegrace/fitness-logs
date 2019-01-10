@@ -68,7 +68,7 @@ class User(UserMixin, db.Model):
 
 		# Probably a better way to do this but dealing with the bug when comparing None
 		if first_activity_datetime_result.min_datetime is None and first_exercise_datetime_result.min_datetime is None:
-			first_active_year = 2018
+			first_active_year = 2019
 		elif first_activity_datetime_result.min_datetime is None:
 			first_active_year = first_exercise_datetime_result.min_datetime.year
 		elif first_exercise_datetime_result.min_datetime is None:
@@ -268,6 +268,29 @@ class User(UserMixin, db.Model):
 
 		weekly_activity_summary = exercises.union(activities)
 		return weekly_activity_summary
+
+	def weekly_activity_type_stats(self, week):
+		# For now just return 1 row with run stats for the week, but in due course we can open it to rides and swims
+		weekly_activity_type_stats = db.session.query(
+						Activity.activity_type,
+						func.coalesce(ExerciseCategory.category_key, Activity.activity_type).label("category_key"),
+						func.count(Activity.id).label("activities_completed"),
+						func.sum(Activity.distance).label("total_distance"),
+						func.sum(Activity.moving_time).label("total_moving_time"),
+						func.sum(Activity.total_elevation_gain).label("total_elevation_gain"),
+						func.max(Activity.distance).label("longest_distance")
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
+				).filter(Activity.owner == self
+				).filter(Activity.activity_type.in_(["Run"]) # We'll change this later on but for now focusing on this to enable running goals
+				).filter(CalendarDay.calendar_week_start_date == week
+				).group_by(
+						ExerciseCategory.category_key,
+						Activity.activity_type
+				)
+
+		return weekly_activity_type_stats
+
 
 	def weekly_cadence_stats(self, week=None):
 		weekly_cadence_stats = db.session.query(
@@ -656,13 +679,19 @@ class TrainingGoal(db.Model):
 			goal_dimension_friendly_value = ExerciseCategory.query.get(int(self.goal_dimension_value)).category_name
 		else:	
 			goal_dimension_friendly_value = self.goal_dimension_value
-		return "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
+
+		if goal_dimension_friendly_value is None:
+			goal_description = metric=self.goal_metric
+		else:
+			goal_description = "{metric} of {value}".format(metric=self.goal_metric, value=goal_dimension_friendly_value)
+
+		return goal_description
 
 	@property
 	def goal_category(self):
 		if self.goal_metric == "Exercise Sets Completed" and self.goal_dimension_value != "None":
 			category = ExerciseCategory.query.get(int(self.goal_dimension_value))
-		elif self.goal_metric == "Time Spent Above Cadence" or self.goal_metric == "Distance Climbing Above Gradient":
+		elif self.goal_metric in (["Runs Completed Over Distance", "Weekly Distance", "Weekly Moving Time", "Weekly Elevation Gain", "Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
 			category = ExerciseCategory.query.filter(ExerciseCategory.owner == self.owner).filter(ExerciseCategory.category_name == "Run").first()
 		else:
 			category=None

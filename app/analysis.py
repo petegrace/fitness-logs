@@ -11,7 +11,7 @@ import pandas as pd
 import math
 from datetime import datetime, timedelta
 
-def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_function):
+def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_function=None):
 	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
 	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric=goal_metric).all()
 
@@ -20,6 +20,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 
 	for week in weeks_to_evaluate:
 		run_activities = current_user.activities_filtered(activity_type="Run", week=week).all()
+		weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
 
 		# 2. Ensure that all Run activities for the week have cadence calculated, bearing in mind that if user hasn't sync'ed for a few weeks we might need to look back at a historic week
 		for run in run_activities:
@@ -29,22 +30,54 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 					flash("Some activities relevant to your goal may not be fully parsed.  Please Connect with Strava when you get chance.")
 					break
 
-		# 3. Get weekly cadence stats as for the graph
-		weekly_aggregations = calculate_weekly_aggregations_function(week)
-		weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
-		
-		for goal in weekly_goals:
-			goal_dimension_value = int(goal.goal_dimension_value)
-			# 4. Compare the current stats vs. goal where they're for the same cadence
-			for aggregate in weekly_aggregations["summary"]:
-				if aggregate.get_dimension_value() == goal_dimension_value:
-					goal.current_metric_value = aggregate.get_metric_value()
-					# 5. Set to success if the target has been hit and flash a congrats message
-					if goal.current_metric_value >= goal.goal_target:
-						goal.goal_status = "Successful"
-			# 6. Set to missed if if the time period has expired
-			if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
-				goal.goal_status = "Missed"
+		if goal_metric == "Runs Completed Over Distance":
+			for goal in weekly_goals:
+				# 3. Get the stats we need
+				activities_over_distance = [activity for activity in run_activities if activity.distance >= int(goal.goal_dimension_value)*1000]
+				# 4. Compare the current stats vs. goal where they're for the same cadence
+				goal.current_metric_value = len(activities_over_distance)
+				# 5. Set to success if the target has been hit and flash a congrats message
+				if goal.current_metric_value >= goal.goal_target:
+					goal.goal_status = "Successful"
+				# 6. Set to missed if if the time period has expired
+				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+					goal.goal_status = "Missed"
+
+		if goal_metric in (["Weekly Distance", "Weekly Moving Time", "Weekly Elevation Gain"]):
+			for goal in weekly_goals:
+				# 3. Get the stats we need
+				weekly_summary_stats = current_user.weekly_activity_type_stats(week=week).filter(Activity.activity_type=="Run").all()
+				# 4. Compare the current stats vs. goal where they're for the same cadence
+				for row in weekly_summary_stats: # Use a for loop to deal with it potentially being zero rows
+					if goal_metric == "Weekly Distance":
+						goal.current_metric_value = row.total_distance
+					elif goal_metric == "Weekly Moving Time":
+						goal.current_metric_value = row.total_moving_time.seconds
+					elif goal_metric == "Weekly Elevation Gain":
+						goal.current_metric_value = row.total_elevation_gain
+				# 5. Set to success if the target has been hit and flash a congrats message
+				if goal.current_metric_value >= goal.goal_target:
+					goal.goal_status = "Successful"
+				# 6. Set to missed if if the time period has expired
+				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+					goal.goal_status = "Missed"
+
+		elif goal_metric in (["Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
+			# 3. Get weekly stats as for the graph
+			weekly_aggregations = calculate_weekly_aggregations_function(week)
+			
+			for goal in weekly_goals:
+				goal_dimension_value = int(goal.goal_dimension_value)
+				# 4. Compare the current stats vs. goal where they're for the same cadence
+				for aggregate in weekly_aggregations["summary"]:
+					if aggregate.get_dimension_value() == goal_dimension_value:
+						goal.current_metric_value = aggregate.get_metric_value()
+						# 5. Set to success if the target has been hit and flash a congrats message
+						if goal.current_metric_value >= goal.goal_target:
+							goal.goal_status = "Successful"
+				# 6. Set to missed if if the time period has expired
+				if goal.goal_start_date + timedelta(days=7) < datetime.date(datetime.utcnow()) and goal.current_metric_value < goal.goal_target:
+					goal.goal_status = "Missed"
 
 	db.session.commit()
 

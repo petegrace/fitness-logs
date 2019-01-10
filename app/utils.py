@@ -22,13 +22,21 @@ def format_distance(m):
 	return distance_formatted
 
 def format_timedelta_minutes(timedelta):
-	minutes, seconds = divmod(timedelta.seconds, 60)
-	timedelta_formatted = "%d:%02d" % (minutes, seconds)
+	minutes_split = convert_seconds_to_minutes_split(timedelta.seconds)
+	timedelta_formatted = "%d:%02d" % (minutes_split["minutes"], minutes_split["seconds"])
 	return timedelta_formatted
 
-def convert_seconds_to_minutes_formatted(seconds):
+def convert_seconds_to_minutes_split(seconds):
 	minutes, seconds = divmod(seconds, 60)
-	timedelta_formatted = "%d:%02d" % (minutes, seconds)
+	minutes_split = { "minutes": minutes, "seconds": seconds }
+	return minutes_split
+
+def convert_timedelta_to_minutes_split(timedelta):
+	return convert_seconds_to_minutes_split(timedelta.seconds)
+
+def convert_seconds_to_minutes_formatted(seconds):
+	minutes_split = convert_seconds_to_minutes_split(seconds)
+	timedelta_formatted = "%d:%02d" % (minutes_split["minutes"], minutes_split["seconds"])
 	return timedelta_formatted
 
 def format_percentage(percent):
@@ -48,6 +56,14 @@ def length_of_list(list):
 def format_goal_units(goal_metric, value):
 	if goal_metric == "Exercise Sets Completed":
 		return "{sets} sets".format(sets=value)
+	elif goal_metric == "Runs Completed Over Distance":
+		return "{runs} run(s)".format(runs=value)
+	elif goal_metric == "Weekly Distance":
+		return format_distance(value)
+	elif goal_metric == "Weekly Moving Time":
+		return convert_seconds_to_minutes_formatted(value)
+	elif goal_metric == "Weekly Elevation Gain":
+		return "{metres} m".format(metres=value)
 	elif goal_metric == "Time Spent Above Cadence":
 		return convert_seconds_to_minutes_formatted(value)
 	elif goal_metric == "Distance Climbing Above Gradient":
