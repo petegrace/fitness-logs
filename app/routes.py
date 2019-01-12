@@ -953,6 +953,9 @@ def import_strava_activity():
 	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
 	current_week = current_day.calendar_week_start_date
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Runs Completed Over Distance")
+	analysis.evaluate_running_goals(week=current_week, goal_metric="Weekly Distance")
+	analysis.evaluate_running_goals(week=current_week, goal_metric="Weekly Moving Time")
+	analysis.evaluate_running_goals(week=current_week, goal_metric="Weekly Elevation Gain")
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 	
