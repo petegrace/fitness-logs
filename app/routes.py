@@ -123,8 +123,8 @@ def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metri
 @app.route("/index")
 def home():
 	# Send an already logged in user back to the index
-	#if current_user.is_authenticated:
-	#	return redirect(url_for("hub"))
+	if current_user.is_authenticated:
+		return redirect(url_for("index"))
 
 	register_form = RegisterForm()
 
