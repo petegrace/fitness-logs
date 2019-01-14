@@ -203,7 +203,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		dimension_range = dimension_values
 		bar_height = 0.6
 		goal_bar_height = 0.8
-	measure_range = (-1, float(measure_range_max)*1.1)
+	measure_range = (-1, float(measure_range_max)*1.3) # Ideally this would be more responsive for the viewport but need to look at options
 
 	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure_label", y_axis_type=None, tools=["tap"])
 	plot.hbar(source=source, y="dimension", right="measure", height=bar_height, color="fill_color", line_color="line_color", fill_alpha=0.8, hover_color="fill_color", hover_alpha=1)

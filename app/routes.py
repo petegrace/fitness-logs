@@ -1089,7 +1089,7 @@ def connect_strava(action="prompt"):
 		next_page = "/index"
 
 	if error:
-		track_event(category="Strava", action="Error during Strava authorizaion", userId = str(current_user.id))
+		track_event(category="Strava", action="Error during Strava authorization", userId = str(current_user.id))
 		return redirect(url_for("index"))
 
 	if action == "authorize":

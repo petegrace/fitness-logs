@@ -677,6 +677,8 @@ class TrainingGoal(db.Model):
 	def goal_description(self):
 		if self.goal_metric == "Exercise Sets Completed" and self.goal_dimension_value != "None":
 			goal_dimension_friendly_value = ExerciseCategory.query.get(int(self.goal_dimension_value)).category_name
+		elif self.goal_metric == "Runs Completed Over Distance":
+			goal_dimension_friendly_value = "{value} km".format(value = self.goal_dimension_value)
 		else:	
 			goal_dimension_friendly_value = self.goal_dimension_value
 
