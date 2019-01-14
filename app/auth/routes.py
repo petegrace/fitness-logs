@@ -4,6 +4,7 @@ from werkzeug.urls import url_parse
 from app import app, db #, oauth2
 from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm
+from app.auth.common import configured_google_client
 from app.models import User, ExerciseForToday
 from requests_oauth2.services import GoogleClient
 from requests_oauth2 import OAuth2BearerToken
@@ -14,12 +15,8 @@ import calendar
 
 
 # Helpers
-google_auth = GoogleClient(
-	client_id = app.config["GOOGLE_OAUTH2_CLIENT_ID"],
-	client_secret=app.config["GOOGLE_OAUTH2_CLIENT_SECRET"],
-	redirect_uri=app.config["GOOGLE_OAUTH2_REDIRECT_URI"],
-)
-
+google_auth = configured_google_client()
+	
 def register_user(user):
 	db.session.add(user)
 	db.session.commit()
@@ -79,7 +76,7 @@ def login():
 	    scope=["email"],
 		response_type="code",
 	)
-	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)#, form=form)
+	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)
 
 
 @bp.route("/oauth2callback")

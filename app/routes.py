@@ -13,6 +13,8 @@ import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
+from app.auth.forms import RegisterForm
+from app.auth.common import configured_google_client
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
@@ -119,6 +121,24 @@ def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metri
 # Routes
 @app.route("/")
 @app.route("/index")
+def home():
+	# Send an already logged in user back to the index
+	#if current_user.is_authenticated:
+	#	return redirect(url_for("hub"))
+
+	register_form = RegisterForm()
+
+	# for the get...
+	google_auth = configured_google_client()
+	authorization_url = google_auth.authorize_url(
+	    scope=["email"],
+		response_type="code",
+	)
+	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)
+	
+
+# TODO: Change references from index/home to be something like "Activity Hub"
+@app.route("/hub")
 @login_required
 def index():
 	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
