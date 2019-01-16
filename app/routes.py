@@ -170,11 +170,11 @@ def index():
 	else:
 		show_new_user_modal = False
 
-	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
-	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
-		show_strava_categories_modal = False # change to see what path users take without this prompt, potentially re-introduce it for 2nd time users
+	show_post_import_modal = request.args.get("show_post_import_modal")
+	if show_post_import_modal and show_post_import_modal == "True": #It's coming from query param so is a string still
+		show_post_import_modal = True 
 	else:
-		show_strava_categories_modal = False
+		show_post_import_modal = False
 
 	is_not_using_categories = request.args.get("is_not_using_categories")
 	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
@@ -185,7 +185,7 @@ def index():
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
 							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
 							original_exercises_for_today = original_exercises_for_today, utils=utils, show_new_user_modal=show_new_user_modal,
-							show_exercise_categories_modal=show_exercise_categories_modal, show_strava_categories_modal=show_strava_categories_modal)
+							show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -981,16 +981,16 @@ def import_strava_activity():
 	
 
 	# Add a URL param that we can use to offer to redirect to Categories page	
-	if len(current_user.uncategorised_activity_types().all()) > 0:
-		has_uncategorised_activity_types = True
+	if (not current_user.is_training_goals_user) and new_activity_count > 1 and (current_user.id % 4) in [0, 1]: # Show to 50% of users
+		show_post_import_modal = True
 	else:
-		has_uncategorised_activity_types = False
+		show_post_import_modal = False
 
 	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 	next_page = request.args.get("next")
 	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-		return redirect(url_for("index", has_uncategorised_activity_types=has_uncategorised_activity_types))
-	return redirect("{next_page}?has_uncategorised_activity_types={has_uncategorised_activity_types}".format(next_page=next_page, has_uncategorised_activity_types=has_uncategorised_activity_types))
+		return redirect(url_for("index", show_post_import_modal=show_post_import_modal))
+	return redirect("{next_page}?show_post_import_modal={show_post_import_modal}".format(next_page=next_page, show_post_import_modal=show_post_import_modal))
 
 
 @app.route("/activity_analysis/<id>")
@@ -1106,7 +1106,7 @@ def connect_strava(action="prompt"):
 	next_page = request.args.get("next")
 
 	if next_page is None:
-		next_page = "/index"
+		next_page = "/hub"
 
 	if error:
 		track_event(category="Strava", action="Error during Strava authorization", userId = str(current_user.id))
