@@ -979,6 +979,26 @@ def import_strava_activity():
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 	
+	# If the user hasn't used categories yet then apply some defaults
+	if len(current_user.exercise_categories.all()) == 0:
+		run_category = ExerciseCategory(owner=current_user,
+										category_key="cat_green",
+										category_name="Run",
+										fill_color="#588157",
+										line_color="#588157")
+		ride_category = ExerciseCategory(owner=current_user,
+										 category_key="cat_blue",
+										 category_name="Ride",
+										 fill_color="#3f7eba",
+										 line_color="#3f7eba")
+		swim_category = ExerciseCategory(owner=current_user,
+										 category_key="cat_red",
+										 category_name="Swim",
+										 fill_color="#ef6461",
+										 line_color="#ef6461")
+
+		db.session.commit()
+		flash("Default categories have been added to colour-code your Strava activities. Configure them from the Manage Exercises section.")
 
 	# Add a URL param that we can use to offer to redirect to Categories page	
 	if (not current_user.is_training_goals_user) and new_activity_count > 1 and (current_user.id % 4) in [0, 1]: # Show to 50% of users
