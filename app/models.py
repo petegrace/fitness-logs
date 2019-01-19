@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
+	scheduled_activities = db.relationship("ScheduledActivity", backref="owner", lazy="dynamic")
 	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_exercises_user = db.Column(db.Boolean, default=False)
 	is_strava_user = db.Column(db.Boolean, default=False)
@@ -496,6 +497,7 @@ class Activity(db.Model):
 	external_source = db.Column(db.String(50))
 	external_id = db.Column(db.String(50)) # string in case we ever use anyting other than Strava
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
 	name = db.Column(db.String(200))
 	start_datetime = db.Column(db.DateTime)
 	activity_type = db.Column(db.String(50))
@@ -649,8 +651,35 @@ class ExerciseForToday(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
 	def __repr__(self):
-		return "<ExerciseForToday {name} for {user} on {day}>".format(
-			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+		return "<ExerciseForToday {name} for {user} from {day}>".format(
+			name=self.scheduled_exercise.type.name, user=self.scheduled_exercise.type.owner.email, day=self.scheduled_exercise.scheduled_day)
+
+
+class ScheduledActivity(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	activity_type = db.Column(db.String(50))
+	scheduled_day = db.Column(db.String(10))
+	description = db.Column(db.String(500))
+	target_distance = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	is_removed = db.Column(db.Boolean, default=False)
+	activities = db.relationship("Activity", backref="scheduled_activity", lazy="dynamic")
+	activity_scheduled_today = db.relationship("ActivityForToday", backref="scheduled_activity", lazy="dynamic")
+
+	def __repr__(self):
+		return "<ScheduledActivity of {activity_type} for {user} on {day}>".format(
+			activity_type=self.activity_type, user=self.owner.email, day=self.scheduled_day)
+
+
+class ActivityForToday(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ActivityForToday of {activity_type} for {user} from {day}>".format(
+			activity_type=self.scheduled_activity.activity_type, user=self.scheduled_activity.owner.email, day=self.scheduled_activity.scheduled_day)
 
 
 class TrainingGoal(db.Model):
