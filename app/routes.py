@@ -727,6 +727,10 @@ def schedule_activity(activity_type, selected_day):
 			db.session.commit()
 			flash("Created {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
 
+		if current_user.is_training_plan_user == False:
+			current_user.is_training_plan_user = True
+			db.session.commit()
+
 		return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
 
 	# If it's a get...
@@ -1025,9 +1029,17 @@ def import_strava_activity():
 	new_activity_count = 0
 
 	for strava_activity in activities_list:
+		# if the start_datetime is today then check if there's a scheduled activity in today's plan
+		if strava_activity.start_date.date() == date.today():
+			scheduled_activity = current_user.activities_for_today_remaining(activity_type=strava_activity.type).first()
+		else:
+			scheduled_activity = None
+		
+
 		activity = Activity(external_source = "Strava",
 							external_id = strava_activity.id,
 							owner = current_user,
+							scheduled_activity_id = scheduled_activity.id if scheduled_activity else None,
 							name = strava_activity.name,
 							start_datetime = strava_activity.start_date,
 							activity_type = strava_activity.type,
@@ -1075,7 +1087,9 @@ def import_strava_activity():
 										 category_name="Swim",
 										 fill_color="#ef6461",
 										 line_color="#ef6461")
-
+		db.session.add(run_category)
+		db.session.add(ride_category)
+		db.session.add(swim_category)
 		db.session.commit()
 		flash("Default categories have been added to colour-code your Strava activities. Configure them from the Manage Exercises section.")
 

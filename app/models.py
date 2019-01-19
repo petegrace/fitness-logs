@@ -159,7 +159,7 @@ class User(UserMixin, db.Model):
 						Activity.start_datetime.label("activity_datetime"),
 						func.date(Activity.start_datetime).label("activity_date"),
 						Activity.name,
-						null().label("scheduled_exercise_id"),
+						Activity.scheduled_activity_id.label("scheduled_exercise_id"),
 						Activity.is_race,
 						null().label("reps"),
 						null().label("seconds"),
@@ -232,7 +232,7 @@ class User(UserMixin, db.Model):
 		return ActivityForToday.query.join(ScheduledActivity, (ScheduledActivity.id == ActivityForToday.scheduled_activity_id)
 			).filter(ScheduledActivity.owner == self)
 
-	def activities_for_today_remaining(self):
+	def activities_for_today_remaining(self, activity_type=None):
 		activities_for_today_remaining = db.session.query(
 					ScheduledActivity.id,
 					ScheduledActivity.activity_type,
@@ -246,6 +246,7 @@ class User(UserMixin, db.Model):
 				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
 										   (func.date(Activity.start_datetime) == date.today()))
 				).filter(ScheduledActivity.owner == self
+				).filter(or_(ScheduledActivity.activity_type == activity_type, activity_type is None)
 				).group_by(
 					ScheduledActivity.id,
 					ScheduledActivity.activity_type,
