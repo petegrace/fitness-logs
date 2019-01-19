@@ -16,7 +16,7 @@
 
 {% block app_content %}
 	<h2>Training Plan</h2>
-	<p>Create yourself a weekly schedule of exercises to keep yourself in shape and improve your strength for running. Just add the exercises you want for each day using the buttons below, or check out the <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
+	<p>Create yourself a weekly schedule of activities and exercises to kickstart your training. Just add the exercises you want for each day using the buttons below, or check out the <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
 	<ul class="nav nav-tabs">
 		{% for day in schedule_days %}
 			<li class="nav-item">
@@ -29,6 +29,25 @@
 		<p>You don't currently have any exercises planned for {{ selected_day }}.</p>
 	{% else %}
 	<table class="table table-sm table-hover">
+		{% for scheduled_activity in scheduled_activities %}
+			<tr>
+				<td>{{ scheduled_activity.activity_type }}</td>
+				<td>{{ scheduled_activity.planned_distance_formatted }}</td>
+				<td>{{ scheduled_activity.description }}</td>
+				<td>
+					<ul class="nav justify-content-end">
+		 				<li class="nav-item mr-5">
+							<a href="{{ url_for('schedule_activity', activity_type=scheduled_activity.activity_type, selected_day=selected_day) }}">
+								<i class="fa fa-edit"></i> Edit</a>
+						</li>
+						<li class="nav-item mr-5">
+							<a href="{{ url_for('remove_scheduled_activity', id=scheduled_activity.id) }}">
+								<i class="fa fa-trash"></i> Remove</a>
+						</li>
+					</ul>
+				</td>
+			</tr>
+		{% endfor %}
 		{% for scheduled_exercise in scheduled_exercises %}
 			<tr>
 				<td>{{ scheduled_exercise.type.name }}</td>
@@ -62,6 +81,33 @@
 			<h4>Add to Plan</h4>
 		</div>
 		<div class="card-body exercise-buttons">
+			{% for activity_type in activity_types %}
+				<a class="btn btn-sm 
+				{% if activity_type.category_key is none %}
+					btn-outline-secondary
+				{% elif activity_type.category_key == 'cat_green' %}
+					btn-success
+				{% elif activity_type.category_key == 'cat_green_outline' %}
+					btn-outline-success
+				{% elif activity_type.category_key == 'cat_blue' %}
+					btn-primary
+				{% elif activity_type.category_key == 'cat_blue_outline' %}
+					btn-outline-primary
+				{% elif activity_type.category_key == 'cat_red' %}
+					btn-danger
+				{% elif activity_type.category_key == 'cat_red_outline' %}
+					btn-outline-danger
+				{% elif activity_type.category_key == 'cat_yellow' %}
+					btn-warning
+				{% elif activity_type.category_key == 'cat_yellow_outline' %}
+					btn-outline-warning
+				{% endif %}
+				" role="button" href="{{ url_for('schedule_activity', activity_type=activity_type.category_name, selected_day=selected_day) }}">
+					<i class="fa fa-calendar-plus-o"></i> {{ activity_type.category_name }}
+					<br />
+					<small>&nbsp;</small>
+				</a>
+			{% endfor %}
 			<a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('new_exercise', context='scheduling', selected_day=selected_day) }}">
 				<i class="fa fa-calendar-plus-o"></i> New Exercise Type
 				<br /><small>&nbsp;</small>

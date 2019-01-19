@@ -661,7 +661,7 @@ class ScheduledActivity(db.Model):
 	activity_type = db.Column(db.String(50))
 	scheduled_day = db.Column(db.String(10))
 	description = db.Column(db.String(500))
-	target_distance = db.Column(db.Integer)
+	planned_distance = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_removed = db.Column(db.Boolean, default=False)
 	activities = db.relationship("Activity", backref="scheduled_activity", lazy="dynamic")
@@ -670,6 +670,10 @@ class ScheduledActivity(db.Model):
 	def __repr__(self):
 		return "<ScheduledActivity of {activity_type} for {user} on {day}>".format(
 			activity_type=self.activity_type, user=self.owner.email, day=self.scheduled_day)
+			
+	@property
+	def planned_distance_formatted(self):
+		return utils.format_distance(self.planned_distance) if self.planned_distance else ""
 
 
 class ActivityForToday(db.Model):

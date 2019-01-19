@@ -61,6 +61,12 @@ class EditScheduledExerciseForm(FlaskForm):
 	submit = SubmitField("Update Exercise")
 
 		
+class ScheduledActivityForm(FlaskForm):
+	description = StringField("Description", validators=[Length(max=500)], render_kw={"placeholder": "(optional)"})
+	planned_distance = IntegerField("Planned Distance (km)", render_kw={"placeholder": "(optional)"}, validators=[Optional()])
+	submit = SubmitField("Save Activity")
+
+		
 class EditExerciseTypeForm(FlaskForm):
 	# TODO: Allowing editing of name will require some more advanced validation to allow the current name but not a separate name
 	user_categories_count = HiddenField("user_categories_count")

@@ -15,9 +15,9 @@ from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
 from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -678,7 +678,9 @@ def schedule(schedule_freq, selected_day=None):
 		selected_day = calendar.day_abbr[date.today().weekday()]
 
 	scheduled_exercises = current_user.scheduled_exercises(selected_day).all()
+	scheduled_activities = current_user.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=selected_day).all()
 
+	activity_types = current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all()
 	exercise_types = current_user.exercise_types_ordered()
 
 	# Determine whether to show modal to encourage use of categories
@@ -689,7 +691,61 @@ def schedule(schedule_freq, selected_day=None):
 		show_exercise_categories_modal = False
 
 	return render_template("schedule.html", title="Schedule", schedule_days=days, schedule_freq=schedule_freq, selected_day=selected_day,
-				scheduled_exercises=scheduled_exercises, exercise_types=exercise_types, show_exercise_categories_modal=show_exercise_categories_modal)
+				scheduled_exercises=scheduled_exercises, scheduled_activities=scheduled_activities,
+				exercise_types=exercise_types, activity_types=activity_types, show_exercise_categories_modal=show_exercise_categories_modal)
+
+
+@app.route('/schedule_activity/<activity_type>/<selected_day>', methods=['GET', 'POST'])
+@login_required
+def schedule_activity(activity_type, selected_day):
+	form = ScheduledActivityForm()
+	scheduled_activity = ScheduledActivity.query.filter_by(owner=current_user).filter_by(activity_type=activity_type).filter_by(scheduled_day=selected_day).first()
+
+	if form.validate_on_submit():
+		if scheduled_activity:
+			# edit
+			track_event(category="Schedule", action="Scheduled activity updated", userId = str(current_user.id))
+			scheduled_activity.activity_type = activity_type
+			scheduled_activity.scheduled_day = selected_day
+			scheduled_activity.description = form.description.data
+			scheduled_activity.planned_distance = (form.planned_distance.data*1000) if form.planned_distance.data else None
+			scheduled_activity.is_removed = False
+			db.session.commit()
+			flash("Updated {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+		else:
+			# create
+			track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
+			scheduled_activity = ScheduledActivity(activity_type=activity_type,
+												owner=current_user,
+												scheduled_day=selected_day,
+												description=form.description.data,
+												planned_distance=(form.planned_distance.data*1000) if form.planned_distance.data else None)
+			db.session.add(scheduled_activity)
+			db.session.commit()
+			flash("Created {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+
+		return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
+
+	# If it's a get...
+	if scheduled_activity:
+		form.description.data = scheduled_activity.description
+		form.planned_distance.data = int(scheduled_activity.planned_distance / 1000) if scheduled_activity.planned_distance else None
+		
+	track_event(category="Schedule", action="Scheduled Activity form loaded", userId = str(current_user.id))
+	return render_template("schedule_activity.html", title="Schedule Activity", form=form, activity_type=activity_type, selected_day=selected_day)
+
+
+@app.route('/remove_scheduled_activity/<id>')
+@login_required
+def remove_scheduled_activity(id):
+	scheduled_activity = ScheduledActivity.query.get(int(id))
+	track_event(category="Schedule", action="Scheduled activity removed", userId = str(current_user.id))
+
+	scheduled_activity.is_removed = True
+	db.session.commit()
+	flash("Removed activity {activity_type} from schedule for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+
+	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
 
 
 @app.route("/schedule_exercise/<id>/<selected_day>")
@@ -697,7 +753,7 @@ def schedule(schedule_freq, selected_day=None):
 def schedule_exercise(id, selected_day):
 	exercise_type = ExerciseType.query.get(int(id))
 
-	scheduled_exercise = ScheduledExercise.query.filter_by(type=exercise_type).filter_by(scheduled_day=selected_day).first()
+	scheduled_exercise = ScheduledExercise.query.filter(ExerciseType.owner==current_user).filter_by(type=exercise_type).filter_by(scheduled_day=selected_day).first()
 
 	if scheduled_exercise:
 		track_event(category="Schedule", action="Sets incremented for scheduled exercise", userId = str(current_user.id))
