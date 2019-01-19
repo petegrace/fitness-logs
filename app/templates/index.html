@@ -7,9 +7,9 @@
 		$("#home-nav").addClass("active");
 	</script>
 
-	{% if show_strava_categories_modal %}
+	{% if show_post_import_modal %}
 		<script>
-			$('#stravaCategoriesModal').modal('show');
+			$('#postStravaImportModal').modal('show');
 		</script>
 	{% endif %}
 
@@ -101,17 +101,56 @@
 	{% if current_user.is_training_plan_user %}
 		<div class="card">
 			<div class="card-header">
-				<h4>Log exercises from Training Plan</h4>
+				<h4>Log from Training Plan</h4>
 			</div>
 			<div class="card-body exercise-buttons">
 
 				{% if has_completed_schedule %}
 					<div class="alert alert-success">
-						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned exercises for today!
+						<i class="fa fa-check-square-o fa-lg"></i> Great work! You've ticked off your planned activities and exercises for today!
 					</div>
-				{% elif not original_exercises_for_today %}
-					<p>You don't have any exercises planned for today. Chill out and let your muscles recover!</p>
+				{% elif not (original_exercises_for_today or original_activities_for_today) %}
+					<p>You don't have any activities or exercises planned for today. Chill out and let your muscles recover!</p>
 				{% endif %}
+				{% for scheduled_activity in activities_for_today_remaining %}
+					<a class="btn btn-sm
+					{% if scheduled_activity.category_key is none %}
+						btn-outline-secondary
+					{% elif scheduled_activity.category_key == 'cat_green' %}
+						btn-success
+					{% elif scheduled_activity.category_key == 'cat_green_outline' %}
+						btn-outline-success
+					{% elif scheduled_activity.category_key == 'cat_blue' %}
+						btn-primary
+					{% elif scheduled_activity.category_key == 'cat_blue_outline' %}
+						btn-outline-primary
+					{% elif scheduled_activity.category_key == 'cat_red' %}
+						btn-danger
+					{% elif scheduled_activity.category_key == 'cat_red_outline' %}
+						btn-outline-danger
+					{% elif scheduled_activity.category_key == 'cat_yellow' %}
+						btn-warning
+					{% elif scheduled_activity.category_key == 'cat_yellow_outline' %}
+						btn-outline-warning
+					{% endif %}
+					" role="button" href="{{ url_for('connect_strava', action='authorize') }}">
+						<i class="fa fa-check-square-o"></i> {{ scheduled_activity.activity_type }}
+						<br />
+						<small>
+							{% if scheduled_activity.description %}
+								{{ scheduled_activity.description }}
+							{% else %}
+								&nbsp;
+							{% endif %}
+							<br />
+							{% if scheduled_activity.planned_distance %}
+								{{ utils.format_distance(scheduled_activity.planned_distance) }}
+							{% else %}
+								&nbsp;
+							{% endif %}
+						</small>
+					</a>
+				{% endfor %}
 				{% for scheduled_exercise in exercises_for_today_remaining %}
 					<a class="btn btn-sm
 					{% if scheduled_exercise.category_key is none %}
@@ -216,7 +255,7 @@
 			</div>
 			<div class="card-body">
 				<div class="alert alert-success">
-					<p>You don't yet have any exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
+					<p>You don't yet have any activities or exercises planned for today.  Why not set up a training plan to help get yourself into a routine and ultimately improve your performance. Check out the  <a href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How To guide</a> if you need some help.</p>
 					<p><a href="{{ url_for('schedule', schedule_freq='weekly') }}" class="btn btn-primary btn-sm">Set up weekly training plan</a></p>
 				</div>
 			</div>
@@ -229,23 +268,22 @@
 		  <div class="modal-dialog" role="document">
 		    <div class="modal-content">
 		      <div class="modal-header">
-		        <h5 class="modal-title" id="newUserModalLabel">Get Started!</h5>
+		        <h5 class="modal-title" id="newUserModalLabel">Thanks for signing up!</h5>
 		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 		          <span aria-hidden="true">&times;</span>
 		        </button>
 		      </div>
 		      <div class="modal-body">
-				<p>Feel free to explore Training Ticks for yourself, or check out one of our handy guides for runners:</p>
-				<div class="alert alert-success">
-					<h6>"I'm a Strava user and want to analyse my cadence and/or interval training"</h6>
-					<p><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your cadence</a></p>
-				</div>
-				<div class="alert alert-success">
-					<h6>"I want to track my strengthening or cross-training exercises"</h6>
-					<p><a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a></p>
-				</div>
-				<p>Alternatively you can find these and more How To guides from the <strong>Help</strong> menu at the top of each page.</p>
-		        <p><button class="btn btn-secondary" data-dismiss="modal" aria-label="Close">No thanks, not now</button></p>
+				<p>We're in the very early stages of our mission to help runners improve their training and keep themselves motivated. At the moment things are a little rough round 
+				the edges, but we hope you'll find it useful!</p>
+				<p>So far we've created features to let you set and track different types of goals, as well as drill down a bit more on the cadence and gradient data
+				in your Strava activities. And if you want to complement your running with some strengthening exercises, Training Ticks gives you a tool 
+				to easily log these with as few clicks as possible.</p>
+				<p>We're adding new features every week so if you can't find the thing you're looking for then <strong>we're really keen to hear your ideas</strong>. Just drop us an 
+				email at <a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a>.</p>
+		      </div>
+			  <div class="modal-footer"
+				<p><button class="btn btn-primary" data-dismiss="modal" aria-label="Close">Got it, let me have a play!</button></p>
 			  </div>
 		    </div>
 		  </div>
@@ -257,22 +295,24 @@
 		{% include '_exercise_categories_modal.html' %}
 	{% endif %}
 
-	<!-- Modal for pointing people at Manage Categories if they've imported Strava activities -->
-	{% if show_strava_categories_modal %}
-		<div class="modal fade" id="stravaCategoriesModal" tabindex="-1" role="dialog" aria-labelledby="stravaCategoriesModalLabel">
+	<!-- Modal for directing people towards a feaure after importing from Strava -->
+	{% if show_post_import_modal %}
+		<div class="modal fade" id="postStravaImportModal" tabindex="-1" role="dialog" aria-labelledby="postStravaImportModalLabel">
 		  <div class="modal-dialog" role="document">
 		    <div class="modal-content">
 		      <div class="modal-header">
-		        <h5 class="modal-title" id="stravaCategoriesModalLabel">Colour-code your Strava activities</h5>
+		        <h5 class="modal-title" id="postStravaImportModalLabel">How about setting some goals?</h5>
 		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 		          <span aria-hidden="true">&times;</span>
 		        </button>
 		      </div>
 		      <div class="modal-body">
-		        <p>Exercise Categories enable you to colour code your runs, rides and swims throughout the Training Ticks interface.</p>
-		    	<p>Would you like to set these up now?</p>
-		        <p>
-		        	<a href="{{ url_for('categories', show_strava_categories_modal=True) }}" class="btn btn-primary">Yes please!</a>
+		        <p>Setting weekly goals gives you a focus for your running and is super easy with Training Ticks on the <strong>Analysis & Goals</strong> section. You can choose from a number of metrics
+				appropriate to the stage you're at within your training.</p>
+		      </div>
+			  <div class="modal-footer">
+		    	<p>
+		        	<a href="{{ url_for('weekly_activity', year='current') }}" class="btn btn-primary">Sounds great, take me there!</a>
 		        	<button class="btn btn-secondary" data-dismiss="modal" aria-label="Close">No thanks, not now</button>
 				</p>
 			  </div>
@@ -297,6 +337,25 @@
 				<p>You don't currently have any exercises planned for today.</p>
 			{% else %}
 			<table class="table table-sm table-hover">
+				{% for activity_for_today in original_activities_for_today %}
+					<tr>
+						<td>{{ activity_for_today.scheduled_activity.activity_type }}</td>
+						<td>
+							{% if activity_for_today.scheduled_activity.planned_distance %}
+								{{ utils.format_distance(activity_for_today.scheduled_activity.planned_distance) }}
+							{% endif %}
+						</td>
+						<td>{{ activity_for_today.scheduled_activity.description }}</td>
+						<td>
+							<ul class="nav justify-content-end">
+								<li class="nav-item mr-5">
+									<a href="{{ url_for('remove_activity_for_today', id=activity_for_today.id) }}">
+										<i class="fa fa-trash"></i> Remove</a>
+								</li>
+							</ul>
+						</td>
+					</tr>
+				{% endfor %}
 				{% for exercise_for_today in original_exercises_for_today %}
 					<tr>
 						<td>{{ exercise_for_today.scheduled_exercise.type.name }}</td>

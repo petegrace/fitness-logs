@@ -13,9 +13,11 @@ import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.auth.forms import RegisterForm
+from app.auth.common import configured_google_client
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -119,6 +121,24 @@ def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metri
 # Routes
 @app.route("/")
 @app.route("/index")
+def home():
+	# Send an already logged in user back to the index
+	if current_user.is_authenticated:
+		return redirect(url_for("index"))
+
+	register_form = RegisterForm()
+
+	# for the get...
+	google_auth = configured_google_client()
+	authorization_url = google_auth.authorize_url(
+	    scope=["email"],
+		response_type="code",
+	)
+	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)
+	
+
+# TODO: Change references from index/home to be something like "Activity Hub"
+@app.route("/hub")
 @login_required
 def index():
 	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
@@ -129,32 +149,34 @@ def index():
 
 	today = date.today()
 	current_day = calendar.day_abbr[today.weekday()]
+	activities_for_today_remaining = current_user.activities_for_today_remaining().all()
 	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
+	original_activities_for_today = current_user.activities_for_today().all()
 	original_exercises_for_today = current_user.exercises_for_today().all()
 
 	has_completed_schedule = False
 
-	if not exercises_for_today_remaining:
-		if current_user.exercises_for_today().all():
+	if not (exercises_for_today_remaining or activities_for_today_remaining):
+		if (original_exercises_for_today or original_activities_for_today):
 		   has_completed_schedule = True
 
+	# Get teh exercise types that aren't available from Training Plan box
 	exercise_types = current_user.exercise_types_ordered().all()
 	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
-
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
 	# Check for the flags we're using to present modals for encouraging engagement
 	is_new_user = request.args.get("is_new_user")
-	if is_new_user and is_new_user == "True": #It's coming from query param so is a string still
-		show_new_user_modal = False # let user discover the site for themselves for now
+	if is_new_user and is_new_user == "True" and (current_user.id % 2) == 0: #It's coming from query param so is a string still
+		show_new_user_modal = True # Only showing this to 50% of users for now to see how it performs
 	else:
 		show_new_user_modal = False
 
-	has_uncategorised_activity_types = request.args.get("has_uncategorised_activity_types")
-	if has_uncategorised_activity_types and has_uncategorised_activity_types == "True": #It's coming from query param so is a string still
-		show_strava_categories_modal = False # change to see what path users take without this prompt, potentially re-introduce it for 2nd time users
+	show_post_import_modal = request.args.get("show_post_import_modal")
+	if show_post_import_modal and show_post_import_modal == "True": #It's coming from query param so is a string still
+		show_post_import_modal = True 
 	else:
-		show_strava_categories_modal = False
+		show_post_import_modal = False
 
 	is_not_using_categories = request.args.get("is_not_using_categories")
 	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
@@ -163,9 +185,10 @@ def index():
 		show_exercise_categories_modal = False
 
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
-							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
-							original_exercises_for_today = original_exercises_for_today, utils=utils, show_new_user_modal=show_new_user_modal,
-							show_exercise_categories_modal=show_exercise_categories_modal, show_strava_categories_modal=show_strava_categories_modal)
+							exercise_types=other_exercise_types, has_completed_schedule=has_completed_schedule,
+							activities_for_today_remaining=activities_for_today_remaining, original_activities_for_today = original_activities_for_today,
+							exercises_for_today_remaining=exercises_for_today_remaining, original_exercises_for_today = original_exercises_for_today,
+							utils=utils, show_new_user_modal=show_new_user_modal, show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -658,7 +681,9 @@ def schedule(schedule_freq, selected_day=None):
 		selected_day = calendar.day_abbr[date.today().weekday()]
 
 	scheduled_exercises = current_user.scheduled_exercises(selected_day).all()
+	scheduled_activities = current_user.scheduled_activities_filtered(selected_day).all()
 
+	activity_types = current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all()
 	exercise_types = current_user.exercise_types_ordered()
 
 	# Determine whether to show modal to encourage use of categories
@@ -669,7 +694,78 @@ def schedule(schedule_freq, selected_day=None):
 		show_exercise_categories_modal = False
 
 	return render_template("schedule.html", title="Schedule", schedule_days=days, schedule_freq=schedule_freq, selected_day=selected_day,
-				scheduled_exercises=scheduled_exercises, exercise_types=exercise_types, show_exercise_categories_modal=show_exercise_categories_modal)
+				scheduled_exercises=scheduled_exercises, scheduled_activities=scheduled_activities,
+				exercise_types=exercise_types, activity_types=activity_types, show_exercise_categories_modal=show_exercise_categories_modal)
+
+
+@app.route('/schedule_activity/<activity_type>/<selected_day>', methods=['GET', 'POST'])
+@login_required
+def schedule_activity(activity_type, selected_day):
+	form = ScheduledActivityForm()
+	scheduled_activity = ScheduledActivity.query.filter_by(owner=current_user).filter_by(activity_type=activity_type).filter_by(scheduled_day=selected_day).first()
+
+	if form.validate_on_submit():
+		if scheduled_activity:
+			# edit
+			track_event(category="Schedule", action="Scheduled activity updated", userId = str(current_user.id))
+			scheduled_activity.activity_type = activity_type
+			scheduled_activity.scheduled_day = selected_day
+			scheduled_activity.description = form.description.data
+			scheduled_activity.planned_distance = (form.planned_distance.data*1000) if form.planned_distance.data else None
+			scheduled_activity.is_removed = False
+			db.session.commit()
+			flash("Updated {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+		else:
+			# create
+			track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
+			scheduled_activity = ScheduledActivity(activity_type=activity_type,
+												owner=current_user,
+												scheduled_day=selected_day,
+												description=form.description.data,
+												planned_distance=(form.planned_distance.data*1000) if form.planned_distance.data else None)
+			db.session.add(scheduled_activity)
+			db.session.commit()
+			flash("Created {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+
+		if current_user.is_training_plan_user == False:
+			current_user.is_training_plan_user = True
+			db.session.commit()
+
+		return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
+
+	# If it's a get...
+	if scheduled_activity:
+		form.description.data = scheduled_activity.description
+		form.planned_distance.data = int(scheduled_activity.planned_distance / 1000) if scheduled_activity.planned_distance else None
+		
+	track_event(category="Schedule", action="Scheduled Activity form loaded", userId = str(current_user.id))
+	return render_template("schedule_activity.html", title="Schedule Activity", form=form, activity_type=activity_type, selected_day=selected_day)
+
+
+@app.route('/remove_scheduled_activity/<id>')
+@login_required
+def remove_scheduled_activity(id):
+	scheduled_activity = ScheduledActivity.query.get(int(id))
+	track_event(category="Schedule", action="Scheduled activity removed", userId = str(current_user.id))
+
+	scheduled_activity.is_removed = True
+	db.session.commit()
+	flash("Removed activity {activity_type} from schedule for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
+
+	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
+
+
+@app.route('/remove_activity_for_today/<id>')
+@login_required
+def remove_activity_for_today(id):
+	activity_for_today = ActivityForToday.query.get(int(id))
+	track_event(category="Schedule", action="Activity for today removed", userId = str(current_user.id))
+	flash("Removed activity {activity_type} from today's planned exercises".format(activity_type=activity_for_today.scheduled_activity.activity_type))
+
+	db.session.delete(activity_for_today)
+	db.session.commit()
+
+	return redirect(url_for("index"))
 
 
 @app.route("/schedule_exercise/<id>/<selected_day>")
@@ -677,7 +773,7 @@ def schedule(schedule_freq, selected_day=None):
 def schedule_exercise(id, selected_day):
 	exercise_type = ExerciseType.query.get(int(id))
 
-	scheduled_exercise = ScheduledExercise.query.filter_by(type=exercise_type).filter_by(scheduled_day=selected_day).first()
+	scheduled_exercise = ScheduledExercise.query.filter(ExerciseType.owner==current_user).filter_by(type=exercise_type).filter_by(scheduled_day=selected_day).first()
 
 	if scheduled_exercise:
 		track_event(category="Schedule", action="Sets incremented for scheduled exercise", userId = str(current_user.id))
@@ -769,16 +865,23 @@ def add_to_today(selected_day):
 	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))
 
 	existing_exercises_for_today = current_user.exercises_for_today().all()
-	existing_scheduled_exercise_ids = [exercises_for_today.scheduled_exercise_id for exercises_for_today in existing_exercises_for_today]
+	existing_scheduled_exercise_ids = [exercise_for_today.scheduled_exercise_id for exercise_for_today in existing_exercises_for_today]
+	existing_activities_for_today = current_user.activities_for_today().all()
+	existing_scheduled_activity_ids = [activity_for_today.scheduled_activity_id for activity_for_today in existing_activities_for_today]
 
 	for scheduled_exercise in current_user.scheduled_exercises(scheduled_day=selected_day):
 		if scheduled_exercise.id not in existing_scheduled_exercise_ids:
 			new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
 			db.session.add(new_exercise_for_today)
 
+	for scheduled_activity in current_user.scheduled_activities_filtered(scheduled_day=selected_day):
+		if scheduled_activity.id not in existing_scheduled_activity_ids:
+			new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
+			db.session.add(new_activity_for_today)
+
 	db.session.commit()
 
-	flash("Added exercises from {selected_day} to today's plan".format(selected_day=selected_day))
+	flash("Added activities and exercises from {selected_day} to today's plan".format(selected_day=selected_day))
 
 	return redirect(url_for("index"))
 
@@ -926,9 +1029,17 @@ def import_strava_activity():
 	new_activity_count = 0
 
 	for strava_activity in activities_list:
+		# if the start_datetime is today then check if there's a scheduled activity in today's plan
+		if strava_activity.start_date.date() == date.today():
+			scheduled_activity = current_user.activities_for_today_remaining(activity_type=strava_activity.type).first()
+		else:
+			scheduled_activity = None
+		
+
 		activity = Activity(external_source = "Strava",
 							external_id = strava_activity.id,
 							owner = current_user,
+							scheduled_activity_id = scheduled_activity.id if scheduled_activity else None,
 							name = strava_activity.name,
 							start_datetime = strava_activity.start_date,
 							activity_type = strava_activity.type,
@@ -959,18 +1070,40 @@ def import_strava_activity():
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 	
+	# If the user hasn't used categories yet then apply some defaults
+	if len(current_user.exercise_categories.all()) == 0:
+		run_category = ExerciseCategory(owner=current_user,
+										category_key="cat_green",
+										category_name="Run",
+										fill_color="#588157",
+										line_color="#588157")
+		ride_category = ExerciseCategory(owner=current_user,
+										 category_key="cat_blue",
+										 category_name="Ride",
+										 fill_color="#3f7eba",
+										 line_color="#3f7eba")
+		swim_category = ExerciseCategory(owner=current_user,
+										 category_key="cat_red",
+										 category_name="Swim",
+										 fill_color="#ef6461",
+										 line_color="#ef6461")
+		db.session.add(run_category)
+		db.session.add(ride_category)
+		db.session.add(swim_category)
+		db.session.commit()
+		flash("Default categories have been added to colour-code your Strava activities. Configure them from the Manage Exercises section.")
 
 	# Add a URL param that we can use to offer to redirect to Categories page	
-	if len(current_user.uncategorised_activity_types().all()) > 0:
-		has_uncategorised_activity_types = True
+	if (not current_user.is_training_goals_user) and new_activity_count > 1 and (current_user.id % 4) in [0, 1]: # Show to 50% of users
+		show_post_import_modal = True
 	else:
-		has_uncategorised_activity_types = False
+		show_post_import_modal = False
 
 	# Redirect to the page the user came from if it was passed in as next parameter, otherwise the index
 	next_page = request.args.get("next")
 	if not next_page or url_parse(next_page).netloc != "": # netloc check prevents redirection to another website
-		return redirect(url_for("index", has_uncategorised_activity_types=has_uncategorised_activity_types))
-	return redirect("{next_page}?has_uncategorised_activity_types={has_uncategorised_activity_types}".format(next_page=next_page, has_uncategorised_activity_types=has_uncategorised_activity_types))
+		return redirect(url_for("index", show_post_import_modal=show_post_import_modal))
+	return redirect("{next_page}?show_post_import_modal={show_post_import_modal}".format(next_page=next_page, show_post_import_modal=show_post_import_modal))
 
 
 @app.route("/activity_analysis/<id>")
@@ -1086,7 +1219,7 @@ def connect_strava(action="prompt"):
 	next_page = request.args.get("next")
 
 	if next_page is None:
-		next_page = "/index"
+		next_page = "/hub"
 
 	if error:
 		track_event(category="Strava", action="Error during Strava authorization", userId = str(current_user.id))

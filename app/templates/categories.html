@@ -24,10 +24,12 @@
 {% block app_content %}
 	<h2>Manage Exercises</h2>
 	<ul class="nav nav-tabs mb-2">
-		<li class="nav-item"><a class="nav-link" href="{{ url_for('exercise_types') }}">Exercise Types</a></li>
 		<li class="nav-item"><a class="nav-link active" href="{{ url_for('categories') }}">Exercise Categories</a></li>
+		<li class="nav-item"><a class="nav-link" href="{{ url_for('exercise_types') }}">Exercise Types</a></li>
 	</ul>
-	<p>Categories enable you to colour-code your exercises and segment them when tracking your activity.  Name your categories however you want to in order to suit the way that you train.</p>
+	<p>Categories enable you to colour-code your exercises and segment them when tracking your activity. </p>
+	<p>Category names of <strong>Run</strong>, <strong>Ride</strong> and <strong>Swim</strong> will be used to colour-code your Strava activities of these types, 
+	and for exercises you can name your categories however you want to in order to suit the way that you train</p>
 	<p>You can create up to 8 categories by entering their names into the boxes below.</p>
 	<form action="" method="post" novalidate>
     	{{ categories_form.hidden_tag() }}

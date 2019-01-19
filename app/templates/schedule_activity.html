@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+	<h2>Schedule {{ activity_type }} for {{ selected_day }}</h2>
+	<p>Add any extra details you want, or just hit <strong>Save Activity</strong> to add to your schedule.</p>
+	<div class="row">
+		<div class="col-md-4">
+            {{ wtf.quick_form(form) }}
+		</div>
+	</div>
+{% endblock %}

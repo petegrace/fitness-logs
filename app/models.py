@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
+	scheduled_activities = db.relationship("ScheduledActivity", backref="owner", lazy="dynamic")
 	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_exercises_user = db.Column(db.Boolean, default=False)
 	is_strava_user = db.Column(db.Boolean, default=False)
@@ -158,7 +159,7 @@ class User(UserMixin, db.Model):
 						Activity.start_datetime.label("activity_datetime"),
 						func.date(Activity.start_datetime).label("activity_date"),
 						Activity.name,
-						null().label("scheduled_exercise_id"),
+						Activity.scheduled_activity_id.label("scheduled_exercise_id"),
 						Activity.is_race,
 						null().label("reps"),
 						null().label("seconds"),
@@ -177,6 +178,9 @@ class User(UserMixin, db.Model):
 											).filter(Activity.activity_type.in_(["Run", "Ride", "Swim"])
 											).filter(ExerciseCategory.category_name == None)
 		return uncategorised_activity_types
+
+	def scheduled_activities_filtered(self, scheduled_day):
+		return self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
@@ -223,6 +227,36 @@ class User(UserMixin, db.Model):
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
 		return exercises_for_today_remaining
+
+	def activities_for_today(self):
+		return ActivityForToday.query.join(ScheduledActivity, (ScheduledActivity.id == ActivityForToday.scheduled_activity_id)
+			).filter(ScheduledActivity.owner == self)
+
+	def activities_for_today_remaining(self, activity_type=None):
+		activities_for_today_remaining = db.session.query(
+					ScheduledActivity.id,
+					ScheduledActivity.activity_type,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
+					ScheduledActivity.planned_distance,
+					ScheduledActivity.description,
+					func.count(Activity.id).label("completed_activities")
+				).join(ScheduledActivity.activity_scheduled_today
+				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
+										   (func.date(Activity.start_datetime) == date.today()))
+				).filter(ScheduledActivity.owner == self
+				).filter(or_(ScheduledActivity.activity_type == activity_type, activity_type is None)
+				).group_by(
+					ScheduledActivity.id,
+					ScheduledActivity.activity_type,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
+					ScheduledActivity.planned_distance,
+					ScheduledActivity.description
+				).having(func.count(Activity.id) == 0)
+
+		return activities_for_today_remaining
 
 	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(
@@ -496,6 +530,7 @@ class Activity(db.Model):
 	external_source = db.Column(db.String(50))
 	external_id = db.Column(db.String(50)) # string in case we ever use anyting other than Strava
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
 	name = db.Column(db.String(200))
 	start_datetime = db.Column(db.DateTime)
 	activity_type = db.Column(db.String(50))
@@ -529,10 +564,6 @@ class Activity(db.Model):
 
 	@property
 	def distance_formatted(self):
-		# if self.distance >= 1000:
-		# 	distance_formatted = "{value} km".format(value=utils.convert_m_to_km(self.distance))
-		# else:
-		# 	distance_formatted = "{value} m".format(value=self.distance)
 		return utils.format_distance(self.distance)
 
 	@property
@@ -649,8 +680,39 @@ class ExerciseForToday(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
 	def __repr__(self):
-		return "<ExerciseForToday {name} for {user} on {day}>".format(
-			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+		return "<ExerciseForToday {name} for {user} from {day}>".format(
+			name=self.scheduled_exercise.type.name, user=self.scheduled_exercise.type.owner.email, day=self.scheduled_exercise.scheduled_day)
+
+
+class ScheduledActivity(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	activity_type = db.Column(db.String(50))
+	scheduled_day = db.Column(db.String(10))
+	description = db.Column(db.String(500))
+	planned_distance = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	is_removed = db.Column(db.Boolean, default=False)
+	activities = db.relationship("Activity", backref="scheduled_activity", lazy="dynamic")
+	activity_scheduled_today = db.relationship("ActivityForToday", backref="scheduled_activity", lazy="dynamic")
+
+	def __repr__(self):
+		return "<ScheduledActivity of {activity_type} for {user} on {day}>".format(
+			activity_type=self.activity_type, user=self.owner.email, day=self.scheduled_day)
+			
+	@property
+	def planned_distance_formatted(self):
+		return utils.format_distance(self.planned_distance) if self.planned_distance else ""
+
+
+class ActivityForToday(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ActivityForToday of {activity_type} for {user} from {day}>".format(
+			activity_type=self.scheduled_activity.activity_type, user=self.scheduled_activity.owner.email, day=self.scheduled_activity.scheduled_day)
 
 
 class TrainingGoal(db.Model):

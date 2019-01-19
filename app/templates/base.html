@@ -18,6 +18,7 @@
 
 {% block styles %}
 	{{ super() }}
+		<link rel="shortcut icon" href="/static/img/favicon.ico">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
 	<style>
 		.tt-navbar {
@@ -325,7 +326,7 @@
 		                	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}"><i class="fa fa-home"></i> Home</a></li>
 		                	<li class="navbar-item" id="activity-nav"><a class="nav-link" href="{{ url_for('weekly_activity', year='current') }}"><i class="fa fa-bar-chart"></i> Analysis & Goals</a></li>
 		                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly') }}"><i class="fa fa-calendar"></i> Training Plan</a></li>
-		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('exercise_types') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
+		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('categories') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
 		                	<li class="navbar-item dropdown" id="help-nav">
 		                		<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button"><i class="fa fa-question-circle"></i> Help</a>
 		                		<div class="dropdown-menu">
@@ -362,7 +363,7 @@
     	<hr class="featurette-divider mt-5" />
     	<div class="row">
     		<div class="col-md-9">
-    			<p>&copy; 2019 Training Ticks &middot; <a href="{{ url_for('privacy_policy') }}">Privacy</a> &middot; <a href="mailto:support@trainingticks.com">support@trainingticks.com</a></p>
+    			<p>&copy; 2019 Training Ticks &middot; <a href="{{ url_for('privacy_policy') }}">Privacy</a> &middot; <a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a></p>
     		</div>
     		<div class="col-md-3 text-right">
         		<a href="http://www.strava.com"><img class="img-fluid mx-auto strava-link-img" src="/static/img/api_logo_cptblWith_strava_horiz_light.png" /></a>
