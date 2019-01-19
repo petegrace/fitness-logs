@@ -179,6 +179,9 @@ class User(UserMixin, db.Model):
 											).filter(ExerciseCategory.category_name == None)
 		return uncategorised_activity_types
 
+	def scheduled_activities_filtered(self, scheduled_day):
+		return self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
+
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
 			(ExerciseType.id == ScheduledExercise.exercise_type_id)
@@ -224,6 +227,35 @@ class User(UserMixin, db.Model):
 				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
 		return exercises_for_today_remaining
+
+	def activities_for_today(self):
+		return ActivityForToday.query.join(ScheduledActivity, (ScheduledActivity.id == ActivityForToday.scheduled_activity_id)
+			).filter(ScheduledActivity.owner == self)
+
+	def activities_for_today_remaining(self):
+		activities_for_today_remaining = db.session.query(
+					ScheduledActivity.id,
+					ScheduledActivity.activity_type,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
+					ScheduledActivity.planned_distance,
+					ScheduledActivity.description,
+					func.count(Activity.id).label("completed_activities")
+				).join(ScheduledActivity.activity_scheduled_today
+				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
+										   (func.date(Activity.start_datetime) == date.today()))
+				).filter(ScheduledActivity.owner == self
+				).group_by(
+					ScheduledActivity.id,
+					ScheduledActivity.activity_type,
+					ExerciseCategory.category_key,
+					ExerciseCategory.category_name,
+					ScheduledActivity.planned_distance,
+					ScheduledActivity.description
+				).having(func.count(Activity.id) == 0)
+
+		return activities_for_today_remaining
 
 	def weekly_activity_summary(self, year=None, week=None):
 		exercises = db.session.query(
@@ -531,10 +563,6 @@ class Activity(db.Model):
 
 	@property
 	def distance_formatted(self):
-		# if self.distance >= 1000:
-		# 	distance_formatted = "{value} km".format(value=utils.convert_m_to_km(self.distance))
-		# else:
-		# 	distance_formatted = "{value} m".format(value=self.distance)
 		return utils.format_distance(self.distance)
 
 	@property

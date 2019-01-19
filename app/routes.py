@@ -17,7 +17,7 @@ from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -149,18 +149,20 @@ def index():
 
 	today = date.today()
 	current_day = calendar.day_abbr[today.weekday()]
+	activities_for_today_remaining = current_user.activities_for_today_remaining().all()
 	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
+	original_activities_for_today = current_user.activities_for_today().all()
 	original_exercises_for_today = current_user.exercises_for_today().all()
 
 	has_completed_schedule = False
 
-	if not exercises_for_today_remaining:
-		if current_user.exercises_for_today().all():
+	if not (exercises_for_today_remaining or activities_for_today_remaining):
+		if (original_exercises_for_today or original_activities_for_today):
 		   has_completed_schedule = True
 
+	# Get teh exercise types that aren't available from Training Plan box
 	exercise_types = current_user.exercise_types_ordered().all()
 	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
-
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
 	# Check for the flags we're using to present modals for encouraging engagement
@@ -183,9 +185,10 @@ def index():
 		show_exercise_categories_modal = False
 
 	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
-							exercise_types=other_exercise_types, exercises_for_today_remaining=exercises_for_today_remaining, has_completed_schedule=has_completed_schedule,
-							original_exercises_for_today = original_exercises_for_today, utils=utils, show_new_user_modal=show_new_user_modal,
-							show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
+							exercise_types=other_exercise_types, has_completed_schedule=has_completed_schedule,
+							activities_for_today_remaining=activities_for_today_remaining, original_activities_for_today = original_activities_for_today,
+							exercises_for_today_remaining=exercises_for_today_remaining, original_exercises_for_today = original_exercises_for_today,
+							utils=utils, show_new_user_modal=show_new_user_modal, show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
@@ -678,7 +681,7 @@ def schedule(schedule_freq, selected_day=None):
 		selected_day = calendar.day_abbr[date.today().weekday()]
 
 	scheduled_exercises = current_user.scheduled_exercises(selected_day).all()
-	scheduled_activities = current_user.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=selected_day).all()
+	scheduled_activities = current_user.scheduled_activities_filtered(selected_day).all()
 
 	activity_types = current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all()
 	exercise_types = current_user.exercise_types_ordered()
@@ -746,6 +749,19 @@ def remove_scheduled_activity(id):
 	flash("Removed activity {activity_type} from schedule for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
 
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=scheduled_activity.scheduled_day))
+
+
+@app.route('/remove_activity_for_today/<id>')
+@login_required
+def remove_activity_for_today(id):
+	activity_for_today = ActivityForToday.query.get(int(id))
+	track_event(category="Schedule", action="Activity for today removed", userId = str(current_user.id))
+	flash("Removed activity {activity_type} from today's planned exercises".format(activity_type=activity_for_today.scheduled_activity.activity_type))
+
+	db.session.delete(activity_for_today)
+	db.session.commit()
+
+	return redirect(url_for("index"))
 
 
 @app.route("/schedule_exercise/<id>/<selected_day>")
@@ -845,16 +861,23 @@ def add_to_today(selected_day):
 	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))
 
 	existing_exercises_for_today = current_user.exercises_for_today().all()
-	existing_scheduled_exercise_ids = [exercises_for_today.scheduled_exercise_id for exercises_for_today in existing_exercises_for_today]
+	existing_scheduled_exercise_ids = [exercise_for_today.scheduled_exercise_id for exercise_for_today in existing_exercises_for_today]
+	existing_activities_for_today = current_user.activities_for_today().all()
+	existing_scheduled_activity_ids = [activity_for_today.scheduled_activity_id for activity_for_today in existing_activities_for_today]
 
 	for scheduled_exercise in current_user.scheduled_exercises(scheduled_day=selected_day):
 		if scheduled_exercise.id not in existing_scheduled_exercise_ids:
 			new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
 			db.session.add(new_exercise_for_today)
 
+	for scheduled_activity in current_user.scheduled_activities_filtered(scheduled_day=selected_day):
+		if scheduled_activity.id not in existing_scheduled_activity_ids:
+			new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
+			db.session.add(new_activity_for_today)
+
 	db.session.commit()
 
-	flash("Added exercises from {selected_day} to today's plan".format(selected_day=selected_day))
+	flash("Added activities and exercises from {selected_day} to today's plan".format(selected_day=selected_day))
 
 	return redirect(url_for("index"))
 

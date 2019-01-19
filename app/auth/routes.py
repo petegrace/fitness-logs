@@ -5,7 +5,7 @@ from app import app, db #, oauth2
 from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm
 from app.auth.common import configured_google_client
-from app.models import User, ExerciseForToday
+from app.models import User, ExerciseForToday, ActivityForToday
 from requests_oauth2.services import GoogleClient
 from requests_oauth2 import OAuth2BearerToken
 from datetime import datetime, date, timedelta
@@ -53,6 +53,14 @@ def login():
 			current_day = calendar.day_abbr[today.weekday()]
 
 			if current_user.last_login_date != datetime.date(datetime.today()):
+				# Clear out the activities for today and reload
+				for activity_for_today in current_user.activities_for_today():
+					db.session.delete(activity_for_today)
+
+				for scheduled_activity in current_user.scheduled_activities_filtered(scheduled_day=current_day):
+					new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
+					db.session.add(new_activity_for_today)
+
 				# Clear out the exercises for today and reload
 				for exercise_for_today in current_user.exercises_for_today():
 					db.session.delete(exercise_for_today)
