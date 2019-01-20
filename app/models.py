@@ -531,7 +531,7 @@ class Activity(db.Model):
 	external_id = db.Column(db.String(50)) # string in case we ever use anyting other than Strava
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
-	name = db.Column(db.String(200))
+	name = db.Column(db.String(500))
 	start_datetime = db.Column(db.DateTime)
 	activity_type = db.Column(db.String(50))
 	is_race = db.Column(db.Boolean, default=False)
