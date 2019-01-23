@@ -548,6 +548,7 @@ class Activity(db.Model):
 	is_bad_elevation_data = db.Column(db.Boolean, default=False)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	activity_cadence_aggregates = db.relationship("ActivityCadenceAggregate", backref="activity", lazy="dynamic")
+	activity_pace_aggregates = db.relationship("ActivityPaceAggregate", backref="activity", lazy="dynamic")
 	activity_gradient_aggregates = db.relationship("ActivityGradientAggregate", backref="activity", lazy="dynamic")
 
 	def __repr__(self):
@@ -603,6 +604,26 @@ class ActivityCadenceAggregate(db.Model):
 	@property
 	def total_seconds_above_cadence_formatted(self):
 		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_cadence))
+
+
+class ActivityPaceAggregate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"))
+	pace_seconds = db.Column(db.Integer)
+	total_seconds_at_pace = db.Column(db.Integer)
+	total_seconds_above_pace = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ActivityPaceAggregate for {pace_seconds} on {name}>".format(pace_seconds=self.pace_seconds, name=self.activity.name)
+
+	@property
+	def total_seconds_at_pace_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_at_pace))
+
+	@property
+	def total_seconds_above_pace_formatted(self):
+		return utils.format_timedelta_minutes(timedelta(seconds=self.total_seconds_above_pace))
 
 
 class ActivityGradientAggregate(db.Model):
