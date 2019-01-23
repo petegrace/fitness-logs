@@ -286,6 +286,9 @@ def new_exercise(context, selected_day=None):
 												   seconds=form.seconds.data)
 			db.session.add(scheduled_exercise)
 
+			if selected_day == calendar.day_abbr[date.today().weekday()]:
+				training_plan.add_to_plan_for_today(current_user, selected_day)
+
 			if current_user.is_training_plan_user == False:
 				current_user.is_training_plan_user = True
 
@@ -735,6 +738,9 @@ def schedule_activity(activity_type, selected_day):
 			db.session.commit()
 			flash("Created {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
 
+		if selected_day == calendar.day_abbr[date.today().weekday()]:
+			training_plan.add_to_plan_for_today(current_user, selected_day)
+
 		if current_user.is_training_plan_user == False:
 			current_user.is_training_plan_user = True
 			db.session.commit()
@@ -803,6 +809,10 @@ def schedule_exercise(id, selected_day):
 			current_user.is_training_plan_user = True
 
 	db.session.commit()
+
+	if selected_day == calendar.day_abbr[date.today().weekday()]:
+		training_plan.add_to_plan_for_today(current_user, selected_day)
+
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
 
 
@@ -869,26 +879,8 @@ def remove_exercise_for_today(id):
 @app.route('/add_to_today/<selected_day>')
 @login_required
 def add_to_today(selected_day):
-	#exercise_for_today = ExerciseForToday.query.get(int(id))
-	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))
-
-	existing_exercises_for_today = current_user.exercises_for_today().all()
-	existing_scheduled_exercise_ids = [exercise_for_today.scheduled_exercise_id for exercise_for_today in existing_exercises_for_today]
-	existing_activities_for_today = current_user.activities_for_today().all()
-	existing_scheduled_activity_ids = [activity_for_today.scheduled_activity_id for activity_for_today in existing_activities_for_today]
-
-	for scheduled_exercise in current_user.scheduled_exercises(scheduled_day=selected_day):
-		if scheduled_exercise.id not in existing_scheduled_exercise_ids:
-			new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
-			db.session.add(new_exercise_for_today)
-
-	for scheduled_activity in current_user.scheduled_activities_filtered(scheduled_day=selected_day):
-		if scheduled_activity.id not in existing_scheduled_activity_ids:
-			new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
-			db.session.add(new_activity_for_today)
-
-	db.session.commit()
-
+	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))	
+	training_plan.add_to_plan_for_today(current_user, selected_day)
 	flash("Added activities and exercises from {selected_day} to today's plan".format(selected_day=selected_day))
 
 	return redirect(url_for("index"))
@@ -898,7 +890,6 @@ def add_to_today(selected_day):
 @login_required
 def exercise_types():
 	track_event(category="Manage", action="Exercise Types page loaded", userId = str(current_user.id))
-
 	exercise_types = current_user.exercise_types.order_by(ExerciseType.name).all()
 
 	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types)

@@ -26,3 +26,18 @@ def refresh_plan_for_today(user):
         db.session.add(new_exercise_for_today)
 
     db.session.commit()
+
+def add_to_plan_for_today(user, day):
+    existing_exercises_for_today = user.exercises_for_today().all()
+    existing_scheduled_exercise_ids = [exercise_for_today.scheduled_exercise_id for exercise_for_today in existing_exercises_for_today]
+    existing_activities_for_today = user.activities_for_today().all()
+    existing_scheduled_activity_ids = [activity_for_today.scheduled_activity_id for activity_for_today in existing_activities_for_today]    
+    for scheduled_exercise in user.scheduled_exercises(scheduled_day=day):
+    	if scheduled_exercise.id not in existing_scheduled_exercise_ids:
+    		new_exercise_for_today = ExerciseForToday(scheduled_exercise_id = scheduled_exercise.id)
+    		db.session.add(new_exercise_for_today)
+    for scheduled_activity in user.scheduled_activities_filtered(scheduled_day=day):
+    	if scheduled_activity.id not in existing_scheduled_activity_ids:
+    		new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
+    		db.session.add(new_activity_for_today)
+    db.session.commit()
