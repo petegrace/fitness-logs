@@ -1,8 +1,14 @@
+import calendar
+from datetime import date
 from app import app, db
 from app.models import User, ExerciseForToday, ActivityForToday
 
-# TODO: Needs some thought to make sure we don't clear out activities that are actually for today
-def refresh_plan_for_today(user):   
+# Should only call this function in scenarios where we are happy to clear out today's plan:
+#   1) Logging in and the current date is different to last login date
+#   2) Refreshed home page and the current date is different to last login date (should also update last login date)
+def refresh_plan_for_today(user):
+    current_day = calendar.day_abbr[date.today().weekday()]
+
     # Clear out the activities for today and reload
     for activity_for_today in user.activities_for_today():
         db.session.delete(activity_for_today)

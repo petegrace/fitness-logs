@@ -12,7 +12,7 @@ from wtforms import HiddenField
 import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
-from app import app, db, utils, analysis
+from app import app, db, utils, analysis, training_plan
 from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
@@ -148,6 +148,13 @@ def index():
 	prev_url = url_for("index", page=recent_activities.prev_num) if recent_activities.has_prev else None
 
 	today = date.today()
+
+	# Handle scenario of user not having had to log in since yesterday
+	if current_user.last_login_date != today:
+		training_plan.refresh_plan_for_today(current_user)
+		current_user.last_login_datetime = datetime.utcnow() # Treat it as a fresh login for logic and tracking purposes
+		db.session.commit()
+
 	current_day = calendar.day_abbr[today.weekday()]
 	activities_for_today_remaining = current_user.activities_for_today_remaining().all()
 	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
@@ -165,6 +172,7 @@ def index():
 	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
+	
 	# Check for the flags we're using to present modals for encouraging engagement
 	is_new_user = request.args.get("is_new_user")
 	if is_new_user and is_new_user == "True" and (current_user.id % 2) == 0: #It's coming from query param so is a string still
