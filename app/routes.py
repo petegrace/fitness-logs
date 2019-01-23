@@ -17,7 +17,7 @@ from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, ActivityPaceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -1182,9 +1182,28 @@ def activity_analysis(id):
 			fill_color=fill_color, line_color=line_color)
 		above_cadence_plot_script, above_cadence_plot_div = components(above_cadence_plot)
 	else:
-		max_dimension_range = None
 		at_cadence_plot_script, at_cadence_plot_div = ("", "")
 		above_cadence_plot_script, above_cadence_plot_div = ("", "")
+	
+	# Pace charts
+	if activity.activity_pace_aggregates.first():
+		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
+		max_dimension_range = (0, utils.convert_mps_to_km_pace(activity.average_speed).total_seconds() + 60)
+
+		at_pace_plot = generate_bar(dataset=activity.activity_pace_aggregates.order_by(ActivityPaceAggregate.pace_seconds.desc()), plot_height=300,
+			dimension_type="continuous-inverse", dimension_name="pace_seconds", measure_name="total_seconds_at_pace", dimension_interval=5, measure_label_name="total_seconds_at_pace_formatted", max_dimension_range=max_dimension_range,
+			fill_color=fill_color, line_color=line_color)
+		at_pace_plot_script, at_pace_plot_div = components(at_pace_plot)
+		at_pace_plot_container = PlotComponentContainer(name="Time Spent at Pace (secs/km)", plot_div=at_pace_plot_div, plot_script=at_pace_plot_script)
+
+		above_pace_plot = generate_bar(dataset=activity.activity_pace_aggregates.order_by(ActivityPaceAggregate.pace_seconds.desc()), plot_height=300,
+			dimension_type="continuous-inverse", dimension_name="pace_seconds", measure_name="total_seconds_above_pace", dimension_interval=5, measure_label_name="total_seconds_above_pace_formatted", max_dimension_range=max_dimension_range,
+			fill_color=fill_color, line_color=line_color)
+		above_pace_plot_script, above_pace_plot_div = components(above_pace_plot)
+		above_pace_plot_container = PlotComponentContainer(name="Time Spent faster than Pace (secs/km)", plot_div=above_pace_plot_div, plot_script=above_pace_plot_script)
+	else:
+		at_pace_plot_container = None
+		above_pace_plot_container = None
 
 	# Gradient charts
 	if activity.activity_gradient_aggregates.first():
@@ -1207,6 +1226,7 @@ def activity_analysis(id):
 	return render_template("activity_analysis.html", title="Activity Analysis: {name}".format(name=activity.name), activity=activity,
 		at_cadence_plot_script=at_cadence_plot_script, at_cadence_plot_div=at_cadence_plot_div,
 		above_cadence_plot_script=above_cadence_plot_script, above_cadence_plot_div=above_cadence_plot_div,
+		at_pace_plot_container=at_pace_plot_container, above_pace_plot_container=above_pace_plot_container,
 		at_gradient_plot_container=at_gradient_plot_container, above_gradient_plot_container=above_gradient_plot_container)
 
 

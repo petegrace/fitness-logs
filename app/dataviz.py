@@ -169,7 +169,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 								 line_color=line_colors))
 
 	# Set the dimension ranges without knowledge of goal targets for now
-	if dimension_type == "continuous":
+	if dimension_type in ["continuous", "continuous-inverse"]:
 		if max_dimension_range is None:
 			dimension_range_min = dimension_values[-1]
 			dimension_range_max = dimension_values[0]
@@ -185,7 +185,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 							measure_label_function=measure_label_function, goal_label_function=goal_label_function)
 
 		# Update the max ranges
-		if dimension_type == "continuous":
+		if dimension_type in ["continuous", "continuous-inverse"]:
 			if min(goals_source.data["dimension"]) < dimension_range_min:
 				dimension_range_min = min(goals_source.data["dimension"])-1
 
@@ -197,6 +197,10 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	if dimension_type == "continuous":
 		dimension_range = (dimension_range_min-1, dimension_range_max+1)
+		bar_height = 0.6 * dimension_interval
+		goal_bar_height = 0.9 * dimension_interval
+	elif dimension_type == "continuous-inverse":
+		dimension_range = (dimension_range_max+1, dimension_range_min-1)
 		bar_height = 0.6 * dimension_interval
 		goal_bar_height = 0.9 * dimension_interval
 	elif dimension_type == "discrete":
@@ -225,7 +229,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		tap_tool.callback = CustomJS(args=dict(source=source, goals_source=goals_source), code=tap_tool_callback)
 
 	# TODO: This will need to be more flexible for data other than cadence
-	if dimension_type == "continuous":
+	if dimension_type in ["continuous", "continuous-inverse"]:
 		y_ticker = SingleIntervalTicker(interval=2*dimension_interval, num_minor_ticks=2)
 		y_axis = LinearAxis(ticker=y_ticker)
 	else:

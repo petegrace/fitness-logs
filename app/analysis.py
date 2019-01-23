@@ -2,7 +2,7 @@ from flask import flash, redirect, url_for, request, session
 from flask_login import current_user
 from bokeh.embed import components
 from app import app, db, utils
-from app.models import TrainingGoal, ActivityCadenceAggregate, ActivityGradientAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
+from app.models import TrainingGoal, ActivityCadenceAggregate, ActivityPaceAggregate, ActivityGradientAggregate, CalendarDay, Activity, Exercise, ExerciseType, ExerciseCategory
 from app.app_classes import TempCadenceAggregate, TempGradientAggregate, PlotComponentContainer
 from app.dataviz import generate_line_chart
 from sqlalchemy import func, or_
@@ -82,11 +82,13 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 	db.session.commit()
 
 
-def aggregate_stream_data(data_points_df, groupby_field):
+def aggregate_stream_data(data_points_df, groupby_field, sort_order="DESC"):
 	duration_aggregation = data_points_df.groupby([groupby_field])["duration"].sum()
 	distance_aggregation = data_points_df.groupby([groupby_field])["distance_travelled"].sum().round(decimals=1)
 	grouped_data = list(zip(duration_aggregation.index, duration_aggregation, distance_aggregation))
-	grouped_data.reverse()
+
+	if sort_order == "DESC":
+		grouped_data.reverse()
 	
 	return grouped_data
 
@@ -103,7 +105,7 @@ def parse_streams(activity):
 	access_token = session["strava_access_token"]
 	strava_client.access_token = access_token
 
-	stream_types = ["time", "cadence", "distance", "altitude", "grade_smooth"]
+	stream_types = ["time", "cadence", "velocity_smooth", "distance", "altitude", "grade_smooth"]
 
 	try:
 		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
@@ -112,15 +114,16 @@ def parse_streams(activity):
 
 	if activity_streams is not None:
 		#cadence_records = []
-		data_points_df = pd.DataFrame(columns=["start_time", "duration", "distance_travelled", "cadence", "gradient"])
+		data_points_df = pd.DataFrame(columns=["start_time", "duration", "distance_travelled", "pace_seconds", "cadence", "gradient"])
 		dp_ind = 0
 		df_ind = 0
 
-		# construct a data frame
+		# construct a data frame.  We can probably do this more efficiently by constructing a list first then only putting into the data frame once
 		for time_data_point in activity_streams["time"].data:
 			if dp_ind > 1:
 				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
 				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
+				pace_seconds = math.ceil(utils.convert_mps_to_km_pace(activity_streams["velocity_smooth"].data[dp_ind]).total_seconds() / 5) * 5 if "velocity_smooth" in activity_streams and activity_streams["velocity_smooth"].data[dp_ind] > 0 else None
 				gradient = math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else None
 
 				# Extra cleansing of gradient to deal with dodgy value during barometer calibration
@@ -130,13 +133,14 @@ def parse_streams(activity):
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
 												  duration,
 												  distance_travelled,
+												  pace_seconds,
 												  activity_streams["cadence"].data[dp_ind] if "cadence" in activity_streams else None,
 												  gradient]
 					df_ind += 1
 			dp_ind += 1
 
 		# Perform aggregations for cadence if needed
-		if not activity.activity_cadence_aggregates.first() and not activity.is_bad_elevation_data and "cadence" in activity_streams:
+		if not activity.activity_cadence_aggregates.first() and "cadence" in activity_streams:
 			cadence_data = aggregate_stream_data(data_points_df, groupby_field="cadence")
 
 			running_total = 0
@@ -157,6 +161,28 @@ def parse_streams(activity):
 
 			activity.median_cadence = data_points_df["cadence"].median()*2
 			flash("Processed cadence data for {activity}".format(activity=activity.name))
+
+		# Perform aggregations for pace if needed
+		if not activity.activity_pace_aggregates.first() and "velocity_smooth" in activity_streams:
+			pace_data = aggregate_stream_data(data_points_df, groupby_field="pace_seconds", sort_order="ASC")
+			
+			running_total = 0
+			this_aggregate_total = 0
+
+			for pace_group in pace_data:
+				running_total += pace_group[1]
+				this_aggregate_total += pace_group[1]
+				
+				# Group up any outliers with seconds < 10 seconds into the next aggregate
+				if this_aggregate_total > 10:
+					activity_pace_aggregate = ActivityPaceAggregate(activity=activity,
+																	pace_seconds=pace_group[0],
+																	total_seconds_at_pace=this_aggregate_total,
+																	total_seconds_above_pace=running_total)
+					db.session.add(activity_pace_aggregate)
+					this_aggregate_total = 0
+					
+			flash("Processed pace data for {activity}".format(activity=activity.name))
 
 		# Perform aggregations for gradient if needed
 		if not activity.activity_gradient_aggregates.first() and "grade_smooth" in activity_streams:
