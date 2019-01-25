@@ -1188,16 +1188,16 @@ def activity_analysis(id):
 	# Pace charts
 	if activity.activity_pace_aggregates.first():
 		# Keep the graph tidy if there's any bit of walking or other outliers by excluding them
-		max_dimension_range = (0, utils.convert_mps_to_km_pace(activity.average_speed).total_seconds() + 60)
+		max_dimension_range = (utils.seconds_to_datetime(0), utils.seconds_to_datetime(utils.convert_mps_to_km_pace(activity.average_speed).total_seconds() + 60))
 
 		at_pace_plot = generate_bar(dataset=activity.activity_pace_aggregates.order_by(ActivityPaceAggregate.pace_seconds.desc()), plot_height=300,
-			dimension_type="continuous-inverse", dimension_name="pace_seconds", measure_name="total_seconds_at_pace", dimension_interval=5, measure_label_name="total_seconds_at_pace_formatted", max_dimension_range=max_dimension_range,
+			dimension_type="timedelta", dimension_name="pace_seconds", measure_name="total_seconds_at_pace", dimension_interval=5000, measure_label_name="total_seconds_at_pace_formatted", max_dimension_range=max_dimension_range,
 			fill_color=fill_color, line_color=line_color)
 		at_pace_plot_script, at_pace_plot_div = components(at_pace_plot)
 		at_pace_plot_container = PlotComponentContainer(name="Time Spent at Pace (secs/km)", plot_div=at_pace_plot_div, plot_script=at_pace_plot_script)
 
 		above_pace_plot = generate_bar(dataset=activity.activity_pace_aggregates.order_by(ActivityPaceAggregate.pace_seconds.desc()), plot_height=300,
-			dimension_type="continuous-inverse", dimension_name="pace_seconds", measure_name="total_seconds_above_pace", dimension_interval=5, measure_label_name="total_seconds_above_pace_formatted", max_dimension_range=max_dimension_range,
+			dimension_type="timedelta", dimension_name="pace_seconds", measure_name="total_seconds_above_pace", dimension_interval=5000, measure_label_name="total_seconds_above_pace_formatted", max_dimension_range=max_dimension_range,
 			fill_color=fill_color, line_color=line_color)
 		above_pace_plot_script, above_pace_plot_div = components(above_pace_plot)
 		above_pace_plot_container = PlotComponentContainer(name="Time Spent faster than Pace (secs/km)", plot_div=above_pace_plot_div, plot_script=above_pace_plot_script)

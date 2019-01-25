@@ -1,10 +1,11 @@
 from flask import redirect, flash
-from datetime import timedelta
+from datetime import datetime, timedelta
 import pandas as pd
 from bokeh.core.properties import value
 from bokeh.models import ColumnDataSource, HoverTool, TapTool, Plot, DatetimeTickFormatter, OpenURL, LabelSet, SingleIntervalTicker, LinearAxis, CustomJS, Arrow, NormalHead, CategoricalAxis, FuncTickFormatter
 from bokeh.plotting import figure
 import bokeh.layouts
+from app import utils
 
 def generate_stacked_bar_for_categories(dataset_query, user_categories, dimension, measure, dimension_type, plot_height, bar_direction="vertical", measure_units="", granularity="day", show_grid=True, show_yaxis=True):
 	# Colour mappings - TODO: Switch to using the colours in the DB for each category
@@ -132,8 +133,9 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 
 def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_label_name=None, measure_label_function=None, category_field=None, fill_color=None, line_color=None,
 		dimension_type="continuous", max_dimension_range=None, dimension_interval=2, goals_dataset=None, goal_measure_type="absolute", goal_dimension_type="value", goal_label_function=None, tap_tool_callback=None):
-	# IMPPRTANT: Assumes that data is ordered descending by dimension values when workinn out the axis range
+	# IMPORTANT: Assumes that data is ordered descending by dimension values when working out the axis range, use inverse for ascending
 	dimension_values = []
+	dimension_labels = []
 	measure_values = []
 	measure_labels = []
 	fill_colors = []
@@ -141,10 +143,15 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 
 	if measure_label_name is None:
 		measure_label_name = measure_name
-
-	# Reshape the data for the bars
+	
 	for row in dataset:
-		dimension_values.append(getattr(row, dimension_name))
+		if dimension_type=="timedelta":
+			dimension_values.append(utils.seconds_to_datetime(getattr(row, dimension_name)))
+			dimension_labels.append(utils.convert_seconds_to_minutes_formatted(getattr(row, dimension_name)))
+		else:
+			dimension_values.append(getattr(row, dimension_name))
+			dimension_labels.append(getattr(row, dimension_name))
+
 		measure_values.append(getattr(row, measure_name))
 
 		if measure_label_function is None:
@@ -163,13 +170,21 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 			line_colors.append("#292b2c")
 
 	source=ColumnDataSource(dict(dimension=dimension_values,
+								 dimension_label=dimension_labels,
 								 measure=measure_values,
 								 measure_label=measure_labels,
 								 fill_color=fill_colors,
 								 line_color=line_colors))
 
 	# Set the dimension ranges without knowledge of goal targets for now
-	if dimension_type in ["continuous", "continuous-inverse"]:
+	if dimension_type == "continuous":
+		if max_dimension_range is None:
+			dimension_range_min = dimension_values[-1]
+			dimension_range_max = dimension_values[0]
+		else:
+			dimension_range_min = dimension_values[-1] if dimension_values[-1] > max_dimension_range[0] else max_dimension_range[0]
+			dimension_range_max = dimension_values[0] if dimension_values[0] < max_dimension_range[1] else max_dimension_range[1]
+	elif dimension_type == "timedelta":
 		if max_dimension_range is None:
 			dimension_range_min = dimension_values[-1]
 			dimension_range_max = dimension_values[0]
@@ -185,7 +200,7 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 							measure_label_function=measure_label_function, goal_label_function=goal_label_function)
 
 		# Update the max ranges
-		if dimension_type in ["continuous", "continuous-inverse"]:
+		if dimension_type == "continuous":
 			if min(goals_source.data["dimension"]) < dimension_range_min:
 				dimension_range_min = min(goals_source.data["dimension"])-1
 
@@ -199,8 +214,8 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		dimension_range = (dimension_range_min-1, dimension_range_max+1)
 		bar_height = 0.6 * dimension_interval
 		goal_bar_height = 0.9 * dimension_interval
-	elif dimension_type == "continuous-inverse":
-		dimension_range = (dimension_range_max+1, dimension_range_min-1)
+	elif dimension_type == "timedelta":
+		dimension_range = (dimension_range_max+timedelta(seconds=2.5), dimension_range_min-timedelta(seconds=2.5))
 		bar_height = 0.6 * dimension_interval
 		goal_bar_height = 0.9 * dimension_interval
 	elif dimension_type == "discrete":
@@ -209,7 +224,11 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		goal_bar_height = 0.8
 	measure_range = (-1, float(measure_range_max)*1.3) # Ideally this would be more responsive for the viewport but need to look at options
 
-	plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure_label", y_axis_type=None, tools=["tap"])
+	if dimension_type=="timedelta":
+		plot = figure(plot_height=plot_height, y_axis_type="datetime", y_range=dimension_range, x_range=measure_range, tooltips="@dimension_label: @measure_label", toolbar_location=None, tools=["tap"]) 
+		plot.yaxis.formatter=DatetimeTickFormatter(minsec='%M:%S')
+	else:
+		plot = figure(plot_height=plot_height, y_range=dimension_range, x_range=measure_range, toolbar_location=None, tooltips="@dimension: @measure_label", y_axis_type=None, tools=["tap"])
 	plot.hbar(source=source, y="dimension", right="measure", height=bar_height, color="fill_color", line_color="line_color", fill_alpha=0.8, hover_color="fill_color", hover_alpha=1)
 	labels = LabelSet(source=source, x="measure", y="dimension", text="measure_label", level="glyph",
         x_offset=5, y_offset=-5, render_mode="canvas", text_font = "sans-serif", text_font_size = "7pt", text_color="fill_color")
@@ -229,12 +248,15 @@ def generate_bar(dataset, plot_height, dimension_name, measure_name, measure_lab
 		tap_tool.callback = CustomJS(args=dict(source=source, goals_source=goals_source), code=tap_tool_callback)
 
 	# TODO: This will need to be more flexible for data other than cadence
-	if dimension_type in ["continuous", "continuous-inverse"]:
+	if dimension_type == "continuous":
 		y_ticker = SingleIntervalTicker(interval=2*dimension_interval, num_minor_ticks=2)
 		y_axis = LinearAxis(ticker=y_ticker)
+		plot.add_layout(y_axis, "left")
+	elif dimension_type == "timedelta":
+		pass
 	else:
 		y_axis = CategoricalAxis()
-	plot.add_layout(y_axis, "left")
+		plot.add_layout(y_axis, "left")
 
 	plot.xaxis.visible = False
 	plot.sizing_mode = "scale_width"
