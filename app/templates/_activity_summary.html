@@ -1,15 +1,24 @@
 <!-- TODO: more margin for the full page -->
 <div class="card {{ activity.category.category_key }}_border_only mt-2">
 	<div class="card-header {{ activity.category.category_key }}">
-		<h6 class="m-0 p-0">
-			<!-- TODO: Only a link if it's not the full page -->
-			<a href="{{ url_for('activity_analysis', id=activity.id) }}">
+		{% if "activity_analysis" not in request.path %}
+			<h6 class="m-0 p-0">
+				<a href="{{ url_for('activity_analysis', id=activity.id) }}">
+					{{ activity.name }}
+					{% if activity.is_race %}
+						<i class="fa fa-flag-checkered"></i>
+					{% endif %}
+				</a>
+			</h6>
+		{% else %}
+		<!-- TODO: H5 but white-->
+			<h3 class="m-0 p-0">
 				{{ activity.name }}
 				{% if activity.is_race %}
 					<i class="fa fa-flag-checkered"></i>
 				{% endif %}
-			</a>
-		</h6>
+			</h3>
+		{% endif %}
 	</div>
 	<div class="card-body">
 		<div class="row">
