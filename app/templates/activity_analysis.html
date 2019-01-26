@@ -31,9 +31,13 @@
 	{% if at_cadence_plot_div %}		
 		<div class="card mt-3">
 			<div class="card-header">
-				<h5 class="m-0 p-0">Cadence Analysis</h5>
+				<h5 class="m-0 p-0">Cadence Analysis</h5>				
 			</div>
 			<div class="card-body">
+				<p>Once you understand your natural cadence (steps per minute),
+				analysing it for any given activity is a great way to see how hard you’ve worked, especially if you’ve incorporated any intervals into your run.
+				The accelerometer in your watch is normally very accurate so cadence is a great metric to compare from week to week,
+				see your improvement, and set goals around.</p>
 				<div class="row mt-1">
 					<div class="col-md-6">
 						<h6>Time Spent at Cadence</h6>
@@ -53,6 +57,11 @@
 				<h5 class="m-0 p-0">Pace Analysis</h5>
 			</div>
 			<div class="card-body">
+				<p>Calculation of pace relies heavily on your GPS, and whilst it will tend to be accurate over the course of a whole run,
+				the margin of error is actually quite high when taking data points every few seconds.
+				Sadly that causes your recorded pace to jump around, so these charts are generally less useful than those for cadence.
+				We’re considering some ways we could try to refine this data,
+				so if you think you’d find this useful let us know via <a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a>.</p>
 				<div class="row mt-1">
 					<div class="col-md-6">
 						<h6>{{ at_pace_plot_container.name }}</h6>
@@ -72,6 +81,11 @@
 				<h5 class="m-0 p-0">Gradient Analysis</h5>
 			</div>
 			<div class="card-body">
+				<p>Whilst total elevation gain for a whole run is great to see how much climbing you've done,
+				sometimes it can be interesting to look in more detail at what kind of hills you’ve been running -
+				were they long drags or those nasty short sharp ones? 
+				Maybe you’re just curious to see just how steep that hill you’ve just done really was!
+				Or maybe you want to set some goals to do more running at steeper gradients to prepare for an upcoming race.</p>
 				<div class="row mt-1">
 					<div class="col-md-6">
 						<h6>{{ at_gradient_plot_container.name }}</h6>
