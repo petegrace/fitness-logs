@@ -160,7 +160,6 @@ def parse_streams(activity):
 					this_aggregate_total = 0
 
 			activity.median_cadence = data_points_df["cadence"].median()*2
-			flash("Processed cadence data for {activity}".format(activity=activity.name))
 
 		# Perform aggregations for pace if needed
 		if not activity.activity_pace_aggregates.first() and "velocity_smooth" in activity_streams:
@@ -181,8 +180,6 @@ def parse_streams(activity):
 																	total_seconds_above_pace=running_total)
 					db.session.add(activity_pace_aggregate)
 					this_aggregate_total = 0
-					
-			flash("Processed pace data for {activity}".format(activity=activity.name))
 
 		# Perform aggregations for gradient if needed
 		if not activity.activity_gradient_aggregates.first() and "grade_smooth" in activity_streams:
@@ -215,7 +212,8 @@ def parse_streams(activity):
 					this_aggregate_total_duration = 0
 					this_aggregate_total_distance = 0
 
-			flash("Processed gradient data for {activity}".format(activity=activity.name))
+		
+		flash("Processed detailed activity data for {activity}".format(activity=activity.name))
 
 		activity.is_fully_parsed = True
 		db.session.commit()

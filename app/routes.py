@@ -1055,6 +1055,9 @@ def import_strava_activity():
 		db.session.add(activity)
 		new_activity_count += 1
 
+		if strava_activity.start_date.replace(tzinfo=None) > datetime.now() - timedelta(days=7):
+			result = analysis.parse_streams(activity=activity)
+
 	flash("Added {count} new activities from Strava!".format(count=new_activity_count))
 	track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
 	db.session.commit()
