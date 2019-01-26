@@ -1156,7 +1156,7 @@ def activity_analysis(id):
 		# 3. Set the activity to is_fully_parsed and confirm user to be Strava user
 		activity.is_fully_parsed = True
 
-		if current_user.is_strava_user == False:
+		if not current_user.is_strava_user:
 			current_user.is_strava_user = True
 
 		db.session.commit()
