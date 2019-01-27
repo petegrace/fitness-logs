@@ -165,6 +165,23 @@
 		</div>
 	</div>
 
+	<div class="card mt-3">
+		<div class="card-header">
+			<h4>Get started using a template</h4>
+		</div>
+		<div class="card-body">
+			<p>The aim of the Training Plan tool is to let you plan your schedule of activity for yourself based on what works for you,
+			but you might find it helpful to start off with a template to populate your initial exercises, and then adapt as required. Let us know via
+			<a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a>
+			if there's a training plan you've come across that you'd like to be available as a template.</p>
+			{% for template in templates %}
+				<hr />
+				<h6>{{ template.name }} [<a href="{{ url_for('copy_template_to_schedule', template_id=template.id) }}">Add to Weekly Plan</a>]</h6>
+				<p>{{ template.description }} - <a href="{{ template.link_url }}" target="_blank">{{ template.link_text }}</a></p>
+			{% endfor %}
+		</div>
+	</div>
+
 	<!-- Modal for pointing people at Manage Categories-->
 	{% if show_exercise_categories_modal %}
 		{% include '_exercise_categories_modal.html' %}
