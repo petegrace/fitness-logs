@@ -792,3 +792,51 @@ class CalendarDay(db.Model):
 
 	def __repr__(self):
 		return "<CalendarDay {date}>".format(date=self.calendar_date)
+
+class TrainingPlanTemplate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(50))
+	description = db.Column(db.String(1000))
+	link_url = db.Column(db.String(250))
+	link_text = db.Column(db.String(100))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	template_exercise_categories = db.relationship("TemplateExerciseCategory", backref="training_plan_template", lazy="dynamic")
+
+	def __repr__(self):
+		return "<TrainingPlanTemplate {name}>".format(name=self.template_name)
+
+
+class TemplateExerciseCategory(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	template_id = db.Column(db.Integer, db.ForeignKey("training_plan_template.id"))
+	category_name = db.Column(db.String(25))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	template_exercise_types = db.relationship("TemplateExerciseType", backref="template_exercise_category", lazy="dynamic")
+
+	def __repr__(self):
+		return "<TemplateExerciseCategory {name} for {template}>".format(name=self.category_name, template=self.training_plan_template.name)
+		
+
+class TemplateExerciseType(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(100), index=True)
+	measured_by = db.Column(db.String(50))
+	template_exercise_category_id = db.Column(db.Integer, db.ForeignKey("template_exercise_category.id"))
+	default_reps = db.Column(db.Integer)
+	default_seconds = db.Column(db.Integer)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	template_scheduled_exercises = db.relationship("TemplateScheduledExercise", backref="template_scheduled_exercise", lazy="dynamic")
+
+	def __repr__(self):
+		return "<TemplateExerciseType {name} for {template}>".format(name=self.name, template=self.template_exercise_category.training_plan_template.name)
+		
+
+class TemplateScheduledExercise(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	template_exercise_type_id = db.Column(db.Integer, db.ForeignKey("template_exercise_type.id"))
+	scheduled_day = db.Column(db.String(10))
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<TemplateScheduledExercise {name} for {template} on {day}>".format(
+			name=self.template_exercise_type.name, template=self.template_exercise_type.template_exercise_category.training_plan_template.name, day=self.scheduled_day)
