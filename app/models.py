@@ -793,6 +793,17 @@ class CalendarDay(db.Model):
 	def __repr__(self):
 		return "<CalendarDay {date}>".format(date=self.calendar_date)
 
+
+class AvailableCategoryKey(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	category_key = db.Column(db.String(25))
+	fill_color = db.Column(db.String(25))
+	line_color = db.Column(db.String(25))
+
+	def __repr__(self):
+		return "<AvailableCategoryKey {category_key}>".format(date=self.category_key)
+
+
 class TrainingPlanTemplate(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(50))
