@@ -494,6 +494,11 @@ class User(UserMixin, db.Model):
 
 		return ordered_exercise_types
 
+	def unused_category_keys(self):
+		unused_category_keys = AvailableCategoryKey.query.outerjoin(ExerciseCategory, and_(AvailableCategoryKey.category_key==ExerciseCategory.category_key, ExerciseCategory.user_id==self.id)
+				).filter(ExerciseCategory.category_key == None)
+		return unused_category_keys
+
 
 class ExerciseCategory(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -835,6 +840,7 @@ class TemplateExerciseType(db.Model):
 	template_exercise_category_id = db.Column(db.Integer, db.ForeignKey("template_exercise_category.id"))
 	default_reps = db.Column(db.Integer)
 	default_seconds = db.Column(db.Integer)
+	default_sets = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	template_scheduled_exercises = db.relationship("TemplateScheduledExercise", backref="template_scheduled_exercise", lazy="dynamic")
 
