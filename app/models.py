@@ -180,7 +180,18 @@ class User(UserMixin, db.Model):
 		return uncategorised_activity_types
 
 	def scheduled_activities_filtered(self, scheduled_day):
-		return self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
+		scheduled_activities_filtered = db.session.query(
+											ScheduledActivity.id,
+											ScheduledActivity.activity_type,
+											ScheduledActivity.scheduled_day,
+											ScheduledActivity.description,
+											ScheduledActivity.planned_distance,
+											ExerciseCategory.category_key
+				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).filter(ScheduledActivity.owner == self
+				).filter(ScheduledActivity.is_removed==False
+				).filter(ScheduledActivity.scheduled_day==scheduled_day)
+		return scheduled_activities_filtered #self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
@@ -189,6 +200,21 @@ class User(UserMixin, db.Model):
 			).filter(ScheduledExercise.is_removed == False
 			).filter(ScheduledExercise.scheduled_day == scheduled_day
 			).order_by(ExerciseType.name)
+
+	def scheduled_exercise_categories(self, scheduled_day):
+		return db.session.query(
+					ScheduledExercise.scheduled_day,
+					ExerciseCategory.category_name,
+					ExerciseCategory.category_key,
+					func.count(ScheduledExercise.id).label("exercises_count")
+			).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+			).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
+			).filter(ExerciseType.owner == self
+			).filter(ScheduledExercise.is_removed == False
+			).filter(ScheduledExercise.scheduled_day == scheduled_day
+			).group_by(ScheduledExercise.scheduled_day,
+					   ExerciseCategory.category_name,
+					   ExerciseCategory.category_key)
 
 	def exercises_for_today(self):
 		return ExerciseForToday.query.join(ScheduledExercise, (ScheduledExercise.id == ExerciseForToday.scheduled_exercise_id)

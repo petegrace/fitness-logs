@@ -482,10 +482,19 @@ def weekly_activity(year, week=None):
 		day_activities = [activity for activity in all_activities if activity.activity_date==day.calendar_date]
 		current_week_activity_count += len(day_activities)
 
+		if day.calendar_date > date.today():
+			scheduled_activities = current_user.scheduled_activities_filtered(day.day_of_week).all()
+			scheduled_exercise_categories = current_user.scheduled_exercise_categories(day.day_of_week).all()
+		else:
+			scheduled_activities = []
+			scheduled_exercise_categories = []
+
 		# Construct a dictionary for the day as a whole
 		day_detail = dict(day=day,
 						  exercises_by_category=exercises_by_category,
-						  activities=day_activities)
+						  activities=day_activities,
+						  scheduled_activities=scheduled_activities,
+						  scheduled_exercise_categories=scheduled_exercise_categories)
 		current_week_dataset.append(day_detail)
 
 	# Evaluate the exercise sets goals at this point
