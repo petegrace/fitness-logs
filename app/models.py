@@ -28,6 +28,7 @@ class User(UserMixin, db.Model):
 	is_categories_user = db.Column(db.Boolean, default=False)
 	is_training_plan_user = db.Column(db.Boolean, default=False)
 	is_training_goals_user = db.Column(db.Boolean, default=False)
+	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
