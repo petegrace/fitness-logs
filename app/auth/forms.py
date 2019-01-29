@@ -14,3 +14,8 @@ class RegisterForm(FlaskForm):
 	google_email = HiddenField("google_email")
 	consent_privacy = BooleanField("I consent for Training Ticks to store and process my data as per the Privacy Policy.", validators=[DataRequired("You must consent to our Privacy Policy in order to register.")])
 	submit = SubmitField("Complete Registration")
+
+
+class PreferencesForm(FlaskForm):
+	opt_in_to_marketing_emails = BooleanField("Subscribe to email updates. Tick this box to receive occasional updates from Training Ticks when we launch new features that you might find useful.")
+	submit = SubmitField("Save Changes")

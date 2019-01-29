@@ -3,7 +3,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db, training_plan
 from app.auth import bp
-from app.auth.forms import LoginForm, RegisterForm
+from app.auth.forms import LoginForm, RegisterForm, PreferencesForm
 from app.auth.common import configured_google_client
 from app.models import User, ExerciseForToday, ActivityForToday
 from requests_oauth2.services import GoogleClient
@@ -117,6 +117,21 @@ def logout():
 
 	logout_user()
 	return redirect(url_for("index"))
+
+
+@bp.route("/preferences", methods=['GET', 'POST'])
+@login_required
+def preferences():
+	preferences_form = PreferencesForm()
+
+	if preferences_form.validate_on_submit():
+		current_user.is_opted_in_for_marketing_emails = preferences_form.opt_in_to_marketing_emails.data
+		db.session.commit()
+		flash("Your user preferences have been changed.")
+
+	# If it's a get...
+	preferences_form.opt_in_to_marketing_emails.data = current_user.is_opted_in_for_marketing_emails
+	return render_template("auth/preferences.html", title="Preferences", form=preferences_form)
 
 # @bp.route("/register", methods=["GET", "POST"])
 # def register():

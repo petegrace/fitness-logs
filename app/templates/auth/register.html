@@ -10,7 +10,7 @@
           	  <p>Welcome <strong>{{ form.google_email }}</strong>! As this is your first time signing in we need to check you're happy with us storing and processing the data that you provide to us. To complete your registration and get started with Training Ticks, please confirm that you consent to us using this data in accordance with our <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>.</p>
 	      	  <p>{{ form.consent_privacy() }} {{ form.consent_privacy.label }}</p>
 	      	  <p>{{ form.submit(class_="btn btn-primary") }} <a href="{{ url_for('auth.cancel') }}" class="btn btn-secondary">Cancel</a></p>
-	      </form>
+	      	</form>
         </div>
       </div>
 {% endblock %}

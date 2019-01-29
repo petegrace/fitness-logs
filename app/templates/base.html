@@ -328,17 +328,25 @@
 		                	<li class="navbar-item" id="schedule-nav"><a class="nav-link" href="{{ url_for('schedule', schedule_freq='weekly') }}"><i class="fa fa-calendar"></i> Training Plan</a></li>
 		                	<li class="navbar-item" id="manage-exercises-nav"><a class="nav-link" href="{{ url_for('categories') }}"><i class="fa fa-tags"></i> Manage Exercises</a></li>
 		                	<li class="navbar-item dropdown" id="help-nav">
-		                		<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button"><i class="fa fa-question-circle"></i> Help</a>
-		                		<div class="dropdown-menu">
-									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your cadence</a>
-									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How to set and track training goals</a>
-									<div class="dropdown-divider"></div>
-									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a>
-									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a>
-									<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a>
-								</div>
+		                		<a class="nav-link" data-toggle="dropdown" href="#" role="button"><i class="fa fa-question-circle"></i> Help</a>
+		                		<div class="dropdown-menu dropdown-menu-right">
+													<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToAnalyseCadenceModal">How to analyse your cadence</a>
+													<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToSetTrainingGoalsModal">How to set and track training goals</a>
+													<div class="dropdown-divider"></div>
+													<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToLogExerciseModal">How to log exercises</a>
+													<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCategoriseExercisesModal">How to categorise your exercises</a>
+													<a class="dropdown-item" href="#" data-toggle="modal" data-target="#howToCreateAndUseTrainingPlanModal">How to create and use a training plan</a>
+												</div>
 		                	</li>
-		                	<li class="navbar-item"><a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="fa fa-sign-out"></i> Logout</a></li>
+											<li class="navbar-item dropdown">
+												<a class="nav-link" data-toggle="dropdown" href="#" role="button"><i class="fa fa-user-circle fa-lg"></i></a>
+												<div class="dropdown-menu dropdown-menu-right">
+													<div class="dropdown-item">Signed in as {{ current_user.email }}</div>
+													<div class="dropdown-divider"></div>
+													<a class="dropdown-item" href="{{ url_for('auth.preferences') }}"><i class="fa fa-cog"></i> Preferences</a>
+													<a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fa fa-sign-out"></i> Logout</a>
+												</div>
+											</li>
 	                	</ul>
 	                {% endif %}
 	            </ul>

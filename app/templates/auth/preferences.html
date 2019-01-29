@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block app_content %}
+    <h2>Change your Preferences</h1>
+    <form action="" method="post" class="form" role="form">
+        {{ form.hidden_tag() }}
+        <p>Below are your current preferences. If you'd like to be able to change things such as distance units or your timezone then watch this space
+            as we'll be adding option for these in the not too distant future!</p>
+        <p>{{ form.opt_in_to_marketing_emails() }} {{ form.opt_in_to_marketing_emails.label }}</p>
+        <p>{{ form.submit(class_="btn btn-primary") }}</p>
+    </form>
+{% endblock %}
