@@ -35,7 +35,9 @@ def login():
 	register_form = RegisterForm()
 
 	if register_form.validate_on_submit():
-		new_user = User(email=session["email"], auth_type="Google")
+		new_user = User(email=session["email"],
+						auth_type="Google",
+						is_opted_in_for_marketing_emails=register_form.opt_in_to_marketing_emails.data)
 		register_user(new_user)
 
 	if "email" in session:
