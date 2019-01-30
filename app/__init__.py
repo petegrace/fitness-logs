@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_user
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_talisman import Talisman
+from flask_mail import Mail
 from config import Config
 import json
 
@@ -18,6 +19,7 @@ login.login_view = "auth.login"
 login.login_message = None
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+mail = Mail(app)
 
 # TODO: Make these more specific and avoid the inline stuff
 csp = {
