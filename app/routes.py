@@ -8,14 +8,14 @@ import threading
 from flask import render_template, flash, redirect, url_for, request, session, Response
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
-from wtforms import HiddenField
+from wtforms import HiddenField, SubmitField
 import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis, training_plan
 from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, AddNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
 from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, ActivityPaceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday, TrainingPlanTemplate
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
@@ -233,8 +233,8 @@ def log_exercise(scheduled, id):
 def new_exercise(context, selected_day=None):
 	if context == "logging":
 		form = LogNewExerciseTypeForm()
-	elif context == "scheduling":
-		form = ScheduleNewExerciseTypeForm()
+	else:
+		form = AddNewExerciseTypeForm()
 
 	# Bit of a hack to reduce avoid duplicate errors when unioning exercises and activities
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
@@ -302,11 +302,15 @@ def new_exercise(context, selected_day=None):
 					return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day, is_not_using_categories=True))
 			
 			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
+		else: # Only the exercise type to create
+			db.session.commit()
+			flash("Added {type}".format(type=exercise_type.name))
+			return redirect(url_for("exercise_types"))
 
 	#for the get...
 	form.user_categories_count.data = len(category_choices)
 	track_event(category="Exercises", action="New Exercise form loaded for {context}".format(context=context), userId = str(current_user.id))
-	return render_template("new_exercise.html", title="Log New Exercise Type", form=form, context=context)
+	return render_template("new_exercise.html", title="Add New Exercise Type", form=form, context=context)
 
 
 @app.route('/edit_exercise/<id>', methods=['GET', 'POST'])
