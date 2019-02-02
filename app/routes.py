@@ -8,16 +8,16 @@ import threading
 from flask import render_template, flash, redirect, url_for, request, session, Response
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
-from wtforms import HiddenField
+from wtforms import HiddenField, SubmitField
 import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
 from app import app, db, utils, analysis, training_plan
 from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
-from app.forms import LogNewExerciseTypeForm, EditExerciseForm, ScheduleNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
+from app.forms import LogNewExerciseTypeForm, EditExerciseForm, AddNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
 from app.forms import ActivitiesCompletedGoalForm, TotalDistanceGoalForm, TotalMovingTimeGoalForm, TotalElevationGainGoalForm, CadenceGoalForm, GradientGoalForm, ExerciseSetsGoalForm
-from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, ActivityPaceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday
+from app.models import User, ExerciseType, Exercise, ScheduledExercise, ExerciseCategory, Activity, ScheduledActivity, ActivityCadenceAggregate, ActivityPaceAggregate, CalendarDay, TrainingGoal, ExerciseForToday, ActivityForToday, TrainingPlanTemplate
 from app.app_classes import TempCadenceAggregate, PlotComponentContainer
 from app.dataviz import generate_stacked_bar_for_categories, generate_bar, generate_line_chart, generate_line_chart_for_categories
 from stravalib.client import Client
@@ -233,8 +233,8 @@ def log_exercise(scheduled, id):
 def new_exercise(context, selected_day=None):
 	if context == "logging":
 		form = LogNewExerciseTypeForm()
-	elif context == "scheduling":
-		form = ScheduleNewExerciseTypeForm()
+	else:
+		form = AddNewExerciseTypeForm()
 
 	# Bit of a hack to reduce avoid duplicate errors when unioning exercises and activities
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
@@ -302,11 +302,15 @@ def new_exercise(context, selected_day=None):
 					return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day, is_not_using_categories=True))
 			
 			return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
+		else: # Only the exercise type to create
+			db.session.commit()
+			flash("Added {type}".format(type=exercise_type.name))
+			return redirect(url_for("exercise_types"))
 
 	#for the get...
 	form.user_categories_count.data = len(category_choices)
 	track_event(category="Exercises", action="New Exercise form loaded for {context}".format(context=context), userId = str(current_user.id))
-	return render_template("new_exercise.html", title="Log New Exercise Type", form=form, context=context)
+	return render_template("new_exercise.html", title="Add New Exercise Type", form=form, context=context)
 
 
 @app.route('/edit_exercise/<id>', methods=['GET', 'POST'])
@@ -482,10 +486,19 @@ def weekly_activity(year, week=None):
 		day_activities = [activity for activity in all_activities if activity.activity_date==day.calendar_date]
 		current_week_activity_count += len(day_activities)
 
+		if day.calendar_date > date.today():
+			scheduled_activities = current_user.scheduled_activities_filtered(day.day_of_week).all()
+			scheduled_exercise_categories = current_user.scheduled_exercise_categories(day.day_of_week).all()
+		else:
+			scheduled_activities = []
+			scheduled_exercise_categories = []
+
 		# Construct a dictionary for the day as a whole
 		day_detail = dict(day=day,
 						  exercises_by_category=exercises_by_category,
-						  activities=day_activities)
+						  activities=day_activities,
+						  scheduled_activities=scheduled_activities,
+						  scheduled_exercise_categories=scheduled_exercise_categories)
 		current_week_dataset.append(day_detail)
 
 	# Evaluate the exercise sets goals at this point
@@ -697,6 +710,8 @@ def schedule(schedule_freq, selected_day=None):
 	activity_types = current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all()
 	exercise_types = current_user.exercise_types_ordered()
 
+	templates = TrainingPlanTemplate.query.all()
+
 	# Determine whether to show modal to encourage use of categories
 	is_not_using_categories = request.args.get("is_not_using_categories")
 	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
@@ -705,7 +720,7 @@ def schedule(schedule_freq, selected_day=None):
 		show_exercise_categories_modal = False
 
 	return render_template("schedule.html", title="Schedule", schedule_days=days, schedule_freq=schedule_freq, selected_day=selected_day,
-				scheduled_exercises=scheduled_exercises, scheduled_activities=scheduled_activities,
+				scheduled_exercises=scheduled_exercises, scheduled_activities=scheduled_activities, templates=templates,
 				exercise_types=exercise_types, activity_types=activity_types, show_exercise_categories_modal=show_exercise_categories_modal)
 
 
@@ -999,6 +1014,76 @@ def categories():
 	track_event(category="Manage", action="Exercise Categories page loaded", userId = str(current_user.id))
 	return render_template("categories.html", title="Manage Exercise Categories", categories_form=categories_form,
 			show_strava_categories_modal=show_strava_categories_modal, show_exercise_categories_modal=show_exercise_categories_modal)
+
+
+@app.route("/copy_template_to_schedule/<template_id>")
+@login_required
+def copy_template_to_schedule(template_id):
+	track_event(category="Schedule", action="Attempting to copy training plan from template", userId = str(current_user.id))
+	template = TrainingPlanTemplate.query.get(int(template_id))
+
+	# Create the categories used by the template
+	if current_user.unused_category_keys().count() < template.template_exercise_categories.count():
+		flash("Not enough spare exercise categories to copy template.")
+		track_event(category="Schedule", action="Not enough spare exercise categories to copy template.", userId = str(current_user.id))
+		return redirect(url_for("schedule", schedule_freq="weekly"))	
+	else:
+		new_exercise_types_count = 0
+
+		for template_category in template.template_exercise_categories.all():
+			if template_category.category_name not in [category.category_name for category in current_user.exercise_categories.all()]:
+				unused_category_key = current_user.unused_category_keys().first()
+				new_category = ExerciseCategory(owner=current_user,
+												category_key=unused_category_key.category_key,
+												category_name=template_category.category_name,
+												fill_color=unused_category_key.fill_color,
+												line_color=unused_category_key.line_color)
+				db.session.add(new_category)
+				flash("Added new category of {category_name} from {template} template".format(category_name=template_category.category_name, template=template.name))
+			else:
+				new_category = ExerciseCategory.query.filter_by(owner=current_user).filter_by(category_name=template_category.category_name).first()
+			
+			# Create the exercise types associated with that category
+			for template_exercise_type in template_category.template_exercise_types.all():
+				if template_exercise_type.name not in [exercise_type.name for exercise_type in current_user.exercise_types.all()]:
+					new_exercise_type = ExerciseType(name=template_exercise_type.name,
+													 owner=current_user,
+													 exercise_category_id=new_category.id,
+													 measured_by=template_exercise_type.measured_by,
+													 default_reps=template_exercise_type.default_reps,
+													 default_seconds=template_exercise_type.default_seconds)
+
+					db.session.add(new_exercise_type)
+					new_exercise_types_count += 1
+				else:
+					new_exercise_type = ExerciseType.query.filter_by(owner=current_user).filter_by(name=template_exercise_type.name).first()
+				
+				# Add the exercise to the schedule on the required days
+				for template_scheduled_exercise in template_exercise_type.template_scheduled_exercises:
+					scheduled_exercise = ScheduledExercise.query.filter(ExerciseType.owner==current_user
+							).filter_by(is_removed=False
+							).filter_by(type=new_exercise_type
+							).filter_by(scheduled_day=template_scheduled_exercise.scheduled_day
+							).first()
+
+					if not scheduled_exercise:
+						scheduled_exercise = ScheduledExercise(type=new_exercise_type,
+															   scheduled_day=template_scheduled_exercise.scheduled_day,
+															   sets=template_exercise_type.default_sets,
+															   reps=new_exercise_type.default_reps,
+															   seconds=new_exercise_type.default_seconds)
+						db.session.add(scheduled_exercise)	
+
+		if not current_user.is_training_plan_user:
+			current_user.is_training_plan_user = True
+
+		flash("Added {count} new exercise type(s) from {template} template and scheduled in training plan".format(count=new_exercise_types_count, template=template.name))
+		db.session.commit()
+
+	track_event(category="Schedule", action="Completed copying training plan from template", userId = str(current_user.id))
+
+	# Send the user back to the schedule page
+	return redirect(url_for("schedule", schedule_freq="weekly"))	
 
 
 @app.route("/import_strava_activity")

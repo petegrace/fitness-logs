@@ -24,7 +24,7 @@ class LogNewExerciseTypeForm(FlaskForm):
 			raise ValidationError("You already have an Exercise Type with that name.")
 
 
-class ScheduleNewExerciseTypeForm(FlaskForm):
+class AddNewExerciseTypeForm(FlaskForm):
 	name = StringField("Exercise Name", validators=[DataRequired(), Length(min=1, max=100)])
 	user_categories_count = HiddenField("user_categories_count")
 	# fields for the scheduled exercise (reps will also serve as the default)
@@ -32,7 +32,7 @@ class ScheduleNewExerciseTypeForm(FlaskForm):
 	reps = IntegerField("Reps", validators=[Optional()])
 	seconds = IntegerField("Seconds", validators=[Optional()])
 	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
-	submit = SubmitField("Schedule Exercise")
+	submit = SubmitField("Add Exercise Type")
 
 	def validate_name(self, name):
 		exercise_type = ExerciseType.query.filter_by(name=name.data).filter_by(owner=current_user).first()

@@ -215,6 +215,22 @@
 	</div>
 	{% for day_detail in current_week_dataset %}
 		<h5>{{ moment(day_detail.day.calendar_date).format("ddd LL") }}</h5>
+		{% for scheduled_activity in day_detail.scheduled_activities %}
+			<div class="mt-1 card-header {{ scheduled_activity.category_key }}" style="opacity:0.5">
+				<p class="m-0 p-0">					
+					<i class="fa fa-calendar"></i>
+					Planned {{ scheduled_activity.activity_type }} - {{ scheduled_activity.planned_distance_formatted }} - {{ scheduled_activity.description }}
+				</p>					
+			</div>
+		{% endfor %}
+		{% for scheduled_exercise_category in day_detail.scheduled_exercise_categories %}
+			<div class="mt-1 card-header {{ scheduled_exercise_category.category_key }}" style="opacity:0.5;">
+				<p class="m-0 p-0">					
+					<i class="fa fa-calendar"></i>
+					Planned {{ scheduled_exercise_category.category_name }} - {{ scheduled_exercise_category.exercises_count }} exercises
+				</p>					
+			</div>
+		{% endfor %}
 		{% for activity in day_detail.activities %}
 			{% include '_activity_summary.html' %}
 		{% endfor %}
@@ -226,8 +242,7 @@
 							<i class="fa fa-chevron-down"></i>
 							{{ category_group.exercise_count }} {{ category_group.category.category_name }} sets
 						</a>
-					</h6>
-					
+					</h6>					
 				</div>
 				<div id="{{category_group.category.category_key}}-{{day_detail.day.day_of_week}}" class="card-body collapse">
 					<table class="table table-sm table-hover">

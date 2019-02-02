@@ -28,6 +28,7 @@ class User(UserMixin, db.Model):
 	is_categories_user = db.Column(db.Boolean, default=False)
 	is_training_plan_user = db.Column(db.Boolean, default=False)
 	is_training_goals_user = db.Column(db.Boolean, default=False)
+	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -180,7 +181,18 @@ class User(UserMixin, db.Model):
 		return uncategorised_activity_types
 
 	def scheduled_activities_filtered(self, scheduled_day):
-		return self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
+		scheduled_activities_filtered = db.session.query(
+											ScheduledActivity.id,
+											ScheduledActivity.activity_type,
+											ScheduledActivity.scheduled_day,
+											ScheduledActivity.description,
+											ScheduledActivity.planned_distance,
+											ExerciseCategory.category_key
+				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).filter(ScheduledActivity.owner == self
+				).filter(ScheduledActivity.is_removed==False
+				).filter(ScheduledActivity.scheduled_day==scheduled_day)
+		return scheduled_activities_filtered #self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
@@ -189,6 +201,21 @@ class User(UserMixin, db.Model):
 			).filter(ScheduledExercise.is_removed == False
 			).filter(ScheduledExercise.scheduled_day == scheduled_day
 			).order_by(ExerciseType.name)
+
+	def scheduled_exercise_categories(self, scheduled_day):
+		return db.session.query(
+					ScheduledExercise.scheduled_day,
+					ExerciseCategory.category_name,
+					ExerciseCategory.category_key,
+					func.count(ScheduledExercise.id).label("exercises_count")
+			).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+			).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
+			).filter(ExerciseType.owner == self
+			).filter(ScheduledExercise.is_removed == False
+			).filter(ScheduledExercise.scheduled_day == scheduled_day
+			).group_by(ScheduledExercise.scheduled_day,
+					   ExerciseCategory.category_name,
+					   ExerciseCategory.category_key)
 
 	def exercises_for_today(self):
 		return ExerciseForToday.query.join(ScheduledExercise, (ScheduledExercise.id == ExerciseForToday.scheduled_exercise_id)
@@ -494,6 +521,11 @@ class User(UserMixin, db.Model):
 
 		return ordered_exercise_types
 
+	def unused_category_keys(self):
+		unused_category_keys = AvailableCategoryKey.query.outerjoin(ExerciseCategory, and_(AvailableCategoryKey.category_key==ExerciseCategory.category_key, ExerciseCategory.user_id==self.id)
+				).filter(ExerciseCategory.category_key == None)
+		return unused_category_keys
+
 
 class ExerciseCategory(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -793,6 +825,17 @@ class CalendarDay(db.Model):
 	def __repr__(self):
 		return "<CalendarDay {date}>".format(date=self.calendar_date)
 
+
+class AvailableCategoryKey(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	category_key = db.Column(db.String(25))
+	fill_color = db.Column(db.String(25))
+	line_color = db.Column(db.String(25))
+
+	def __repr__(self):
+		return "<AvailableCategoryKey {category_key}>".format(date=self.category_key)
+
+
 class TrainingPlanTemplate(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(50))
@@ -824,6 +867,7 @@ class TemplateExerciseType(db.Model):
 	template_exercise_category_id = db.Column(db.Integer, db.ForeignKey("template_exercise_category.id"))
 	default_reps = db.Column(db.Integer)
 	default_seconds = db.Column(db.Integer)
+	default_sets = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	template_scheduled_exercises = db.relationship("TemplateScheduledExercise", backref="template_scheduled_exercise", lazy="dynamic")
 

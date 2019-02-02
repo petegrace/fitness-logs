@@ -36,4 +36,9 @@
 			</tr>
 		{% endfor %}
 	</table>
+	<div class="mt-4">
+		<a class="btn btn-secondary" role="button" href="{{ url_for('new_exercise', context='manage') }}">
+			Add New Exercise Type
+		</a>
+	</div>
 {% endblock %}

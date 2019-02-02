@@ -45,6 +45,12 @@ class Config(object):
         STRAVA_OAUTH2_REDIRECT_URI = "http://127.0.0.1:5000/connect_strava/authorize"
         SQLALCHEMY_DATABASE_URI = LOCAL_SQLALCHEMY_DATABASE_URI
 
+    MAIL_SERVER = "smtp.example.com"
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = "me@example.com"
+    MAIL_PASSWORD = "password"
+
     # Google Analytics
     GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID') or '<ga_id>'
 

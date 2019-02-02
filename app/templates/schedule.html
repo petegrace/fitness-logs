@@ -21,8 +21,8 @@
 	this tool lets you create your own customised plan that’s right for you.</p>
 	<p>You can add strengthening and other types of exercises using the New Exercise Type button,
 	and once you’ve added it the first time it will be available as a new button to add for other days of the week.</p>
-	<p><strong>COMING SOON:</strong> We’re working on some significant enhancements to this area, including templates to help you get started,
-	plus a full calendar that you can schedule into with more flexibility than the recurring weekly schedule.
+	<p><strong>COMING SOON:</strong> We’re working on some significant enhancements to this area,
+	including a full calendar that you can schedule into with more flexibility than the recurring weekly schedule.
 	We’d love to hear what you’d want from the Training Plan tool, so let us know your requirements and ideas via
 	<a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a>.</p>
 
@@ -161,6 +161,27 @@
 						{% endif %}
 					</small>
 				</a>
+			{% endfor %}
+		</div>
+	</div>
+
+	<div class="card mt-3">
+		<div class="card-header">
+			<h4>Get started using a template</h4>
+		</div>
+		<div class="card-body">
+			<p>The aim of the Training Plan tool is to let you plan your schedule of activity for yourself based on what works for you,
+			but you might find it helpful to start off with a template to populate your initial exercises, and then adapt as required. Let us know via
+			<a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a>
+			if there's a training plan you've come across that you'd like to be available as a template.</p>
+			<p><i>Please note that Training Ticks has no association with any of the websites or authors referenced below,
+			we are just sharing them as useful resources that we hope will improve your training.</i></p>
+			{% for template in templates %}
+				<hr />
+				<div class="alert alert-info">
+					<h6>{{ template.name }} [<a href="{{ url_for('copy_template_to_schedule', template_id=template.id) }}">Add to Weekly Plan</a>]</h6>
+					<p>{{ template.description }} <a href="{{ template.link_url }}" target="_blank">{{ template.link_text }}</a></p>
+				</div>
 			{% endfor %}
 		</div>
 	</div>
