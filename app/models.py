@@ -14,6 +14,7 @@ class ExerciseDateGroup:
 class User(UserMixin, db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	email = db.Column(db.String(120), index=True, unique=True)
+	display_name = db.Column(db.String(50)) # only needed for blog authors at present so only updated via DB
 	auth_type = db.Column(db.String(50))
 	password_hash = db.Column(db.String(128))
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
@@ -22,6 +23,7 @@ class User(UserMixin, db.Model):
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
 	scheduled_activities = db.relationship("ScheduledActivity", backref="owner", lazy="dynamic")
+	blog_posts = db.relationship("BlogPost", backref="author", lazy="dynamic")
 	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_exercises_user = db.Column(db.Boolean, default=False)
 	is_strava_user = db.Column(db.Boolean, default=False)
@@ -29,6 +31,7 @@ class User(UserMixin, db.Model):
 	is_training_plan_user = db.Column(db.Boolean, default=False)
 	is_training_goals_user = db.Column(db.Boolean, default=False)
 	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
+	is_blog_author = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -893,3 +896,17 @@ class TemplateScheduledExercise(db.Model):
 	def __repr__(self):
 		return "<TemplateScheduledExercise {name} for {template} on {day}>".format(
 			name=self.template_exercise_type.name, template=self.template_exercise_type.template_exercise_category.training_plan_template.name, day=self.scheduled_day)
+
+
+class BlogPost(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	title = db.Column(db.String(200))
+	slug = db.Column(db.String(200), unique=True)
+	content = db.Column(db.Text)
+	content_preview = db.Column(db.Text)
+	is_published = db.Column(db.Boolean, default=False)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<BlogPost title {title}>".format(title=self.title)
