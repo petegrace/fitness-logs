@@ -957,6 +957,7 @@ def edit_exercise_type(id):
 @app.route("/archive_exercise_type/<id>")
 @login_required
 def archive_exercise_type(id):
+	track_event(category="Manage", action="Archived exercise type", userId = str(current_user.id))
 	exercise_type = ExerciseType.query.get(int(id))
 	exercise_type.is_archived = True
 	db.session.commit()
@@ -968,6 +969,7 @@ def archive_exercise_type(id):
 @app.route("/reinstate_exercise_type/<id>")
 @login_required
 def reinstate_exercise_type(id):
+	track_event(category="Manage", action="Reinstated exercise type", userId = str(current_user.id))
 	exercise_type = ExerciseType.query.get(int(id))
 	exercise_type.is_archived = False
 	db.session.commit()
