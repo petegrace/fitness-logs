@@ -135,6 +135,9 @@ class User(UserMixin, db.Model):
 			).filter(or_(CalendarDay.calendar_week_start_date == week, week is None)
 			)
 
+	def exercise_types_active(self):
+		return self.exercise_types.filter_by(is_archived=False)
+
 	def recent_activities(self):
 		exercises = db.session.query(
 						Exercise.id,
@@ -481,6 +484,7 @@ class User(UserMixin, db.Model):
 				).join(ExerciseType.exercises
 				).outerjoin(ExerciseType.exercise_category
 				).filter(ExerciseType.owner == self
+				).filter(ExerciseType.is_archived == False
 				).filter((Exercise.exercise_datetime >= datetime.utcnow() - timedelta(days=7))
 				).group_by(
 					ExerciseType.id,
@@ -552,6 +556,7 @@ class ExerciseType(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercises = db.relationship("Exercise", backref="type", lazy="dynamic")
 	scheduled_exercises = db.relationship("ScheduledExercise", backref="type", lazy="dynamic")
+	is_archived = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<ExerciseType {name} for {user}>".format(name=self.name, user=self.owner.email)

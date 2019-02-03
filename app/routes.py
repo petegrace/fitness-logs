@@ -905,7 +905,7 @@ def add_to_today(selected_day):
 @login_required
 def exercise_types():
 	track_event(category="Manage", action="Exercise Types page loaded", userId = str(current_user.id))
-	exercise_types = current_user.exercise_types.order_by(ExerciseType.name).all()
+	exercise_types = current_user.exercise_types_active().order_by(ExerciseType.name).all()
 
 	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types)
 
