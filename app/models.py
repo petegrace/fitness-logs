@@ -138,6 +138,9 @@ class User(UserMixin, db.Model):
 	def exercise_types_active(self):
 		return self.exercise_types.filter_by(is_archived=False)
 
+	def exercise_types_archived(self):
+		return self.exercise_types.filter_by(is_archived=True)
+
 	def recent_activities(self):
 		exercises = db.session.query(
 						Exercise.id,
@@ -509,6 +512,7 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseType.exercises
 				).outerjoin(ExerciseType.exercise_category
 				).filter(ExerciseType.owner == self
+				).filter(ExerciseType.is_archived == False
 				).group_by(
 					ExerciseType.id,
 					ExerciseType.name,

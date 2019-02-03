@@ -167,7 +167,7 @@ def index():
 		if (original_exercises_for_today or original_activities_for_today):
 		   has_completed_schedule = True
 
-	# Get teh exercise types that aren't available from Training Plan box
+	# Get the exercise types that aren't available from Training Plan box
 	exercise_types = current_user.exercise_types_ordered().all()
 	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
 	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
@@ -906,8 +906,9 @@ def add_to_today(selected_day):
 def exercise_types():
 	track_event(category="Manage", action="Exercise Types page loaded", userId = str(current_user.id))
 	exercise_types = current_user.exercise_types_active().order_by(ExerciseType.name).all()
+	archived_exercise_types = current_user.exercise_types_archived().order_by(ExerciseType.name).all()
 
-	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types)
+	return render_template("exercise_types.html", title="Exercise Types", exercise_types=exercise_types, archived_exercise_types=archived_exercise_types)
 
 
 @app.route('/edit_exercise_type/<id>', methods=['GET', 'POST'])
@@ -948,6 +949,28 @@ def edit_exercise_type(id):
 	track_event(category="Manage", action="Edit Exercise Type form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise_type.html", title="Edit Exercise Type", form=form, exercise_name=exercise_type.name)
 
+
+@app.route("/archive_exercise_type/<id>")
+@login_required
+def archive_exercise_type(id):
+	exercise_type = ExerciseType.query.get(int(id))
+	exercise_type.is_archived = True
+	db.session.commit()
+
+	flash("{exercise_type} has been archived and will be hidden from your available exercises.You can reinstate it from the Archived Exercises section".format(exercise_type=exercise_type.name))
+	return redirect(url_for("exercise_types"))
+
+
+@app.route("/reinstate_exercise_type/<id>")
+@login_required
+def reinstate_exercise_type(id):
+	exercise_type = ExerciseType.query.get(int(id))
+	exercise_type.is_archived = False
+	db.session.commit()
+
+	flash("{exercise_type} has been reinstated and is available again for logging and scheduling".format(exercise_type=exercise_type.name))
+	return redirect(url_for("exercise_types"))
+	
 
 @app.route("/categories", methods=['GET', 'POST'])
 @login_required
