@@ -14,15 +14,20 @@
     </style>
 {% endblock %}
 
+
+
 {% block app_content %}
-<div id="blog-container">
-        <h2>The Training Ticks Blog</h2>
-        {% for blog_post in published_posts %}
+    <div id="blog-container">
+        <h2>Draft Blog Posts</h2>
+        {% for blog_post in draft_posts %}
             <hr/>
             <h3><a href="{{ url_for('blog.view_post', slug=blog_post.slug) }}">{{ blog_post.title }}</a></h3>
             <p><i>By {{ blog_post.author.display_name }} on {{ blog_post.created_date }}</i></p>
             {{ blog_post.html_content_preview }}
-            [<a href="{{ url_for('blog.view_post', slug=blog_post.slug) }}">Read more</a>]
+            <div class="mt-4">
+                <a class="btn btn-primary" role="button" href="{{ url_for('blog.publish_post', id=blog_post.id) }}">Publish</a>
+                <a class="btn btn-secondary" role="button" href="{{ url_for('blog.delete_post', id=blog_post.id) }}">Delete</a>
+            </div>
         {% endfor %}
     </div>
 {% endblock %}

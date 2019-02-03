@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, date
+from flask import Markup
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct
+from markdown import markdown
 from app import db, utils
 from app import login
 from itertools import groupby
@@ -910,3 +912,17 @@ class BlogPost(db.Model):
 
 	def __repr__(self):
 		return "<BlogPost title {title}>".format(title=self.title)
+
+	@property
+	def created_date(self):
+		return self.created_datetime.date()
+	
+	@property
+	def html_content(self):
+		markdown_content = markdown(self.content)
+		return Markup(markdown_content)
+
+	@property
+	def html_content_preview(self):
+		markdown_content_preview = markdown(self.content_preview)
+		return Markup(markdown_content_preview)

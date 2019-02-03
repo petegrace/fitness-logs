@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Nunito" />
+
+    <style>        
+        @media (min-width: 992px) { .container { max-width: 968px; } }
+
+        #blog-container {
+            font-family: "Nunito";
+        }
+    </style>
+{% endblock %}
+
+{% block app_content %}
+    <div id="blog-container">
+        <h2>{{ blog_post.title }}</h2>
+        <p><i>By {{ blog_post.author.display_name }} on {{ blog_post.created_date }}</i></p>
+        {{ blog_post.html_content }}
+        [<a href="{{ url_for('blog.index') }}">Back to Blog Home</a>]
+    </div>
+{% endblock %}

@@ -16,3 +16,4 @@ requests-oauth2==0.3.0
 Flask-SSLify==0.1.5
 flask-talisman==0.6.0
 Flask-Mail==0.9.1
+Markdown==3.0.1
