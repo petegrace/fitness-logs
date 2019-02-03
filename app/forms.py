@@ -1,4 +1,5 @@
 from datetime import datetime
+from flask import flash
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, PasswordField, DateTimeField, SelectField, IntegerField, SubmitField, HiddenField, BooleanField
@@ -21,7 +22,8 @@ class LogNewExerciseTypeForm(FlaskForm):
 	def validate_name(self, name):
 		exercise_type = ExerciseType.query.filter_by(name=name.data).filter_by(owner=current_user).first()
 		if exercise_type is not None:
-			raise ValidationError("You already have an Exercise Type with that name.")
+			flash("You already have another Exercise Type called {name}.".format(name=name.data))
+			raise ValidationError("You already have another Exercise Type with that name.")
 
 
 class AddNewExerciseTypeForm(FlaskForm):
@@ -37,6 +39,7 @@ class AddNewExerciseTypeForm(FlaskForm):
 	def validate_name(self, name):
 		exercise_type = ExerciseType.query.filter_by(name=name.data).filter_by(owner=current_user).first()
 		if exercise_type is not None:
+			flash("You already have another Exercise Type called {name}.".format(name=name.data))
 			raise ValidationError("You already have an Exercise Type with that name.")
 
 		
@@ -68,13 +71,20 @@ class ScheduledActivityForm(FlaskForm):
 
 		
 class EditExerciseTypeForm(FlaskForm):
-	# TODO: Allowing editing of name will require some more advanced validation to allow the current name but not a separate name
+	exercise_type_id = HiddenField("exercise_type_id")
 	user_categories_count = HiddenField("user_categories_count")
+	name = StringField("Exercise Name", validators=[DataRequired(), Length(min=1, max=100)])
 	measured_by = SelectField('Measured By', choices=[('reps', 'Reps'), ('seconds', 'Time (seconds)')])
 	default_reps = IntegerField("Default Reps", validators=[Optional()])
 	default_seconds = IntegerField("Default Seconds", validators=[Optional()])
 	exercise_category_id = SelectField('Category', choices=[], validators=[Optional()])
 	submit = SubmitField("Update Exercise Type")
+
+	def validate_name(self, name):
+		exercise_type = ExerciseType.query.filter_by(name=name.data).filter_by(owner=current_user).filter(ExerciseType.id != int(self.exercise_type_id.data)).first()
+		if exercise_type is not None:
+			flash("You already have another Exercise Type called {name}.".format(name=name.data))
+			raise ValidationError("You already have an Exercise Type with that name.")
 
 		
 class ExerciseCategoriesForm(FlaskForm):

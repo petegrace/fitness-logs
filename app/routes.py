@@ -914,12 +914,14 @@ def exercise_types():
 @app.route('/edit_exercise_type/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_exercise_type(id):
-	form = EditExerciseTypeForm()
+	exercise_type = ExerciseType.query.get(int(id))
+
+	# Create the form with a default category selection, other defaults get set further down
+	form = EditExerciseTypeForm(exercise_category_id = exercise_type.exercise_category_id)
 	category_choices = [(str(category.id), category.category_name) for category in current_user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all()]
 	form.exercise_category_id.choices = category_choices
 
-	exercise_type = ExerciseType.query.get(int(id))
-
+	
 	if form.validate_on_submit():
 		track_event(category="Manage", action="Exercise Type updated", userId = str(current_user.id))
 
@@ -929,6 +931,7 @@ def edit_exercise_type(id):
 		elif form.measured_by.data == "seconds":
 			form.default_reps.data = None
 
+		exercise_type.name = form.name.data
 		exercise_type.measured_by = form.measured_by.data
 		exercise_type.default_reps = form.default_reps.data
 		exercise_type.default_seconds = form.default_seconds.data
@@ -940,12 +943,13 @@ def edit_exercise_type(id):
 		return redirect(url_for("exercise_types"))
 
 	# If it's a get...
+	form.exercise_type_id.data = exercise_type.id
 	form.user_categories_count.data = len(category_choices)
+	form.name.data = exercise_type.name
 	form.measured_by.data = exercise_type.measured_by
 	form.default_reps.data = exercise_type.default_reps
 	form.default_seconds.data = exercise_type.default_seconds
-	form.exercise_category_id.data = exercise_type.exercise_category_id
-		
+
 	track_event(category="Manage", action="Edit Exercise Type form loaded", userId = str(current_user.id))
 	return render_template("edit_exercise_type.html", title="Edit Exercise Type", form=form, exercise_name=exercise_type.name)
 
