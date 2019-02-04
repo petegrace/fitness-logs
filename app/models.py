@@ -592,6 +592,7 @@ class Activity(db.Model):
 	description = db.Column(db.String(1000))
 	is_fully_parsed = db.Column(db.Boolean, default=False)
 	is_bad_elevation_data = db.Column(db.Boolean, default=False)
+	is_overwritten_elevation_gain = db.Column(db.Boolean, default=False)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	activity_cadence_aggregates = db.relationship("ActivityCadenceAggregate", backref="activity", lazy="dynamic")
 	activity_pace_aggregates = db.relationship("ActivityPaceAggregate", backref="activity", lazy="dynamic")

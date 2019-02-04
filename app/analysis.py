@@ -105,7 +105,7 @@ def parse_streams(activity):
 	access_token = session["strava_access_token"]
 	strava_client.access_token = access_token
 
-	stream_types = ["time", "cadence", "velocity_smooth", "distance", "altitude", "grade_smooth"]
+	stream_types = ["time", "cadence", "velocity_smooth", "distance", "altitude", "grade_smooth", "altitude"]
 
 	try:
 		activity_streams = strava_client.get_activity_streams(activity.external_id, types=stream_types)
@@ -114,7 +114,7 @@ def parse_streams(activity):
 
 	if activity_streams is not None:
 		#cadence_records = []
-		data_points_df = pd.DataFrame(columns=["start_time", "duration", "distance_travelled", "pace_seconds", "cadence", "gradient"])
+		data_points_df = pd.DataFrame(columns=["start_time", "duration", "distance_travelled", "elevation_gained", "pace_seconds", "cadence", "gradient"])
 		dp_ind = 0
 		df_ind = 0
 
@@ -123,21 +123,32 @@ def parse_streams(activity):
 			if dp_ind > 1:
 				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
 				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
+				elevation_gained = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1])
 				pace_seconds = math.ceil(utils.convert_mps_to_km_pace(activity_streams["velocity_smooth"].data[dp_ind]).total_seconds() / 5) * 5 if "velocity_smooth" in activity_streams and activity_streams["velocity_smooth"].data[dp_ind] > 0 else None
 				gradient = math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else None
 
 				# Extra cleansing of gradient to deal with dodgy value during barometer calibration
 				gradient = None if time_data_point < 60 and gradient > 10 else gradient
+				elevation_gained = None if (time_data_point < 60 and elevation_gained > 1) or elevation_gained < 0 else elevation_gained
 
 				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
 												  duration,
 												  distance_travelled,
+												  elevation_gained,
 												  pace_seconds,
 												  activity_streams["cadence"].data[dp_ind] if "cadence" in activity_streams else None,
 												  gradient]
 					df_ind += 1
 			dp_ind += 1
+
+		# Test if we corrected for calibration such that it's worth overwriting the Strava elevation gain. Note that
+		# Strava tends to come up with a lower number normally (probably due to smoothing) so we only use this if it's a lower number
+		total_elevation_gain = data_points_df["elevation_gained"].sum()
+		if total_elevation_gain < activity.total_elevation_gain:
+			activity.total_elevation_gain = total_elevation_gain
+			activity.is_overwritten_elevation_gain = True
+			flash("Bad elevation gain detected on activity. Overwritten in Training Ticks based on calibration errors detected.")
 
 		# Perform aggregations for cadence if needed
 		if not activity.activity_cadence_aggregates.first() and "cadence" in activity_streams:
