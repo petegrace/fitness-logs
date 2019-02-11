@@ -320,6 +320,10 @@
 	        <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
 	                {% if current_user.is_anonymous %}
 	           				<ul class="nav navbar-nav ml-auto mt-2 mt-lg-0">
+											 {% if "blog" in request.path %}
+											 	<li class="navbar-item" id="home-nav"><a class="nav-link" href="{{ url_for('index') }}">Sign Up</a></li>
+											 	<li class="navbar-item active" id="blog-nav"><a class="nav-link" href="{{ url_for('blog.index') }}">Blog</a></li>
+											 {% endif %}
 										</ul>
 	                {% else %}
 	                	<ul class="navbar-nav ml-md-auto mt-2 mt-lg-0">
