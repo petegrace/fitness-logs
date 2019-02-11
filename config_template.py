@@ -4,6 +4,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or '<secret_key>'
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or '<jwt_secret_key>'
 
     # GCP Stuff
     PROJECT_ID = '<gcp_project_id>'

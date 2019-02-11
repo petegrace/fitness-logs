@@ -5,7 +5,7 @@ import requests
 import statistics
 import time
 import threading
-from flask import render_template, flash, redirect, url_for, request, session, Response
+from flask import render_template, flash, redirect, url_for, request, session, Response, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField, SubmitField
@@ -1429,3 +1429,7 @@ def privacy_policy():
 @app.route("/test")
 def test():
 	return render_template("test.html")
+
+@app.route('/test_rest')
+def test_rest():
+    return jsonify({'message': 'Hello, World!'})
