@@ -37,7 +37,9 @@ csp = {
         '\'unsafe-inline\'',
         '*'
     ],
-    'img-src': '*',
+    'img-src': ['*',
+                'data:'
+    ],
     'script-src': [
         '\'self\'',
         '\'unsafe-inline\'',
@@ -60,4 +62,4 @@ api.add_resource(auth.resources.UserLogin, "/api/login")
 api.add_resource(auth.resources.UserLogoutAccess, "/api/logout/access")
 api.add_resource(auth.resources.UserLogoutRefresh, "/api/logout/refresh")
 api.add_resource(auth.resources.TokenRefresh, "/api/token/refresh")
-api.add_resource(auth.resources.SecretResource, "/api/secret")
+api.add_resource(auth.resources.CheckToken, "/api/check_token")

@@ -65,6 +65,10 @@ def register_user(user):
 	return redirect(url_for("index", is_new_user=True))
 
 
+@bp.route("/react_login")
+def react_login():
+	return render_template("auth/react_login.html")
+
 # Routes
 @bp.route("/login", methods=['GET', 'POST'])
 def login():
@@ -154,8 +158,9 @@ def cancel():
 def logout():
 	if current_user.auth_type == "Google":
 		# Delete the user's profile and the credentials stored by oauth2.
-		del session["email"]
-		session.modified = True
+		if "email" in session:
+			del session["email"]
+			session.modified = True
 
 	logout_user()
 	return redirect(url_for("index"))
