@@ -25,7 +25,7 @@ moment = Moment(app)
 mail = Mail(app)
 api = Api(app)
 jwt = JWTManager(app)
-cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}}, expose_headers=["x-auth-token"])
+cors = CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://trainingticks.com", "https://www.trainingticks.com"]}}, expose_headers=["x-auth-token"])
 
 # TODO: Make these more specific and avoid the inline stuff
 csp = {
