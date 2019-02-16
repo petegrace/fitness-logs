@@ -122,19 +122,7 @@ def handle_goal_form_post(form, current_week, goal_type, goal_metric, goal_metri
 @app.route("/")
 @app.route("/index")
 def home():
-	# Send an already logged in user back to the index
-	if current_user.is_authenticated:
-		return redirect(url_for("index"))
-
-	register_form = RegisterForm()
-
-	# for the get...
-	google_auth = configured_google_client()
-	authorization_url = google_auth.authorize_url(
-	    scope=["email"],
-		response_type="code",
-	)
-	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)
+	return render_template("auth/react_login.html")
 	
 
 # TODO: Change references from index/home to be something like "Activity Hub"
