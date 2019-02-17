@@ -55,7 +55,7 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 from app.blog import bp as blog_bp
 app.register_blueprint(blog_bp, url_prefix="/blog")
 
-from app import routes, models, errors, app_classes, dataviz, utils, analysis
+from app import routes, models, errors, app_classes, dataviz, utils, analysis, resources
 
 # TODO: Would be good to have these as part of the auth blueprint still (or even their own blueprint) but don't want to deviate from tutorial too much!
 api.add_resource(auth.resources.UserLogin, "/api/login")
@@ -64,3 +64,5 @@ api.add_resource(auth.resources.UserLogoutRefresh, "/api/logout/refresh")
 api.add_resource(auth.resources.TokenRefresh, "/api/token/refresh")
 api.add_resource(auth.resources.CheckToken, "/api/check_token")
 api.add_resource(auth.resources.RegisterUser, "/api/register")
+
+api.add_resource(resources.AnnualStats, "/api/annual_stats")

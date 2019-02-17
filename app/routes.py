@@ -1421,3 +1421,30 @@ def test():
 @app.route('/test_rest')
 def test_rest():
     return jsonify({'message': 'Hello, World!'})
+
+@app.route("/api/counters")
+def counters():
+	return jsonify({
+            "heading": "Your 2019 Stats",
+            "counters": [{
+                "category_name": "Run",
+                "category_key": "cat_blue",
+                "value": 51,
+                "uom": "km"
+            }, {
+                "category_name": "Strength",
+                "category_key": "cat_green",
+                "value": 52,
+                "uom": "sets"
+            }, {
+                "category_name": "Stretch",
+                "category_key": "cat_green_outline",
+                "value": 9,
+                "uom": "sets"
+            }, {
+                "category_name": "Balance",
+                "category_key": "cat_red",
+                "value": 35,
+                "uom": "sets"
+            }]
+        })

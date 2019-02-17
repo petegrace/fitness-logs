@@ -3,7 +3,7 @@ from flask_login import login_user
 from flask_restful import Resource, reqparse, inputs
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt
 from flask_mail import Message
-from app import app, db, mail
+from app import app, db, mail, training_plan
 from app.models import User
 from requests_oauth2 import OAuth2BearerToken
 from datetime import datetime, timedelta
