@@ -6,6 +6,9 @@ from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_talisman import Talisman
 from flask_mail import Mail
+from flask_restful import Api
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from config import Config
 import json
 
@@ -20,6 +23,9 @@ login.login_message = None
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 mail = Mail(app)
+api = Api(app)
+jwt = JWTManager(app)
+cors = CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://trainingticks.com", "https://www.trainingticks.com"]}}, expose_headers=["x-auth-token"])
 
 # TODO: Make these more specific and avoid the inline stuff
 csp = {
@@ -31,7 +37,9 @@ csp = {
         '\'unsafe-inline\'',
         '*'
     ],
-    'img-src': '*',
+    'img-src': ['*',
+                'data:'
+    ],
     'script-src': [
         '\'self\'',
         '\'unsafe-inline\'',
@@ -47,4 +55,14 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 from app.blog import bp as blog_bp
 app.register_blueprint(blog_bp, url_prefix="/blog")
 
-from app import routes, models, errors, app_classes, dataviz, utils, analysis
+from app import routes, models, errors, app_classes, dataviz, utils, analysis, resources
+
+# TODO: Would be good to have these as part of the auth blueprint still (or even their own blueprint) but don't want to deviate from tutorial too much!
+api.add_resource(auth.resources.UserLogin, "/api/login")
+api.add_resource(auth.resources.UserLogoutAccess, "/api/logout/access")
+api.add_resource(auth.resources.UserLogoutRefresh, "/api/logout/refresh")
+api.add_resource(auth.resources.TokenRefresh, "/api/token/refresh")
+api.add_resource(auth.resources.CheckToken, "/api/check_token")
+api.add_resource(auth.resources.RegisterUser, "/api/register")
+
+api.add_resource(resources.AnnualStats, "/api/annual_stats")

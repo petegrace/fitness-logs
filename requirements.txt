@@ -17,3 +17,6 @@ Flask-SSLify==0.1.5
 flask-talisman==0.6.0
 Flask-Mail==0.9.1
 Markdown==3.0.1
+flask-restful==0.3.7
+flask-jwt-extended==3.17.0
+flask-cors==3.0.7

@@ -65,49 +65,14 @@ def register_user(user):
 	return redirect(url_for("index", is_new_user=True))
 
 
+@bp.route("/react_login")
+def react_login():
+	return render_template("auth/react_login.html")
+
 # Routes
-@bp.route("/login", methods=['GET', 'POST'])
+@bp.route("/login")
 def login():
-	# Send an already logged in user back to the index
-	if current_user.is_authenticated:
-		return redirect(url_for("index"))
-
-	register_form = RegisterForm()
-
-	if register_form.validate_on_submit():
-		new_user = User(email=session["email"],
-						auth_type="Google",
-						is_opted_in_for_marketing_emails=register_form.opt_in_to_marketing_emails.data)
-		register_user(new_user)
-
-	if "email" in session:
-		google_email = session["email"] 
-		user = User.query.filter_by(email=google_email).first()
-
-		if user is None:
-			register_form.google_email = google_email
-			return render_template("auth/register.html", title="Complete Registration", form=register_form)			
-		else:
-			login_user(user) # From the flask_login library, does the session management bit
-
-			# Run some application stuff to set things up (TODO: Probably doesn't belong in Auth, can refator later)...
-			if current_user.last_login_date != datetime.date(datetime.today()):
-				training_plan.refresh_plan_for_today(current_user)
-
-			current_user.last_login_datetime = datetime.utcnow()
-			db.session.commit()
-
-			# If the user hasn't activated any features yet then we want to encourage them...
-			if not current_user.is_activated_user:
-				return redirect(url_for("index", is_new_user=True))
-			return redirect(url_for("index"))
-
-	# for the get...
-	authorization_url = google_auth.authorize_url(
-	    scope=["email"],
-		response_type="code",
-	)
-	return render_template("auth/login.html", title="Sign In", authorization_url=authorization_url)
+	return render_template("auth/react_login.html")
 
 
 @bp.route("/oauth2callback")
@@ -154,8 +119,9 @@ def cancel():
 def logout():
 	if current_user.auth_type == "Google":
 		# Delete the user's profile and the credentials stored by oauth2.
-		del session["email"]
-		session.modified = True
+		if "email" in session:
+			del session["email"]
+			session.modified = True
 
 	logout_user()
 	return redirect(url_for("index"))
