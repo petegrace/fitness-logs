@@ -5,7 +5,7 @@ import requests
 import statistics
 import time
 import threading
-from flask import render_template, flash, redirect, url_for, request, session, Response, jsonify
+from flask import render_template, flash, redirect, url_for, request, session, Response, jsonify, Markup
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 from wtforms import HiddenField, SubmitField
@@ -211,7 +211,7 @@ def log_exercise(scheduled, id):
 	db.session.add(exercise)
 	db.session.commit()
 
-	flash("Added {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
+	flash(Markup("Added {type}. (<a href='{url}'>Edit</a>)".format(type=exercise.type.name, url=url_for("edit_exercise", id=exercise.id))))
 	return redirect(url_for("index"))
 
 
@@ -257,8 +257,8 @@ def new_exercise(context, selected_day=None):
 				current_user.is_exercises_user = True
 
 			db.session.commit()
-			flash("Added {type} at {datetime}".format(type=exercise_type.name, datetime=exercise.exercise_datetime))
-			
+			flash(Markup("Added {type}. (<a href='{url}'>Edit</a>)".format(type=exercise.type.name, url=url_for("edit_exercise", id=exercise.id))))
+	
 			# Show a modal to encourage use of categories after a certain number of exercise types have been used
 			if current_user.is_categories_user == False:
 				exercise_types_count = len(current_user.exercise_types.all())
@@ -313,7 +313,7 @@ def edit_exercise(id):
 		exercise.reps = form.reps.data
 		exercise.seconds = form.seconds.data
 		db.session.commit()
-		flash("Updated {type} at {datetime}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
+		flash("Updated {type}".format(type=exercise.type.name, datetime=exercise.exercise_datetime))
 
 		if form.update_default.data:
 			track_event(category="Exercises", action="Exercise default reps/secs updated", userId = str(current_user.id))
