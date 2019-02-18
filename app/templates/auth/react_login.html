@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block metas %}
+    <meta name="Description" content="Enhance your training with weekly goals, customised training plans and deeper analysis of runs">
+{% endblock %}
+
 {% block app_content %}
 {% include 'auth/_react_login.html' %}
 {% endblock %}
