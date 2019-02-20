@@ -1,7 +1,9 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from app.models import User
+from app import db
+from app.models import User, ScheduledActivity
+from app.ga import track_event
 
 class AnnualStats(Resource):
     @jwt_required
@@ -44,8 +46,8 @@ class PlannedActivities(Resource):
 
     @jwt_required
     def get(self):
-        email = get_jwt_identity()
-        current_user = User.query.filter_by(email=email).first()
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
 
         parser = reqparse.RequestParser()
         parser.add_argument("startDate", help="Start date for the (currently 1-day) period that we're returning planned activities for", required=True)
@@ -59,3 +61,16 @@ class PlannedActivities(Resource):
         return {
             "planned_activities": planned_activities
         }
+
+class PlannedActivity(Resource):
+    @jwt_required
+    def delete(self, planned_activity_id):
+        user_id = get_jwt_identity() #TODO: maybe we should have the id as part of the jwt identity (if possible) to limit DB trips? 
+        #current_user = User.query.filter_by(email=email).first()
+        track_event(category="Schedule", action="Scheduled activity removed", userId = str(user_id))
+
+        scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
+        scheduled_activity.is_removed = True
+        db.session.commit()
+
+        return '', 204

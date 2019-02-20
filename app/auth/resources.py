@@ -45,7 +45,7 @@ class UserLogin(Resource):
               }, 401  # 401 for unauthorized to indicate they need to register
         else:
             # 3. Create access token (with 60-min expiry)
-            access_token = create_access_token(identity=user_email, expires_delta=timedelta(minutes=60))
+            access_token = create_access_token(identity=current_user.id, expires_delta=timedelta(minutes=60))
 
             # 4. do the loginmanager stuff that we need to keep
             login_user(current_user) # From the flask_login library, does the session management bit
@@ -90,7 +90,7 @@ class RegisterUser(Resource):
         db.session.commit()
 
         # 3. Create access token
-        access_token = create_access_token(identity=new_user.email, expires_delta=timedelta(minutes=60))
+        access_token = create_access_token(identity=new_user.id, expires_delta=timedelta(minutes=60))
 
         # 4. Do the loginmanager thing and flash for the non-react bits
         flash("Congratulations! You are now a registered user of Training Ticks") # not sure if this would work
@@ -139,7 +139,7 @@ class RegisterUser(Resource):
         }
 
 
-# TODO: Consider if this is worthwhile or if we just go with a short-lived (e.g. 60 mins) access token
+# TODO: Consider if this is worthwhile or if we just go with a short-lived (e.g. 60 mins) access token, not using it currently
 class TokenRefresh(Resource):
     @jwt_refresh_token_required
     def post(self):
