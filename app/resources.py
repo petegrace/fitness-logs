@@ -65,12 +65,34 @@ class PlannedActivities(Resource):
 class PlannedActivity(Resource):
     @jwt_required
     def delete(self, planned_activity_id):
-        user_id = get_jwt_identity() #TODO: maybe we should have the id as part of the jwt identity (if possible) to limit DB trips? 
-        #current_user = User.query.filter_by(email=email).first()
+        user_id = get_jwt_identity() 
         track_event(category="Schedule", action="Scheduled activity removed", userId = str(user_id))
 
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
         scheduled_activity.is_removed = True
         db.session.commit()
 
-        return '', 204
+        return "", 204
+
+    @jwt_required
+    def patch(self, planned_activity_id):
+        user_id = get_jwt_identity() 
+        track_event(category="Schedule", action="Scheduled activity updated", userId = str(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("description", help="More detail about the planned activity")
+        parser.add_argument("planned_distance", help="Planned distance for the activity in km")
+        data = parser.parse_args()
+
+        if len(data["description"]) == 0:
+            data["description"] = None
+
+        if len(data["planned_distance"]) == 0:
+            data["planned_distance"] = None
+            
+        scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
+        scheduled_activity.description = data["description"] if data["description"] != "" else None
+        scheduled_activity.planned_distance = data["planned_distance"] if ["planned_distance"] != "" else None
+        db.session.commit()
+
+        return "", 204
