@@ -60,7 +60,7 @@ class PlannedActivities(Resource):
             "activity_type": planned_activity.activity_type,
 			"scheduled_day": planned_activity.scheduled_day,
 			"description": planned_activity.description,
-			"planned_distance": utils.convert_m_to_km(planned_activity.planned_distance),
+			"planned_distance": utils.convert_m_to_km(planned_activity.planned_distance) if planned_activity.planned_distance is not None else None,
 			"category_key": planned_activity.category_key
         }
 
@@ -76,7 +76,9 @@ class PlannedActivities(Resource):
         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
         day_of_week = start_date.strftime("%a")
 
-        planned_activities = [self.planned_activity_json(activity) for activity in current_user.scheduled_activities_filtered(day_of_week).all()]
+        planned_activities = []
+        if start_date > datetime.utcnow():
+            planned_activities = [self.planned_activity_json(activity) for activity in current_user.scheduled_activities_filtered(day_of_week).all()]
 
         return {
             "planned_activities": planned_activities
