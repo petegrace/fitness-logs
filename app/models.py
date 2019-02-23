@@ -203,7 +203,26 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed==False
 				).filter(ScheduledActivity.scheduled_day==scheduled_day)
-		return scheduled_activities_filtered #self.scheduled_activities.filter_by(is_removed=False).filter_by(scheduled_day=scheduled_day)
+		return scheduled_activities_filtered
+
+	def planned_activities_filtered(self, startDate, endDate):
+		planned_activities_filtered = db.session.query(
+											ScheduledActivity.id,
+											CalendarDay.calendar_date.label("planned_date"),
+											ScheduledActivity.activity_type,
+											ScheduledActivity.scheduled_day,
+											ScheduledActivity.description,
+											ScheduledActivity.planned_distance,
+											ExerciseCategory.category_key
+				).join(CalendarDay, ScheduledActivity.scheduled_day == CalendarDay.day_of_week
+				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).filter(ScheduledActivity.owner == self
+				).filter(ScheduledActivity.is_removed==False
+				).filter(CalendarDay.calendar_date > date.today()
+				).filter(CalendarDay.calendar_date >= startDate
+				).filter(CalendarDay.calendar_date <= endDate)
+
+		return planned_activities_filtered
 
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,

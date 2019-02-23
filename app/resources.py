@@ -57,7 +57,8 @@ class PlannedActivities(Resource):
     def planned_activity_json(self, planned_activity):
         return {
             "id": planned_activity.id,
-            "activity_type": planned_activity.activity_type,
+            "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
+			"activity_type": planned_activity.activity_type,
 			"scheduled_day": planned_activity.scheduled_day,
 			"description": planned_activity.description,
 			"planned_distance": utils.convert_m_to_km(planned_activity.planned_distance) if planned_activity.planned_distance is not None else None,
@@ -70,15 +71,14 @@ class PlannedActivities(Resource):
         current_user = User.query.get(int(user_id))
 
         parser = reqparse.RequestParser()
-        parser.add_argument("startDate", help="Start date for the (currently 1-day) period that we're returning planned activities for", required=True)
+        parser.add_argument("startDate", help="Start date for the period that we're returning planned activities for", required=True)
+        parser.add_argument("endDate", help="Optional end date for the period that we're returning planned activities for. If left blank it will be the same as the start date")
         args = parser.parse_args()
         
         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
-        day_of_week = start_date.strftime("%a")
+        end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 
-        planned_activities = []
-        if start_date > datetime.utcnow():
-            planned_activities = [self.planned_activity_json(activity) for activity in current_user.scheduled_activities_filtered(day_of_week).all()]
+        planned_activities = [self.planned_activity_json(activity) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
 
         return {
             "planned_activities": planned_activities
