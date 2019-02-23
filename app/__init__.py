@@ -66,5 +66,6 @@ api.add_resource(auth.resources.CheckToken, "/api/check_token")
 api.add_resource(auth.resources.RegisterUser, "/api/register")
 
 api.add_resource(resources.AnnualStats, "/api/annual_stats")
+api.add_resource(resources.ActivityTypes, "/api/activity_types")
 api.add_resource(resources.PlannedActivities, "/api/planned_activities")
 api.add_resource(resources.PlannedActivity, "/api/planned_activity/<planned_activity_id>")
