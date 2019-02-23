@@ -218,7 +218,7 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed==False
-				).filter(CalendarDay.calendar_date > date.today()
+				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate)
 
