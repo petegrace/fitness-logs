@@ -1,15 +1,16 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from app import db
-from app.models import User, ScheduledActivity
+from sqlalchemy import desc, and_, or_, null
+from app import db, utils
+from app.models import User, ScheduledActivity, ExerciseCategory
 from app.ga import track_event
 
 class AnnualStats(Resource):
     @jwt_required
     def get(self):
-        email = get_jwt_identity()
-        current_user = User.query.filter_by(email=email).first()
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
 
         counters = []
         for activity_type_stat in current_user.current_year_activity_stats().all():
@@ -33,6 +34,25 @@ class AnnualStats(Resource):
             "counters": counters
         }
 
+class ActivityTypes(Resource):
+    @jwt_required
+    def get(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        activity_types = []
+
+        for activity_type in current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all():
+            activity_types.append({
+                "activity_type": activity_type.category_name,
+                "category_key": activity_type.category_key
+            })
+
+        return {
+            "activity_types": activity_types
+        }
+
+
 class PlannedActivities(Resource):
     def planned_activity_json(self, planned_activity):
         return {
@@ -40,7 +60,7 @@ class PlannedActivities(Resource):
             "activity_type": planned_activity.activity_type,
 			"scheduled_day": planned_activity.scheduled_day,
 			"description": planned_activity.description,
-			"planned_distance": planned_activity.planned_distance,
+			"planned_distance": utils.convert_m_to_km(planned_activity.planned_distance),
 			"category_key": planned_activity.category_key
         }
 
@@ -61,6 +81,41 @@ class PlannedActivities(Resource):
         return {
             "planned_activities": planned_activities
         }
+
+    @jwt_required
+    def post(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("activity_type", help="Whether the activity is a Run, Ride or Swim")
+        parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("description", help="More detail about the planned activity")
+        parser.add_argument("planned_distance", help="Planned distance for the activity in km")
+        data = parser.parse_args()
+
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+        planned_day_of_week = planned_date.strftime("%a")
+
+        if data["description"] and len(data["description"]) == 0:
+            data["description"] = None
+
+        if data["planned_distance"] and len(data["planned_distance"]) == 0:
+            data["planned_distance"] = None
+
+        track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
+        scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
+                                               owner=current_user,
+                                               scheduled_day=planned_day_of_week,
+                                               description=data["description"],
+                                               planned_distance=(int(data["planned_distance"])*1000) if data["planned_distance"] else None) #TODO make sure we're consistent on km vs m
+        db.session.add(scheduled_activity)
+        db.session.commit()
+
+        return {
+            "id": scheduled_activity.id
+        }, 201
+
 
 class PlannedActivity(Resource):
     @jwt_required
@@ -84,15 +139,15 @@ class PlannedActivity(Resource):
         parser.add_argument("planned_distance", help="Planned distance for the activity in km")
         data = parser.parse_args()
 
-        if len(data["description"]) == 0:
+        if data["description"] and len(data["description"]) == 0:
             data["description"] = None
 
-        if len(data["planned_distance"]) == 0:
+        if data["planned_distance"] and len(data["planned_distance"]) == 0:
             data["planned_distance"] = None
-            
+
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
         scheduled_activity.description = data["description"] if data["description"] != "" else None
-        scheduled_activity.planned_distance = data["planned_distance"] if ["planned_distance"] != "" else None
+        scheduled_activity.planned_distance = (int(data["planned_distance"])*1000) if ["planned_distance"] != "" else None
         db.session.commit()
 
         return "", 204
