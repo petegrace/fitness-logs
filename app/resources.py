@@ -51,19 +51,20 @@ class ActivityTypes(Resource):
         return {
             "activity_types": activity_types
         }
+    
+def planned_activity_json(planned_activity):
+    return {
+        "id": planned_activity.id,
+        "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
+        "activity_type": planned_activity.activity_type,
+        "scheduled_day": planned_activity.scheduled_day,
+        "description": planned_activity.description,
+        "planned_distance": utils.convert_m_to_km(planned_activity.planned_distance) if planned_activity.planned_distance is not None else None,
+        "category_key": planned_activity.category_key
+    }
 
 
 class PlannedActivities(Resource):
-    def planned_activity_json(self, planned_activity):
-        return {
-            "id": planned_activity.id,
-            "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
-			"activity_type": planned_activity.activity_type,
-			"scheduled_day": planned_activity.scheduled_day,
-			"description": planned_activity.description,
-			"planned_distance": utils.convert_m_to_km(planned_activity.planned_distance) if planned_activity.planned_distance is not None else None,
-			"category_key": planned_activity.category_key
-        }
 
     @jwt_required
     def get(self):
@@ -78,7 +79,7 @@ class PlannedActivities(Resource):
         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
         end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 
-        planned_activities = [self.planned_activity_json(activity) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
+        planned_activities = [planned_activity_json(activity) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
 
         return {
             "planned_activities": planned_activities
@@ -149,7 +150,7 @@ class PlannedActivity(Resource):
 
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
         scheduled_activity.description = data["description"] if data["description"] != "" else None
-        scheduled_activity.planned_distance = (int(data["planned_distance"])*1000) if ["planned_distance"] != "" else None
+        scheduled_activity.planned_distance = (int(data["planned_distance"])*1000) if data["planned_distance"] is not None else None
         db.session.commit()
 
         return "", 204
