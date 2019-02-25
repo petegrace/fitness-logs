@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
-from app.models import User, ScheduledActivity, ExerciseCategory
+from app.models import User, ScheduledActivity, ScheduledExercise, ExerciseCategory
 from app.ga import track_event
 
 class AnnualStats(Resource):
@@ -212,4 +212,14 @@ def planned_exercises_json(user, start_date, end_date):
 #         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
 #         end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 
-        
+class PlannedExercise(Resource):
+    @jwt_required
+    def delete(self, planned_exercise_id):
+        user_id = get_jwt_identity() 
+        track_event(category="Schedule", action="Scheduled exercise removed", userId = str(user_id))
+
+        scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
+        scheduled_exercise.is_removed = True
+        db.session.commit()
+
+        return "", 204   
