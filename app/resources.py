@@ -1,6 +1,6 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
 from app.models import User, ScheduledActivity, ExerciseCategory
@@ -82,7 +82,8 @@ class PlannedActivities(Resource):
         planned_activities = [planned_activity_json(activity) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
 
         return {
-            "planned_activities": planned_activities
+            "planned_activities": planned_activities,
+            "planned_exercises": planned_exercises_json(current_user, start_date, end_date)
         }
 
     @jwt_required
@@ -154,3 +155,61 @@ class PlannedActivity(Resource):
         db.session.commit()
 
         return "", 204
+    
+def planned_exercise_json(planned_exercise):
+    return {
+        "id": planned_exercise.id,
+        "planned_date": planned_exercise.planned_date.strftime("%Y-%m-%d"),
+        "exercise_name": planned_exercise.exercise_name,
+        "category_name": planned_exercise.category_name,
+        "scheduled_day": planned_exercise.scheduled_day,
+        "planned_sets": planned_exercise.sets,
+        "measured_by": planned_exercise.measured_by,
+        "planned_reps": planned_exercise.reps,
+        "planned_seconds": planned_exercise.seconds,
+        "category_key": planned_exercise.category_key
+    }
+
+def planned_exercises_json(user, start_date, end_date):
+    planned_exercises = user.planned_exercises_filtered(start_date, end_date).all()
+    categories = user.exercise_categories.all()
+
+    planned_exercises_by_category = []
+
+    # Group up the planned exercises by category
+    for category in categories:
+        calendar_date = start_date
+        
+        while calendar_date <= end_date:
+            category_planned_exercises = [planned_exercise for planned_exercise in planned_exercises if planned_exercise.category_name==category.category_name and planned_exercise.planned_date==calendar_date.date()]
+            if len(category_planned_exercises) > 0:
+                planned_exercises_category = {
+                    "planned_date": calendar_date.strftime("%Y-%m-%d"),
+                    "category_name": category.category_name,
+                    "category_key": category.category_key,
+                    "exercises": [planned_exercise_json(planned_exercise) for planned_exercise in category_planned_exercises]
+                }
+                planned_exercises_by_category.append(planned_exercises_category)
+
+            calendar_date = calendar_date + timedelta(days=1)
+
+    # TODO: Need to add uncategorised
+
+    return planned_exercises_by_category
+
+# class PlannedExercises(Resource):
+    
+#     @jwt_required
+#     def get(self):
+#         user_id = get_jwt_identity()
+#         current_user = User.query.get(int(user_id))
+        
+#         parser = reqparse.RequestParser()
+#         parser.add_argument("startDate", help="Start date for the period that we're returning planned activities for", required=True)
+#         parser.add_argument("endDate", help="Optional end date for the period that we're returning planned activities for. If left blank it will be the same as the start date")
+#         args = parser.parse_args()
+        
+#         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
+#         end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
+
+        

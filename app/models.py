@@ -224,6 +224,29 @@ class User(UserMixin, db.Model):
 
 		return planned_activities_filtered
 
+	def planned_exercises_filtered(self, startDate, endDate):
+		planned_exercises_filtered =  db.session.query(
+											ScheduledExercise.id,
+											ExerciseType.name.label("exercise_name"),
+											CalendarDay.calendar_date.label("planned_date"),
+											ExerciseCategory.category_name,
+											ScheduledExercise.scheduled_day,
+											ScheduledExercise.sets,
+											ExerciseType.measured_by,
+											ScheduledExercise.reps,
+											ScheduledExercise.seconds,
+											ExerciseCategory.category_key									
+				).join(CalendarDay, ScheduledExercise.scheduled_day == CalendarDay.day_of_week
+				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
+				).filter(ExerciseType.owner == self
+				).filter(ScheduledExercise.is_removed == False
+				).filter(CalendarDay.calendar_date >= date.today()
+				).filter(CalendarDay.calendar_date >= startDate
+				).filter(CalendarDay.calendar_date <= endDate)
+
+		return planned_exercises_filtered
+
 	def scheduled_exercises(self, scheduled_day):
 		return ScheduledExercise.query.join(ExerciseType,
 			(ExerciseType.id == ScheduledExercise.exercise_type_id)
