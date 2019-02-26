@@ -222,4 +222,32 @@ class PlannedExercise(Resource):
         scheduled_exercise.is_removed = True
         db.session.commit()
 
-        return "", 204   
+        return "", 204
+
+    @jwt_required
+    def patch(self, planned_exercise_id):
+        user_id = get_jwt_identity() 
+        track_event(category="Schedule", action="Scheduled exercise updated", userId = str(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("planned_sets", help="Planned number of sets to do on the given day")
+        parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
+        parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
+        data = parser.parse_args()
+
+        if data["planned_sets"] and len(data["planned_sets"]) == 0:
+            data["planned_sets"] = None
+
+        if data["planned_reps"] and len(data["planned_reps"]) == 0:
+            data["planned_reps"] = None
+
+        if data["planned_seconds"] and len(data["planned_seconds"]) == 0:
+            data["planned_seconds"] = None
+
+        scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
+        scheduled_exercise.sets = int(data["planned_sets"]) if data["planned_sets"] is not None else None
+        scheduled_exercise.reps = int(data["planned_reps"]) if data["planned_reps"] is not None else None
+        scheduled_exercise.seconds = int(data["planned_seconds"]) if data["planned_seconds"] is not None else None
+        db.session.commit()
+
+        return "", 204
