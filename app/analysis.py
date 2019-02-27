@@ -123,7 +123,7 @@ def parse_streams(activity):
 			if dp_ind > 1:
 				duration = (time_data_point - activity_streams["time"].data[dp_ind-1])
 				distance_travelled = (activity_streams["distance"].data[dp_ind] - activity_streams["distance"].data[dp_ind-1])
-				elevation_gained = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1])
+				elevation_gained = (activity_streams["altitude"].data[dp_ind] - activity_streams["altitude"].data[dp_ind-1]) if activity_streams["altitude"] in activity_streams else None
 				pace_seconds = math.ceil(utils.convert_mps_to_km_pace(activity_streams["velocity_smooth"].data[dp_ind]).total_seconds() / 5) * 5 if "velocity_smooth" in activity_streams and activity_streams["velocity_smooth"].data[dp_ind] > 0 else None
 				gradient = math.floor(activity_streams["grade_smooth"].data[dp_ind]) if "grade_smooth" in activity_streams else None
 
