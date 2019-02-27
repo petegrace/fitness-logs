@@ -41,16 +41,33 @@ class ActivityTypes(Resource):
         current_user = User.query.get(int(user_id))
 
         activity_types = []
-
         for activity_type in current_user.exercise_categories.filter(ExerciseCategory.category_name.in_(["Run", "Ride", "Swim"])).all():
             activity_types.append({
                 "activity_type": activity_type.category_name,
                 "category_key": activity_type.category_key
             })
 
+        exercise_types = exercise_types_json(current_user)
+
         return {
-            "activity_types": activity_types
+            "activity_types": activity_types,
+            "exercise_types": exercise_types
         }
+
+def exercise_types_json(user):
+    exercise_types = []
+    for exercise_type in user.exercise_types_ordered().all():
+        exercise_types.append({
+            "id": exercise_type.id,
+			"exercise_name": exercise_type.name,
+			"category_key": exercise_type.category_key,
+			"category_name": exercise_type.category_name,
+			"measured_by": exercise_type.measured_by,
+			"default_reps": exercise_type.default_reps,
+			"default_seconds": exercise_type.default_seconds
+        })
+
+    return exercise_types
     
 def planned_activity_json(planned_activity):
     return {
