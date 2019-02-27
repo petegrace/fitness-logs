@@ -129,7 +129,7 @@ def parse_streams(activity):
 
 				# Extra cleansing of gradient to deal with dodgy value during barometer calibration
 				gradient = None if time_data_point < 60 and gradient > 10 else gradient
-				elevation_gained = None if (time_data_point < 60 and elevation_gained > 1) or elevation_gained < 0 else elevation_gained
+				elevation_gained = None if elevation_gained and ((time_data_point < 60 and elevation_gained > 1) or elevation_gained < 0) else elevation_gained
 
 				if duration <= 10: # Discard anything more than 10 seconds that probably relates to stopping
 					data_points_df.loc[df_ind] = [activity_streams["time"].data[dp_ind-1],
