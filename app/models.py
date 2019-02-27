@@ -227,6 +227,7 @@ class User(UserMixin, db.Model):
 	def planned_exercises_filtered(self, startDate, endDate):
 		planned_exercises_filtered =  db.session.query(
 											ScheduledExercise.id,
+											ScheduledExercise.exercise_type_id,
 											ExerciseType.name.label("exercise_name"),
 											CalendarDay.calendar_date.label("planned_date"),
 											ExerciseCategory.category_name,

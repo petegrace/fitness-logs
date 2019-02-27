@@ -177,6 +177,7 @@ def planned_exercise_json(planned_exercise):
     return {
         "id": planned_exercise.id,
         "planned_date": planned_exercise.planned_date.strftime("%Y-%m-%d"),
+        "exercise_type_id": planned_exercise.exercise_type_id,
         "exercise_name": planned_exercise.exercise_name,
         "category_name": planned_exercise.category_name,
         "scheduled_day": planned_exercise.scheduled_day,
