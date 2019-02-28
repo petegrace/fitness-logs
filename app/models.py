@@ -217,8 +217,10 @@ class User(UserMixin, db.Model):
 											ExerciseCategory.category_key
 				).join(CalendarDay, or_(ScheduledActivity.scheduled_date==CalendarDay.calendar_date, ScheduledActivity.scheduled_day==CalendarDay.day_of_week)
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
+				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
 				).filter(ScheduledActivity.owner == self
-				).filter(ScheduledActivity.is_removed==False
+				).filter(ScheduledActivity.is_removed == False
+				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate)
@@ -226,7 +228,7 @@ class User(UserMixin, db.Model):
 		return planned_activities_filtered
 
 	def planned_exercises_filtered(self, startDate, endDate):
-		planned_exercises_filtered =  db.session.query(
+		planned_exercises_filtered = db.session.query(
 											ScheduledExercise.id,
 											ScheduledExercise.exercise_type_id,
 											ExerciseType.name.label("exercise_name"),
@@ -242,8 +244,10 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
+				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
+				).filter(ScheduledExerciseSkippedDate.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate)
@@ -783,10 +787,11 @@ class ScheduledExercise(db.Model):
 	is_removed = db.Column(db.Boolean, default=False)
 	exercises = db.relationship("Exercise", backref="scheduled_exercise", lazy="dynamic")
 	exercise_scheduled_today = db.relationship("ExerciseForToday", backref="scheduled_exercise", lazy="dynamic")
+	skipped_dates = db.relationship("ScheduledExerciseSkippedDate", backref="scheduled_exercise", lazy="dynamic")
 
 	def __repr__(self):
 		return "<ScheduledExercise {name} for {user} on {day}>".format(
-			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day)
+			name=self.type.name, user=self.type.owner.email, day=self.scheduled_day if self.recurrence=="weekly" else self.scheduled_date)
 
 
 class ExerciseForToday(db.Model):
@@ -797,6 +802,17 @@ class ExerciseForToday(db.Model):
 	def __repr__(self):
 		return "<ExerciseForToday {name} for {user} from {day}>".format(
 			name=self.scheduled_exercise.type.name, user=self.scheduled_exercise.type.owner.email, day=self.scheduled_exercise.scheduled_day)
+
+
+class ScheduledExerciseSkippedDate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_exercise_id = db.Column(db.Integer, db.ForeignKey("scheduled_exercise.id"))
+	skipped_date = db.Column(db.Date)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ScheduledExerciseSkippedDate for {name} by {user} on {date}>".format(
+			activity_type=self.scheduled_exercise.type.name, user=self.scheduled_exercise.owner.email, date=self.skipped_date)
 
 
 class ScheduledActivity(db.Model):
@@ -812,10 +828,11 @@ class ScheduledActivity(db.Model):
 	is_removed = db.Column(db.Boolean, default=False)
 	activities = db.relationship("Activity", backref="scheduled_activity", lazy="dynamic")
 	activity_scheduled_today = db.relationship("ActivityForToday", backref="scheduled_activity", lazy="dynamic")
+	skipped_dates = db.relationship("ScheduledActivitySkippedDate", backref="scheduled_activity", lazy="dynamic")
 
 	def __repr__(self):
 		return "<ScheduledActivity of {activity_type} for {user} on {day}>".format(
-			activity_type=self.activity_type, user=self.owner.email, day=self.scheduled_day)
+			activity_type=self.activity_type, user=self.owner.email, day=self.scheduled_day if self.recurrence=="weekly" else self.scheduled_date)
 			
 	@property
 	def planned_distance_formatted(self):
@@ -828,9 +845,19 @@ class ActivityForToday(db.Model):
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
 	def __repr__(self):
-		return "<ActivityForToday of {activity_type} for {user} from {day}>".format(
-			activity_type=self.scheduled_activity.activity_type, user=self.scheduled_activity.owner.email, day=self.scheduled_activity.scheduled_day)
+		return "<ActivityForToday of {activity_type} for {user}>".format(
+			activity_type=self.scheduled_activity.activity_type, user=self.scheduled_activity.owner.email)
 
+
+class ScheduledActivitySkippedDate(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	scheduled_activity_id = db.Column(db.Integer, db.ForeignKey("scheduled_activity.id"))
+	skipped_date = db.Column(db.Date)
+	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+
+	def __repr__(self):
+		return "<ScheduledActivitySkippedDate for {activity_type} by {user} on {date}>".format(
+			activity_type=self.scheduled_activity.activity_type, user=self.scheduled_activity.owner.email, date=self.skipped_date)
 
 class TrainingGoal(db.Model):
 	id = db.Column(db.Integer, primary_key=True)

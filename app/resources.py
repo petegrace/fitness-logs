@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
-from app.models import User, ScheduledActivity, ScheduledExercise, ExerciseCategory, ExerciseType
+from app.models import User, ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate, ExerciseCategory, ExerciseType
 from app.ga import track_event
 
 class AnnualStats(Resource):
@@ -162,9 +162,21 @@ class PlannedActivity(Resource):
         user_id = get_jwt_identity() 
         track_event(category="Schedule", action="Scheduled activity removed", userId = str(user_id))
 
+        parser = reqparse.RequestParser()
+        parser.add_argument("scope", help="Either 'all' to remove the activity from the plan completely or a date to add to skipped dates table")
+        args = parser.parse_args()
+        scope = args["scope"] if args["scope"] else "all"
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
-        scheduled_activity.is_removed = True
-        db.session.commit()
+            
+        if scope == "all":
+            scheduled_activity.is_removed = True
+            db.session.commit()
+        else:
+            skipped_date = datetime.strptime(scope, "%Y-%m-%d")
+            scheduled_activity_skipped_date = ScheduledActivitySkippedDate(scheduled_activity=scheduled_activity,
+                                                                           skipped_date=skipped_date)
+            db.session.add(scheduled_activity_skipped_date)
+            db.session.commit()
 
         return "", 204
 
@@ -326,9 +338,24 @@ class PlannedExercise(Resource):
         user_id = get_jwt_identity() 
         track_event(category="Schedule", action="Scheduled exercise removed", userId = str(user_id))
 
+        parser = reqparse.RequestParser()
+        parser.add_argument("scope", help="Either 'all' to remove the exercise from the plan completely or a date to add to skipped dates table")
+        args = parser.parse_args()
+        scope = args["scope"] if args["scope"] else "all"
+
         scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
-        scheduled_exercise.is_removed = True
-        db.session.commit()
+        print(scope)
+        if scope == "all":
+            scheduled_exercise.is_removed = True
+            db.session.commit()
+        else:
+            print(scope)
+            skipped_date = datetime.strptime(scope, "%Y-%m-%d")
+            print(skipped_date)
+            scheduled_exercise_skipped_date = ScheduledExerciseSkippedDate(scheduled_exercise=scheduled_exercise,
+                                                                           skipped_date=skipped_date)
+            db.session.add(scheduled_exercise_skipped_date)
+            db.session.commit()
 
         return "", 204
 
