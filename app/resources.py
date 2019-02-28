@@ -215,7 +215,41 @@ def planned_exercises_json(user, start_date, end_date):
 
     return planned_exercises_by_category
 
-# class PlannedExercises(Resource):
+class PlannedExercises(Resource):
+    @jwt_required
+    def post(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("exercise_type_id", help="Foreign key for the type of exercise being scheduled", required=True)
+        parser.add_argument("planned_date", help="Date that the exercise is planned for", required=True)
+        parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
+        parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
+        data = parser.parse_args()
+
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+        planned_day_of_week = planned_date.strftime("%a")
+
+        if data["planned_reps"] and len(data["planned_reps"]) == 0:
+            data["planned_reps"] = None
+
+        if data["planned_seconds"] and len(data["planned_seconds"]) == 0:
+            data["planned_seconds"] = None
+
+        track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+        # Schedule the exercise based on defaults
+        scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
+                                               scheduled_day=planned_day_of_week,
+                                               sets=1,
+                                               reps=data["planned_reps"],
+                                               seconds=data["planned_seconds"])
+        db.session.add(scheduled_exercise)
+        db.session.commit()
+
+        return {
+            "id": scheduled_exercise.id
+        }, 201
     
 #     @jwt_required
 #     def get(self):
