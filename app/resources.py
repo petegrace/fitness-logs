@@ -131,7 +131,6 @@ class PlannedActivities(Resource):
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
-        print(planned_date)
         planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
         planned_date = planned_date if data["recurrence"] == "once" else None
 
@@ -175,9 +174,15 @@ class PlannedActivity(Resource):
         track_event(category="Schedule", action="Scheduled activity updated", userId = str(user_id))
 
         parser = reqparse.RequestParser()
+        parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
         parser.add_argument("planned_distance", help="Planned distance for the activity in km")
         data = parser.parse_args()
+
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+        planned_date = planned_date if data["recurrence"] == "once" else None
 
         if data["description"] and len(data["description"]) == 0:
             data["description"] = None
@@ -186,6 +191,9 @@ class PlannedActivity(Resource):
             data["planned_distance"] = None
 
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
+        scheduled_activity.recurrence = data["recurrence"]
+        scheduled_activity.scheduled_date = planned_date
+        scheduled_activity.scheduled_day = planned_day_of_week
         scheduled_activity.description = data["description"] if data["description"] != "" else None
         scheduled_activity.planned_distance = (int(data["planned_distance"])*1000) if data["planned_distance"] is not None else None
         db.session.commit()
