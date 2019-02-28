@@ -124,12 +124,14 @@ class PlannedActivities(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("activity_type", help="Whether the activity is a Run, Ride or Swim")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
         parser.add_argument("planned_distance", help="Planned distance for the activity in km")
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
-        planned_day_of_week = planned_date.strftime("%a")
+        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+        planned_date = planned_date if data["recurrence"] == "once" else None
 
         if data["description"] and len(data["description"]) == 0:
             data["description"] = None
@@ -140,6 +142,7 @@ class PlannedActivities(Resource):
         track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
         scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
                                                owner=current_user,
+                                               scheduled_date=planned_date,
                                                scheduled_day=planned_day_of_week,
                                                description=data["description"],
                                                planned_distance=(int(data["planned_distance"])*1000) if data["planned_distance"] else None) #TODO make sure we're consistent on km vs m
