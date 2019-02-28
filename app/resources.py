@@ -85,6 +85,7 @@ def exercise_categories_json(user):
 def planned_activity_json(planned_activity):
     return {
         "id": planned_activity.id,
+        "recurrence": planned_activity.recurrence,
         "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
         "activity_type": planned_activity.activity_type,
         "scheduled_day": planned_activity.scheduled_day,
@@ -130,6 +131,7 @@ class PlannedActivities(Resource):
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+        print(planned_date)
         planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
         planned_date = planned_date if data["recurrence"] == "once" else None
 
@@ -142,6 +144,7 @@ class PlannedActivities(Resource):
         track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
         scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
                                                owner=current_user,
+                                               recurrence=data["recurrence"],
                                                scheduled_date=planned_date,
                                                scheduled_day=planned_day_of_week,
                                                description=data["description"],
@@ -150,7 +153,7 @@ class PlannedActivities(Resource):
         db.session.commit()
 
         return {
-            "id": scheduled_activity.id
+            "id": 1#scheduled_activity.id
         }, 201
 
 

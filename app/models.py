@@ -208,13 +208,14 @@ class User(UserMixin, db.Model):
 	def planned_activities_filtered(self, startDate, endDate):
 		planned_activities_filtered = db.session.query(
 											ScheduledActivity.id,
+											ScheduledActivity.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
 											ScheduledActivity.activity_type,
 											ScheduledActivity.scheduled_day,
 											ScheduledActivity.description,
 											ScheduledActivity.planned_distance,
 											ExerciseCategory.category_key
-				).join(CalendarDay, ScheduledActivity.scheduled_day == CalendarDay.day_of_week
+				).join(CalendarDay, or_(ScheduledActivity.scheduled_date==CalendarDay.calendar_date, ScheduledActivity.scheduled_day==CalendarDay.day_of_week)
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed==False
@@ -799,6 +800,7 @@ class ScheduledActivity(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 	activity_type = db.Column(db.String(50))
+	recurrence = db.Column(db.String(20))
 	scheduled_date = db.Column(db.Date)
 	scheduled_day = db.Column(db.String(10))
 	description = db.Column(db.String(500))
