@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
-from app.models import User, ScheduledActivity, ScheduledExercise, ExerciseCategory
+from app.models import User, ScheduledActivity, ScheduledExercise, ExerciseCategory, ExerciseType
 from app.ga import track_event
 
 class AnnualStats(Resource):
@@ -48,10 +48,12 @@ class ActivityTypes(Resource):
             })
 
         exercise_types = exercise_types_json(current_user)
+        exercise_categories = exercise_categories_json(current_user)
 
         return {
             "activity_types": activity_types,
-            "exercise_types": exercise_types
+            "exercise_types": exercise_types,
+            "exercise_categories": exercise_categories
         }
 
 def exercise_types_json(user):
@@ -68,6 +70,17 @@ def exercise_types_json(user):
         })
 
     return exercise_types
+
+def exercise_categories_json(user):
+    exercise_categories = []
+    for exercise_category in user.exercise_categories.filter(ExerciseCategory.category_name.notin_(["Run", "Ride", "Swim"])).all():
+        exercise_categories.append({
+            "id": exercise_category.id,
+			"category_name": exercise_category.category_name,
+			"category_key": exercise_category.category_key
+        })
+
+    return exercise_categories
     
 def planned_activity_json(planned_activity):
     return {
@@ -222,12 +235,16 @@ class PlannedExercises(Resource):
         current_user = User.query.get(int(user_id))
 
         parser = reqparse.RequestParser()
-        parser.add_argument("exercise_type_id", help="Foreign key for the type of exercise being scheduled", required=True)
+        parser.add_argument("exercise_type_id", help="Foreign key for the type of exercise being scheduled")
+        parser.add_argument("exercise_name", help="Name of the exercise when scheduling a new type")
+        parser.add_argument("measured_by", help="Whether the exercise is measured by number of reps or time to hold position")
+        parser.add_argument("exercise_category_id", help="Foreign key to category for exercise if creating a new type")
         parser.add_argument("planned_date", help="Date that the exercise is planned for", required=True)
         parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
         parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
         data = parser.parse_args()
 
+        print(data["planned_date"])
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
         planned_day_of_week = planned_date.strftime("%a")
 
@@ -237,13 +254,33 @@ class PlannedExercises(Resource):
         if data["planned_seconds"] and len(data["planned_seconds"]) == 0:
             data["planned_seconds"] = None
 
-        track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+        if (not data["exercise_type_id"]):
+            # TODO: we should move this into an exercise types function for reuse
+            track_event(category="Exercises", action="New Exercise created for scheduling", userId = str(current_user.id))
+
+            # Ensure that seconds and reps are none if the other is selected
+            if data["measured_by"] == "reps":
+                data["planned_seconds"] = None
+            elif data["measured_by"] == "seconds":
+                data["planned_reps"] = None
+
+            exercise_type = ExerciseType(name=data["exercise_name"],
+                                        owner=current_user,
+                                        measured_by=data["measured_by"],
+                                        default_reps=int(data["planned_reps"]) if data["planned_reps"] else None,
+                                        default_seconds=int(data["planned_seconds"]) if int(data["planned_seconds"]) else None,
+                                        exercise_category_id=int(data["exercise_category_id"])) if data["exercise_category_id"] else None
+            db.session.add(exercise_type)
+            db.session.commit()
+            data["exercise_type_id"] = exercise_type.id
+        
         # Schedule the exercise based on defaults
+        track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
         scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
-                                               scheduled_day=planned_day_of_week,
-                                               sets=1,
-                                               reps=data["planned_reps"],
-                                               seconds=data["planned_seconds"])
+                                            scheduled_day=planned_day_of_week,
+                                            sets=1,
+                                            reps=data["planned_reps"],
+                                            seconds=data["planned_seconds"])
         db.session.add(scheduled_exercise)
         db.session.commit()
 
