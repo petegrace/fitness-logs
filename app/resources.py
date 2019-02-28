@@ -203,6 +203,7 @@ class PlannedActivity(Resource):
 def planned_exercise_json(planned_exercise):
     return {
         "id": planned_exercise.id,
+        "recurrence": planned_exercise.recurrence,
         "planned_date": planned_exercise.planned_date.strftime("%Y-%m-%d"),
         "exercise_type_id": planned_exercise.exercise_type_id,
         "exercise_name": planned_exercise.exercise_name,
@@ -253,14 +254,15 @@ class PlannedExercises(Resource):
         parser.add_argument("exercise_name", help="Name of the exercise when scheduling a new type")
         parser.add_argument("measured_by", help="Whether the exercise is measured by number of reps or time to hold position")
         parser.add_argument("exercise_category_id", help="Foreign key to category for exercise if creating a new type")
+        parser.add_argument("recurrence", help="Whether or not the planned exercise will be repeated each week")
         parser.add_argument("planned_date", help="Date that the exercise is planned for", required=True)
         parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
         parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
         data = parser.parse_args()
 
-        print(data["planned_date"])
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
-        planned_day_of_week = planned_date.strftime("%a")
+        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+        planned_date = planned_date if data["recurrence"] == "once" else None
 
         if data["planned_reps"] and len(data["planned_reps"]) == 0:
             data["planned_reps"] = None
@@ -282,8 +284,9 @@ class PlannedExercises(Resource):
                                         owner=current_user,
                                         measured_by=data["measured_by"],
                                         default_reps=int(data["planned_reps"]) if data["planned_reps"] else None,
-                                        default_seconds=int(data["planned_seconds"]) if int(data["planned_seconds"]) else None,
-                                        exercise_category_id=int(data["exercise_category_id"])) if data["exercise_category_id"] else None
+                                        default_seconds=int(data["planned_seconds"]) if data["planned_seconds"] else None,
+                                        exercise_category_id=int(data["exercise_category_id"]) if data["exercise_category_id"] else None)
+            
             db.session.add(exercise_type)
             db.session.commit()
             data["exercise_type_id"] = exercise_type.id
@@ -291,6 +294,8 @@ class PlannedExercises(Resource):
         # Schedule the exercise based on defaults
         track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
         scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
+                                            recurrence=data["recurrence"],
+                                            scheduled_date=planned_date,
                                             scheduled_day=planned_day_of_week,
                                             sets=1,
                                             reps=data["planned_reps"],
@@ -333,10 +338,16 @@ class PlannedExercise(Resource):
         track_event(category="Schedule", action="Scheduled exercise updated", userId = str(user_id))
 
         parser = reqparse.RequestParser()
+        parser.add_argument("planned_date", help="Date that the exercise is planned for")
+        parser.add_argument("recurrence", help="Whether or not the planned exercise will be repeated each week")
         parser.add_argument("planned_sets", help="Planned number of sets to do on the given day")
         parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
         parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
         data = parser.parse_args()
+        
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+        planned_date = planned_date if data["recurrence"] == "once" else None
 
         if data["planned_sets"] and len(data["planned_sets"]) == 0:
             data["planned_sets"] = None
@@ -348,6 +359,9 @@ class PlannedExercise(Resource):
             data["planned_seconds"] = None
 
         scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
+        scheduled_exercise.recurrence = data["recurrence"]
+        scheduled_exercise.scheduled_date = planned_date
+        scheduled_exercise.scheduled_day = planned_day_of_week
         scheduled_exercise.sets = int(data["planned_sets"]) if data["planned_sets"] is not None else None
         scheduled_exercise.reps = int(data["planned_reps"]) if data["planned_reps"] is not None else None
         scheduled_exercise.seconds = int(data["planned_seconds"]) if data["planned_seconds"] is not None else None

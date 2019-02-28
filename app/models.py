@@ -230,6 +230,7 @@ class User(UserMixin, db.Model):
 											ScheduledExercise.id,
 											ScheduledExercise.exercise_type_id,
 											ExerciseType.name.label("exercise_name"),
+											ScheduledExercise.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
 											ExerciseCategory.category_name,
 											ScheduledExercise.scheduled_day,
@@ -238,7 +239,7 @@ class User(UserMixin, db.Model):
 											ScheduledExercise.reps,
 											ScheduledExercise.seconds,
 											ExerciseCategory.category_key									
-				).join(CalendarDay, ScheduledExercise.scheduled_day == CalendarDay.day_of_week
+				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
 				).filter(ExerciseType.owner == self
@@ -772,6 +773,8 @@ class Exercise(db.Model):
 class ScheduledExercise(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	exercise_type_id = db.Column(db.Integer, db.ForeignKey("exercise_type.id"))
+	recurrence = db.Column(db.String(20))
+	scheduled_date = db.Column(db.Date)
 	scheduled_day = db.Column(db.String(10))
 	sets = db.Column(db.Integer)
 	reps = db.Column(db.Integer)
