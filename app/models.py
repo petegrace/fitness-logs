@@ -234,13 +234,13 @@ class User(UserMixin, db.Model):
 											ExerciseType.name.label("exercise_name"),
 											ScheduledExercise.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
-											ExerciseCategory.category_name,
+											func.coalesce(ExerciseCategory.category_name, "Uncategorised").label("category_name"),
 											ScheduledExercise.scheduled_day,
 											ScheduledExercise.sets,
 											ExerciseType.measured_by,
 											ScheduledExercise.reps,
 											ScheduledExercise.seconds,
-											ExerciseCategory.category_key									
+											func.coalesce(ExerciseCategory.category_key, "uncategorised").label("category_key")																													
 				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id

@@ -232,6 +232,12 @@ def planned_exercises_json(user, start_date, end_date):
     planned_exercises = user.planned_exercises_filtered(start_date, end_date).all()
     categories = user.exercise_categories.all()
 
+    # Make sure we still present any uncategorised exercises
+    temp_uncategorised = ExerciseCategory(category_name="Uncategorised",
+                                          category_key="uncategorised",
+                                          owner=user)
+    categories.append(temp_uncategorised)
+
     planned_exercises_by_category = []
 
     # Group up the planned exercises by category
