@@ -679,6 +679,13 @@ def activity(mode):
 	return render_template("activity.html", title="Activity", activities=activities, mode=mode, plot_by_day_script=plot_by_day_script, plot_by_day_div=plot_by_day_div, utils=utils)
 
 
+@app.route("/training_plan")
+@login_required
+def training_plan():
+	track_event(category="Schedule", action="Training plan opened", userId = str(current_user.id))
+	return render_template("training_plan.html", title="Training Plan"
+	)
+
 @app.route("/schedule/<schedule_freq>/<selected_day>")
 @app.route("/schedule/<schedule_freq>")
 @login_required

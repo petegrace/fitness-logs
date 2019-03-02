@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block metas %}
+    <meta name="Description" content="Plan your training with different activities and exercises">
+{% endblock %}
+
+{% block app_content %}
+{% include '_training_plan.html' %}
+{% endblock %}
