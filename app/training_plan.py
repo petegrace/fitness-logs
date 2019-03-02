@@ -1,7 +1,7 @@
 import calendar
 from datetime import date
 from app import app, db
-from app.models import User, ExerciseForToday, ActivityForToday
+from app.models import User, ExerciseForToday, ActivityForToday, TrainingPlanTemplate, ExerciseCategory, ExerciseType, ScheduledExercise
 
 # Should only call this function in scenarios where we are happy to clear out today's plan:
 #   1) Logging in and the current date is different to last login date
@@ -41,3 +41,61 @@ def add_to_plan_for_today(user, day):
     		new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
     		db.session.add(new_activity_for_today)
     db.session.commit()
+
+def copy_training_plan_template(template_id, user):
+    template = TrainingPlanTemplate.query.get(int(template_id))
+
+    # Create the categories used by the template
+    if user.unused_category_keys().count() < template.template_exercise_categories.count():
+        return "not enough spare categories"	
+    else:
+        new_exercise_types_count = 0
+
+        for template_category in template.template_exercise_categories.all():
+            if template_category.category_name not in [category.category_name for category in user.exercise_categories.all()]:
+                unused_category_key = user.unused_category_keys().first()
+                new_category = ExerciseCategory(owner=user,
+                                                category_key=unused_category_key.category_key,
+                                                category_name=template_category.category_name,
+                                                fill_color=unused_category_key.fill_color,
+                                                line_color=unused_category_key.line_color)
+                db.session.add(new_category)
+            else:
+                new_category = ExerciseCategory.query.filter_by(owner=user).filter_by(category_name=template_category.category_name).first()
+            
+            # Create the exercise types associated with that category
+            for template_exercise_type in template_category.template_exercise_types.all():
+                if template_exercise_type.name not in [exercise_type.name for exercise_type in user.exercise_types.all()]:
+                    new_exercise_type = ExerciseType(name=template_exercise_type.name,
+                                                        owner=user,
+                                                        exercise_category_id=new_category.id,
+                                                        measured_by=template_exercise_type.measured_by,
+                                                        default_reps=template_exercise_type.default_reps,
+                                                        default_seconds=template_exercise_type.default_seconds)
+
+                    db.session.add(new_exercise_type)
+                    new_exercise_types_count += 1
+                else:
+                    new_exercise_type = ExerciseType.query.filter_by(owner=user).filter_by(name=template_exercise_type.name).first()
+                
+                # Add the exercise to the schedule on the required days
+                for template_scheduled_exercise in template_exercise_type.template_scheduled_exercises:
+                    scheduled_exercise = ScheduledExercise.query.filter(ExerciseType.owner==user
+                            ).filter_by(is_removed=False
+                            ).filter_by(type=new_exercise_type
+                            ).filter_by(scheduled_day=template_scheduled_exercise.scheduled_day
+                            ).first()
+
+                    if not scheduled_exercise:
+                        scheduled_exercise = ScheduledExercise(type=new_exercise_type,
+                                                                scheduled_day=template_scheduled_exercise.scheduled_day,
+                                                                sets=template_exercise_type.default_sets,
+                                                                reps=new_exercise_type.default_reps,
+                                                                seconds=new_exercise_type.default_seconds)
+                        db.session.add(scheduled_exercise)	
+
+        if not user.is_training_plan_user:
+            user.is_training_plan_user = True
+
+        db.session.commit()
+        return "success"

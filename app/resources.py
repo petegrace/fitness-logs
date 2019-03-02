@@ -6,6 +6,7 @@ from app import db, utils
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
 from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate
 from app.ga import track_event
+from app.training_plan import copy_training_plan_template
 
 class AnnualStats(Resource):
     @jwt_required
@@ -276,9 +277,8 @@ def planned_exercises_json(user, start_date, end_date):
 
             calendar_date = calendar_date + timedelta(days=1)
 
-    # TODO: Need to add uncategorised
-
     return planned_exercises_by_category
+        
 
 class PlannedExercises(Resource):
     @jwt_required
@@ -292,57 +292,75 @@ class PlannedExercises(Resource):
         parser.add_argument("measured_by", help="Whether the exercise is measured by number of reps or time to hold position")
         parser.add_argument("exercise_category_id", help="Foreign key to category for exercise if creating a new type")
         parser.add_argument("recurrence", help="Whether or not the planned exercise will be repeated each week")
-        parser.add_argument("planned_date", help="Date that the exercise is planned for", required=True)
+        parser.add_argument("planned_date", help="Date that the exercise is planned for")
         parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
         parser.add_argument("planned_seconds", help="Planned number of seconds to hold the position for in each set if the exercise is measured in seconds")
+        # template id gets supplied on its own by a separate type of request to copy template into pllan
+        parser.add_argument("template_id", help="Id for a template that the user wants to copy into their plan")
         data = parser.parse_args()
 
-        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
-        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
-        planned_date = planned_date if data["recurrence"] == "once" else None
+        if data["template_id"]:
+            track_event(category="Schedule", action="Attempting to copy training plan from template", userId = str(current_user.id))
+            result = copy_training_plan_template(template_id=data["template_id"], user=current_user)
+            if result == "not enough spare categories":
+                track_event(category="Schedule", action="Not enough spare exercise categories to copy template.", userId = str(current_user.id))
+                return {
+                    "message": result
+                }, 409 # conflict status code
+                
+            track_event(category="Schedule", action="Completed copying training plan from template", userId = str(current_user.id))
+            response_body = {
+                "message": result
+            }
+        else:
+            planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+            planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+            planned_date = planned_date if data["recurrence"] == "once" else None
 
-        if data["planned_reps"] and len(data["planned_reps"]) == 0:
-            data["planned_reps"] = None
-
-        if data["planned_seconds"] and len(data["planned_seconds"]) == 0:
-            data["planned_seconds"] = None
-
-        if (not data["exercise_type_id"]):
-            # TODO: we should move this into an exercise types function for reuse
-            track_event(category="Exercises", action="New Exercise created for scheduling", userId = str(current_user.id))
-
-            # Ensure that seconds and reps are none if the other is selected
-            if data["measured_by"] == "reps":
-                data["planned_seconds"] = None
-            elif data["measured_by"] == "seconds":
+            if data["planned_reps"] and len(data["planned_reps"]) == 0:
                 data["planned_reps"] = None
 
-            exercise_type = ExerciseType(name=data["exercise_name"],
-                                        owner=current_user,
-                                        measured_by=data["measured_by"],
-                                        default_reps=int(data["planned_reps"]) if data["planned_reps"] else None,
-                                        default_seconds=int(data["planned_seconds"]) if data["planned_seconds"] else None,
-                                        exercise_category_id=int(data["exercise_category_id"]) if data["exercise_category_id"] else None)
-            
-            db.session.add(exercise_type)
-            db.session.commit()
-            data["exercise_type_id"] = exercise_type.id
-        
-        # Schedule the exercise based on defaults
-        track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
-        scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
-                                            recurrence=data["recurrence"],
-                                            scheduled_date=planned_date,
-                                            scheduled_day=planned_day_of_week,
-                                            sets=1,
-                                            reps=data["planned_reps"],
-                                            seconds=data["planned_seconds"])
-        db.session.add(scheduled_exercise)
-        db.session.commit()
+            if data["planned_seconds"] and len(data["planned_seconds"]) == 0:
+                data["planned_seconds"] = None
 
-        return {
-            "id": scheduled_exercise.id
-        }, 201
+            if (not data["exercise_type_id"]):
+                # TODO: we should move this into an exercise types function for reuse
+                track_event(category="Exercises", action="New Exercise created for scheduling", userId = str(current_user.id))
+
+                # Ensure that seconds and reps are none if the other is selected
+                if data["measured_by"] == "reps":
+                    data["planned_seconds"] = None
+                elif data["measured_by"] == "seconds":
+                    data["planned_reps"] = None
+
+                exercise_type = ExerciseType(name=data["exercise_name"],
+                                            owner=current_user,
+                                            measured_by=data["measured_by"],
+                                            default_reps=int(data["planned_reps"]) if data["planned_reps"] else None,
+                                            default_seconds=int(data["planned_seconds"]) if data["planned_seconds"] else None,
+                                            exercise_category_id=int(data["exercise_category_id"]) if data["exercise_category_id"] else None)
+                
+                db.session.add(exercise_type)
+                db.session.commit()
+                data["exercise_type_id"] = exercise_type.id
+            
+            # Schedule the exercise based on defaults
+            track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+            scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
+                                                recurrence=data["recurrence"],
+                                                scheduled_date=planned_date,
+                                                scheduled_day=planned_day_of_week,
+                                                sets=1,
+                                                reps=data["planned_reps"],
+                                                seconds=data["planned_seconds"])
+            db.session.add(scheduled_exercise)
+            db.session.commit()
+
+            response_body = {
+                "id": scheduled_exercise.id
+            }
+
+        return response_body, 201
     
 #     @jwt_required
 #     def get(self):
