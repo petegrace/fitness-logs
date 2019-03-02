@@ -71,3 +71,5 @@ api.add_resource(resources.PlannedActivities, "/api/planned_activities")
 api.add_resource(resources.PlannedActivity, "/api/planned_activity/<planned_activity_id>")
 api.add_resource(resources.PlannedExercises, "/api/planned_exercises")
 api.add_resource(resources.PlannedExercise, "/api/planned_exercise/<planned_exercise_id>")
+
+api.add_resource(resources.TrainingPlanTemplates, "/api/training_plan_templates")

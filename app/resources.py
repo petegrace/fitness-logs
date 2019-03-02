@@ -3,7 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
-from app.models import User, ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate, ExerciseCategory, ExerciseType
+from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
+from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate
 from app.ga import track_event
 
 class AnnualStats(Resource):
@@ -81,6 +82,24 @@ def exercise_categories_json(user):
         })
 
     return exercise_categories
+
+def training_plan_template_json(template):
+    return {
+        "id": template.id,
+	    "name": template.name,
+	    "description": template.description,
+	    "link_url": template.link_url,
+	    "link_text": template.link_text
+    }
+
+class TrainingPlanTemplates(Resource):
+    # Needn't be authenticated for this one
+    def get(self):
+        templates = [training_plan_template_json(template) for template in TrainingPlanTemplate.query.all()]
+
+        return {
+            "training_plan_templates": templates
+        }
     
 def planned_activity_json(planned_activity):
     return {

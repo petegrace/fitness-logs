@@ -223,7 +223,8 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
-				).filter(CalendarDay.calendar_date <= endDate)
+				).filter(CalendarDay.calendar_date <= endDate
+				).order_by(ScheduledActivity.id)
 
 		return planned_activities_filtered
 
@@ -250,7 +251,8 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledExerciseSkippedDate.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
-				).filter(CalendarDay.calendar_date <= endDate)
+				).filter(CalendarDay.calendar_date <= endDate
+				).order_by(ScheduledExercise.id)
 
 		return planned_exercises_filtered
 
