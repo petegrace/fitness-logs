@@ -2,7 +2,6 @@ from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user, login_user, logout_user, login_required
 from flask_mail import Message
 from werkzeug.urls import url_parse
-from app import app, db, mail, training_plan
 from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm, PreferencesForm
 from app.auth.common import configured_google_client

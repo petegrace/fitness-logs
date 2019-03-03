@@ -1,12 +1,12 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import desc, and_, or_, null
 from app import db, utils
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
 from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate
 from app.ga import track_event
-from app.training_plan import copy_training_plan_template
+from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
 
 class AnnualStats(Resource):
     @jwt_required
@@ -171,6 +171,9 @@ class PlannedActivities(Resource):
         db.session.add(scheduled_activity)
         db.session.commit()
 
+        if planned_date.date() == date.today():
+            refresh_plan_for_today(current_user)
+
         return {
             "id": 1#scheduled_activity.id
         }, 201
@@ -181,7 +184,7 @@ class PlannedActivity(Resource):
     def delete(self, planned_activity_id):
         user_id = get_jwt_identity() 
         track_event(category="Schedule", action="Scheduled activity removed", userId = str(user_id))
-
+        
         parser = reqparse.RequestParser()
         parser.add_argument("scope", help="Either 'all' to remove the activity from the plan completely or a date to add to skipped dates table")
         args = parser.parse_args()
@@ -197,6 +200,10 @@ class PlannedActivity(Resource):
                                                                            skipped_date=skipped_date)
             db.session.add(scheduled_activity_skipped_date)
             db.session.commit()
+
+        # TODO: We can optimise this but needs a bit of extra querying to know what the date affected is, so for now just refresh every time
+        current_user = User.query.get(int(user_id))
+        refresh_plan_for_today(current_user)
 
         return "", 204
 
@@ -360,6 +367,9 @@ class PlannedExercises(Resource):
                 "id": scheduled_exercise.id
             }
 
+        # refresh today's plan at the end regardless rather than trying to work out all the permutations that might affect today
+        refresh_plan_for_today(current_user)
+
         return response_body, 201
     
 #     @jwt_required
@@ -399,6 +409,10 @@ class PlannedExercise(Resource):
                                                                            skipped_date=skipped_date)
             db.session.add(scheduled_exercise_skipped_date)
             db.session.commit()
+
+        # refresh today's plan at the end regardless rather than trying to work out all the permutations that might affect today
+        current_user = User.query.get(int(user_id))
+        refresh_plan_for_today(current_user)
 
         return "", 204
 

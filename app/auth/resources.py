@@ -3,7 +3,7 @@ from flask_login import login_user
 from flask_restful import Resource, reqparse, inputs
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt
 from flask_mail import Message
-from app import app, db, mail, training_plan
+from app import app, db, mail, training_plan_utils
 from app.models import User
 from requests_oauth2 import OAuth2BearerToken
 from datetime import datetime, timedelta
@@ -52,7 +52,7 @@ class UserLogin(Resource):
             
             # Run some application stuff to set things up
             if current_user.last_login_date != datetime.date(datetime.today()):
-                training_plan.refresh_plan_for_today(current_user)
+                training_plan_utils.refresh_plan_for_today(current_user)
                 
             current_user.last_login_datetime = datetime.utcnow()
             db.session.commit()

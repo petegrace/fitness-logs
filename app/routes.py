@@ -12,7 +12,7 @@ from wtforms import HiddenField, SubmitField
 import pandas as pd
 from bokeh.embed import components
 from bokeh.models import TapTool, CustomJS, Arrow, NormalHead, VeeHead
-from app import app, db, utils, analysis, training_plan
+from app import app, db, utils, analysis, training_plan_utils
 from app.auth.forms import RegisterForm
 from app.auth.common import configured_google_client
 from app.forms import LogNewExerciseTypeForm, EditExerciseForm, AddNewExerciseTypeForm, EditScheduledExerciseForm, ScheduledActivityForm, EditExerciseTypeForm, ExerciseCategoriesForm
@@ -139,7 +139,7 @@ def index():
 
 	# Handle scenario of user not having had to log in since yesterday
 	if current_user.last_login_date != today:
-		training_plan.refresh_plan_for_today(current_user)
+		training_plan_utils.refresh_plan_for_today(current_user)
 		current_user.last_login_datetime = datetime.utcnow() # Treat it as a fresh login for logic and tracking purposes
 		db.session.commit()
 
@@ -275,7 +275,7 @@ def new_exercise(context, selected_day=None):
 			db.session.add(scheduled_exercise)
 
 			if selected_day == calendar.day_abbr[date.today().weekday()]:
-				training_plan.add_to_plan_for_today(current_user, selected_day)
+				training_plan_utils.add_to_plan_for_today(current_user, selected_day)
 
 			if current_user.is_training_plan_user == False:
 				current_user.is_training_plan_user = True
@@ -749,7 +749,7 @@ def schedule_activity(activity_type, selected_day):
 			flash("Created {activity_type} scheduled for {day}".format(activity_type=scheduled_activity.activity_type, day=scheduled_activity.scheduled_day))
 
 		if selected_day == calendar.day_abbr[date.today().weekday()]:
-			training_plan.add_to_plan_for_today(current_user, selected_day)
+			training_plan_utils.add_to_plan_for_today(current_user, selected_day)
 
 		if current_user.is_training_plan_user == False:
 			current_user.is_training_plan_user = True
@@ -821,7 +821,7 @@ def schedule_exercise(id, selected_day):
 	db.session.commit()
 
 	if selected_day == calendar.day_abbr[date.today().weekday()]:
-		training_plan.add_to_plan_for_today(current_user, selected_day)
+		training_plan_utils.add_to_plan_for_today(current_user, selected_day)
 
 	return redirect(url_for("schedule", schedule_freq="weekly", selected_day=selected_day))
 
@@ -890,7 +890,7 @@ def remove_exercise_for_today(id):
 @login_required
 def add_to_today(selected_day):
 	track_event(category="Schedule", action="Added another day's exercises to today's plan", userId = str(current_user.id))	
-	training_plan.add_to_plan_for_today(current_user, selected_day)
+	training_plan_utils.add_to_plan_for_today(current_user, selected_day)
 	flash("Added activities and exercises from {selected_day} to today's plan".format(selected_day=selected_day))
 
 	return redirect(url_for("index"))
