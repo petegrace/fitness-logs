@@ -190,6 +190,11 @@ class PlannedActivity(Resource):
         args = parser.parse_args()
         scope = args["scope"] if args["scope"] else "all"
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
+
+        if scheduled_activity.user_id != user_id:
+            return {
+                "message": "activity belongs to a different user"
+            }, 403
             
         if scope == "all":
             scheduled_activity.is_removed = True
@@ -230,6 +235,12 @@ class PlannedActivity(Resource):
             data["planned_distance"] = None
 
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
+
+        if scheduled_activity.user_id != user_id:
+            return {
+                "message": "activity belongs to a different user"
+            }, 403
+
         scheduled_activity.recurrence = data["recurrence"]
         scheduled_activity.scheduled_date = planned_date
         scheduled_activity.scheduled_day = planned_day_of_week
@@ -397,7 +408,12 @@ class PlannedExercise(Resource):
         scope = args["scope"] if args["scope"] else "all"
 
         scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
-        print(scope)
+
+        if scheduled_exercise.type.user_id != user_id:
+            return {
+                "message": "exercise belongs to a different user"
+            }, 403
+
         if scope == "all":
             scheduled_exercise.is_removed = True
             db.session.commit()
@@ -443,6 +459,12 @@ class PlannedExercise(Resource):
             data["planned_seconds"] = None
 
         scheduled_exercise = ScheduledExercise.query.get(int(planned_exercise_id))
+        
+        if scheduled_exercise.type.user_id != user_id:
+            return {
+                "message": "exercise belongs to a different user"
+            }, 403
+
         scheduled_exercise.recurrence = data["recurrence"]
         scheduled_exercise.scheduled_date = planned_date
         scheduled_exercise.scheduled_day = planned_day_of_week
