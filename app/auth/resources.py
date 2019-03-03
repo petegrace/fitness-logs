@@ -1,4 +1,4 @@
-from flask import make_response, flash
+from flask import make_response, flash, session
 from flask_login import login_user
 from flask_restful import Resource, reqparse, inputs
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt
@@ -49,6 +49,7 @@ class UserLogin(Resource):
 
             # 4. do the loginmanager stuff that we need to keep
             login_user(current_user) # From the flask_login library, does the session management bit
+
             
             # Run some application stuff to set things up
             if current_user.last_login_date != datetime.date(datetime.today()):

@@ -10,6 +10,7 @@ from flask_restful import Api
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from config import Config
+from datetime import timedelta
 import json
 
 app = Flask(__name__)
@@ -26,6 +27,11 @@ mail = Mail(app)
 api = Api(app)
 jwt = JWTManager(app)
 cors = CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://trainingticks.com", "https://www.trainingticks.com"]}}, expose_headers=["x-auth-token"])
+
+@app.before_request
+def before_request():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=60)
 
 # TODO: Make these more specific and avoid the inline stuff
 csp = {
