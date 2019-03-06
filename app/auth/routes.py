@@ -6,6 +6,7 @@ from app.auth import bp
 from app.auth.forms import LoginForm, RegisterForm, PreferencesForm
 from app.auth.common import configured_google_client
 from app.models import User, ExerciseForToday, ActivityForToday
+from app import db
 from requests_oauth2.services import GoogleClient
 from requests_oauth2 import OAuth2BearerToken
 from datetime import datetime, date, timedelta
