@@ -104,22 +104,23 @@ class RegisterUser(Resource):
 
         msg.html = """
                     <h1>Welcome to Training Ticks</h1>
-                    
+				
                     <p>Thanks for registering with <a href="https://www.trainingticks.com">Training Ticks</a>, and welcome to our community of runners and other athletes looking to
                     improve their training, set motivating goals, and smash their PB’s!</p>
                     
-                    <p>It’s still really early days in our journey and we’re making new features available every week,
-                    so bear with us if some things look a little rough around the edges.</p>
+                    <p>Training Ticks started off as a personal side-project that I initially created to serve my own training needs, and it's still very early days in the journey
+                    to build a product that serves everyone else's requirements. I'm adding and improving features all the time, so bear with me if some things look a little limited or rough around the edges.</p>
                     
-                    <p>We’re really keen to get as much feedback as possible from our early users,
-                    so drop us a quick email to <a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a> if you’ve any suggestions,
+                    <p>I'm really keen to get as much feedback as possible from our early users,
+                    so drop us a quick email to <a href="mailto:feedback@trainingticks.com">feedback@trainingticks.com</a> if you’ve got any suggestions,
                     ideas or comments - positive or negative.</p>
 
-                    <p>In particular if you didn’t find exactly what you were looking for, please let us know as it might be something we can build in…
-                    just as we’ve done for the small group of friends and family users who’ve fed back up to now.</p>
+                    <p>In particular if you didn’t find exactly what you were looking for, please let me know as it might be something I can build in… just as I’ve been doing for the small group of users who’ve
+                    fed back so far. You can also take a look at our
+                    <a href="https://trello.com/b/44rh6f3e/training-ticks-public-roadmap">Public Roadmap</a> to see what's on the horizon,
+                    where you can comment and vote on any features or ideas you're particularly keen on.</p>
                     
-                    <p>In the meantime we hope that you find Training Ticks useful to assist your trading,
-                    and go well with whatever your next race or challenge is going to be.</p>
+                    <p>In the meantime I hope that you find Training Ticks useful to assist your training, and best of luck with your next race or challenge.</p>
 
                     <p>Happy running!</p>
 
