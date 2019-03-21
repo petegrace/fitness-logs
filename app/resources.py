@@ -171,7 +171,7 @@ class PlannedActivities(Resource):
         db.session.add(scheduled_activity)
         db.session.commit()
 
-        if planned_date.date() == date.today():
+        if (planned_date and planned_date.date() == date.today()) or (data["recurrence"] == "weekly" and planned_day_of_week == date.today().strftime("%a")):
             refresh_plan_for_today(current_user)
 
         return {
