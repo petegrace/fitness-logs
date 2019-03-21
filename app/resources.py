@@ -173,6 +173,11 @@ class PlannedActivities(Resource):
 
         if (planned_date and planned_date.date() == date.today()) or (data["recurrence"] == "weekly" and planned_day_of_week == date.today().strftime("%a")):
             refresh_plan_for_today(current_user)
+        
+        if current_user.is_training_plan_user == False:
+            current_user.is_training_plan_user = True
+            db.session.commit()
+            
 
         return {
             "id": 1#scheduled_activity.id
@@ -327,6 +332,11 @@ class PlannedExercises(Resource):
                 }, 409 # conflict status code
                 
             track_event(category="Schedule", action="Completed copying training plan from template", userId = str(current_user.id))
+
+            if current_user.is_training_plan_user == False:
+                current_user.is_training_plan_user = True
+                db.session.commit()
+                
             response_body = {
                 "message": result
             }
@@ -373,6 +383,10 @@ class PlannedExercises(Resource):
                                                 seconds=data["planned_seconds"])
             db.session.add(scheduled_exercise)
             db.session.commit()
+
+            if current_user.is_training_plan_user == False:
+                current_user.is_training_plan_user = True
+                db.session.commit()
 
             response_body = {
                 "id": scheduled_exercise.id
