@@ -42,7 +42,7 @@
 				{% elif not (original_exercises_for_today or original_activities_for_today) %}
 					<p>You don't have any activities or exercises planned for today. Chill out and let your muscles recover!</p>
 				{% else %}
-					<p>Here are your planned activities and exercises for today. Use the buttons to tick each one off.</p>
+					<p>Here are your planned activities and exercises that you have left to do today. Use the buttons to tick each one off.</p>
 				{% endif %}
 				{% for scheduled_activity in activities_for_today_remaining %}
 					<a class="btn btn-sm
@@ -396,7 +396,6 @@
 	    </div>
 	  </div>
 	</div>
-
 	
 	{% include '_hub.html' %}
 	{% if recent_activities|length == 0 %}
