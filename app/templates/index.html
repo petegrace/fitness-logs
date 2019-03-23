@@ -129,7 +129,7 @@
 	{% if recent_activities|length > 0 and (not current_user.is_training_plan_user) %}
 		<div class="card mt-3">
 			<div class="card-header">
-				<h4>To Do for Today</h4>
+				<h4>To Do for {{ utils.today_formatted() }}</h4>
 			</div>
 			<div class="card-body">
 				<div class="alert alert-success">
@@ -254,7 +254,7 @@
 	{% if recent_activities|length == 0 and (not current_user.is_training_plan_user) %}
 		<div class="card mt-3">
 			<div class="card-header">
-				<h4>To Do for Today</h4>
+				<h4>To Do for {{ utils.today_formatted() }}</h4>
 			</div>
 			<div class="card-body">
 				<div class="alert alert-success">

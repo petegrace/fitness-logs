@@ -131,6 +131,9 @@ def format_goal_units(goal_metric, value, user):
 def current_year():
 	return datetime.today().year
 
+def today_formatted():
+	return datetime.today().strftime("%d %B")
+
 def seconds_to_datetime(seconds):
 	base_datetime = datetime(2000, 1, 1, 0, 0)
 	return base_datetime + timedelta(seconds=seconds)
