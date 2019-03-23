@@ -153,3 +153,17 @@ class CheckToken(Resource):
     @jwt_required
     def get(self):
         return { "result": "valid" }
+
+class UserInfo(Resource):
+    @jwt_required
+    def get(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        user_info = {
+            "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km"
+        }
+
+        return {
+            "user_info": user_info
+        }
