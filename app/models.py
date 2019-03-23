@@ -34,6 +34,7 @@ class User(UserMixin, db.Model):
 	is_training_goals_user = db.Column(db.Boolean, default=False)
 	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
 	is_blog_author = db.Column(db.Boolean, default=False)
+	distance_uom_preference = db.Column(db.String(10))
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -91,7 +92,7 @@ class User(UserMixin, db.Model):
 		current_year_activity_stats = db.session.query(
 						Activity.activity_type,
 						func.coalesce(ExerciseCategory.category_key, Activity.activity_type).label("category_key"),
-						func.div(func.sum(Activity.distance), 1000).label("total_distance")
+						func.sum(Activity.distance).label("total_distance")
 				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
 				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
 				).filter(Activity.owner == self

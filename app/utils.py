@@ -1,8 +1,25 @@
 from datetime import datetime, timedelta
 
-def convert_m_to_km(m):
-	km = round((m / 1000), 2)
+def format_distance_for_uom_preference(m, user, decimal_places=2, show_uom_suffix=True):	
+	if user.distance_uom_preference == "miles":
+		uom_suffix = " miles" if show_uom_suffix else ""
+		distance_formatted = "{value}{uom_suffix}".format(value=convert_m_to_miles(m, decimal_places), uom_suffix=uom_suffix)
+	else:
+		uom_suffix = " km" if show_uom_suffix else ""
+		distance_formatted = "{value}{uom_suffix}".format(value=convert_m_to_km(m, decimal_places), uom_suffix=uom_suffix)
+	return distance_formatted
+
+def convert_m_to_km(m, decimal_places=2):
+	km = round((m / 1000), decimal_places)
+	if decimal_places == 0:
+		km = int(km)
 	return km
+
+def convert_m_to_miles(m, decimal_places=2):
+	miles = round((float(m) * 0.000621371), decimal_places)
+	if decimal_places == 0:
+		miles = int(miles)
+	return miles
 
 def convert_mps_to_km_pace(mps):
 	# Prevent divide by zero error

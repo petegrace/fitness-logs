@@ -76,7 +76,7 @@
 							{% endif %}
 							<br />
 							{% if scheduled_activity.planned_distance %}
-								{{ utils.format_distance(scheduled_activity.planned_distance) }}
+								{{ utils.format_distance_for_uom_preference(scheduled_activity.planned_distance, current_user) }}
 							{% else %}
 								&nbsp;
 							{% endif %}
@@ -182,7 +182,7 @@
 					{% elif activity.measured_by == "seconds" %}
 						{{ activity.seconds }} secs
 					{% elif activity.measured_by == "distance" %}
-						{{ utils.convert_m_to_km(activity.distance) }} km
+						{{ utils.format_distance_for_uom_preference(activity.distance, current_user) }}
 					{% endif %}
 				</td>
 				<td>
@@ -345,7 +345,7 @@
 						<td>{{ activity_for_today.scheduled_activity.activity_type }}</td>
 						<td>
 							{% if activity_for_today.scheduled_activity.planned_distance %}
-								{{ utils.format_distance(activity_for_today.scheduled_activity.planned_distance) }}
+								{{ utils.format_distance_for_uom_preference(activity_for_today.scheduled_activity.planned_distance, current_user) }}
 							{% endif %}
 						</td>
 						<td>{{ activity_for_today.scheduled_activity.description }}</td>

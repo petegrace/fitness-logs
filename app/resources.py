@@ -19,8 +19,8 @@ class AnnualStats(Resource):
             counters.append({
                 "category_name": activity_type_stat.activity_type,
                 "category_key": activity_type_stat.category_key,
-                "value": str(activity_type_stat.total_distance),
-                "uom": "km"
+                "value": str(int(utils.format_distance_for_uom_preference(m=activity_type_stat.total_distance, user=current_user, decimal_places=0, show_uom_suffix=False))),
+                "uom": current_user.distance_uom_preference if current_user.distance_uom_preference else "km"
             })
         
         for exercise_category_stat in current_user.current_year_exercise_stats().all():
