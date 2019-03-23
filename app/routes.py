@@ -1133,6 +1133,15 @@ def import_strava_activity():
 	except:
 		return redirect(url_for("connect_strava", action="authorize"))
 
+	# Update user's UOM preferences based on what they have set in Strava
+	if athlete.measurement_preference == "feet":
+		current_user.distance_uom_preference = "miles"
+		current_user.elevation_uom_preference = "feet"
+	elif athlete.measurement_preference == "meters":
+		current_user.distance_uom_preference = "km"
+		current_user.elevation_uom_preference = "m"
+	db.session.commit()
+
 	most_recent_strava_activity_datetime = current_user.most_recent_strava_activity_datetime()
 
 	# Start from 2000 if no imported activities
@@ -1377,7 +1386,7 @@ def connect_strava(action="prompt"):
 		)
 
 		if not code:
-			return redirect(strava_auth.authorize_url(scope=["activity:read"], response_type="code"))
+			return redirect(strava_auth.authorize_url(scope=["profile:read_all", "activity:read"], response_type="code"))
 
 		data = strava_auth.get_token(code=code, grant_type="authorization_code")
 		session["strava_access_token"] = data.get("access_token")

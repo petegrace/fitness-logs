@@ -34,8 +34,8 @@ class User(UserMixin, db.Model):
 	is_training_goals_user = db.Column(db.Boolean, default=False)
 	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
 	is_blog_author = db.Column(db.Boolean, default=False)
-	distance_uom_preference = db.Column(db.String(10))
-	elevation_uom_preference = db.Column(db.String(10))
+	distance_uom_preference = db.Column(db.String(10), default="km")
+	elevation_uom_preference = db.Column(db.String(10), default="m")
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
