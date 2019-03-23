@@ -9,6 +9,14 @@ def format_distance_for_uom_preference(m, user, decimal_places=2, show_uom_suffi
 		distance_formatted = "{value}{uom_suffix}".format(value=convert_m_to_km(m, decimal_places), uom_suffix=uom_suffix)
 	return distance_formatted
 
+def convert_distance_to_m_for_uom_preference(user_distance, user):
+	if user.distance_uom_preference == "miles":
+		distance_m = user_distance * 1609.344
+	else:
+		distance_m = user_distance * 1000
+	print(distance_m)
+	return distance_m
+
 def convert_m_to_km(m, decimal_places=2):
 	km = round((m / 1000), decimal_places)
 	if decimal_places == 0:

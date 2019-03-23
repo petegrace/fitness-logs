@@ -19,7 +19,7 @@ class AnnualStats(Resource):
             counters.append({
                 "category_name": activity_type_stat.activity_type,
                 "category_key": activity_type_stat.category_key,
-                "value": str(int(utils.format_distance_for_uom_preference(m=activity_type_stat.total_distance, user=current_user, decimal_places=0, show_uom_suffix=False))),
+                "value": str(utils.format_distance_for_uom_preference(m=activity_type_stat.total_distance, user=current_user, decimal_places=0, show_uom_suffix=False)),
                 "uom": current_user.distance_uom_preference if current_user.distance_uom_preference else "km"
             })
         
@@ -102,7 +102,7 @@ class TrainingPlanTemplates(Resource):
             "training_plan_templates": templates
         }
     
-def planned_activity_json(planned_activity):
+def planned_activity_json(planned_activity, user):
     return {
         "id": planned_activity.id,
         "recurrence": planned_activity.recurrence,
@@ -110,7 +110,7 @@ def planned_activity_json(planned_activity):
         "activity_type": planned_activity.activity_type,
         "scheduled_day": planned_activity.scheduled_day,
         "description": planned_activity.description,
-        "planned_distance": utils.convert_m_to_km(planned_activity.planned_distance) if planned_activity.planned_distance is not None else None,
+        "planned_distance": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=0, show_uom_suffix=False) if planned_activity.planned_distance else None,
         "category_key": planned_activity.category_key
     }
 
@@ -130,7 +130,7 @@ class PlannedActivities(Resource):
         start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
         end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 
-        planned_activities = [planned_activity_json(activity) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
+        planned_activities = [planned_activity_json(activity, current_user) for activity in current_user.planned_activities_filtered(start_date, end_date).all()]
 
         return {
             "planned_activities": planned_activities,
@@ -147,7 +147,7 @@ class PlannedActivities(Resource):
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
-        parser.add_argument("planned_distance", help="Planned distance for the activity in km")
+        parser.add_argument("planned_distance", help="Planned distance for the activity in the user's preferred UOM")
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
@@ -160,6 +160,8 @@ class PlannedActivities(Resource):
         if data["planned_distance"] and len(data["planned_distance"]) == 0:
             data["planned_distance"] = None
 
+        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(int(data["planned_distance"]), current_user) if data["planned_distance"] else None
+
         track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
         scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
                                                owner=current_user,
@@ -167,7 +169,7 @@ class PlannedActivities(Resource):
                                                scheduled_date=planned_date,
                                                scheduled_day=planned_day_of_week,
                                                description=data["description"],
-                                               planned_distance=(int(data["planned_distance"])*1000) if data["planned_distance"] else None) #TODO make sure we're consistent on km vs m
+                                               planned_distance=planned_distance_m)
         db.session.add(scheduled_activity)
         db.session.commit()
 
@@ -220,6 +222,7 @@ class PlannedActivity(Resource):
     @jwt_required
     def patch(self, planned_activity_id):
         user_id = get_jwt_identity() 
+        current_user = User.query.get(int(user_id))
         track_event(category="Schedule", action="Scheduled activity updated", userId = str(user_id))
 
         parser = reqparse.RequestParser()
@@ -239,6 +242,8 @@ class PlannedActivity(Resource):
         if data["planned_distance"] and len(data["planned_distance"]) == 0:
             data["planned_distance"] = None
 
+        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(int(data["planned_distance"]), current_user) if data["planned_distance"] else None
+
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
 
         if scheduled_activity.user_id != user_id:
@@ -250,7 +255,7 @@ class PlannedActivity(Resource):
         scheduled_activity.scheduled_date = planned_date
         scheduled_activity.scheduled_day = planned_day_of_week
         scheduled_activity.description = data["description"] if data["description"] != "" else None
-        scheduled_activity.planned_distance = (int(data["planned_distance"])*1000) if data["planned_distance"] is not None else None
+        scheduled_activity.planned_distance = planned_distance_m
         db.session.commit()
 
         return "", 204
