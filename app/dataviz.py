@@ -1,4 +1,5 @@
 from flask import redirect, flash
+from flask_login import current_user
 from datetime import datetime, timedelta
 import pandas as pd
 from bokeh.core.properties import value
@@ -115,7 +116,7 @@ def prepare_goals_source(goals_dataset, goal_dimension_type, goal_measure_type, 
 		else:
 			goal_measure_values.append(100)
 			if goal_label_function is not None:
-				goal_measure_labels.append("Target: " + goal_label_function(goal_metric=row.goal_metric, value=row.goal_target))
+				goal_measure_labels.append("Target: " + goal_label_function(goal_metric=row.goal_metric, value=row.goal_target, user=current_user))
 			else:
 				goal_measure_labels.append("Target: " + str(row.goal_target))
 

@@ -35,6 +35,7 @@ class User(UserMixin, db.Model):
 	is_opted_in_for_marketing_emails = db.Column(db.Boolean, default=False)
 	is_blog_author = db.Column(db.Boolean, default=False)
 	distance_uom_preference = db.Column(db.String(10))
+	elevation_uom_preference = db.Column(db.String(10))
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)
@@ -664,17 +665,18 @@ class Activity(db.Model):
 
 	@property
 	def distance_formatted(self):
-		return utils.format_distance(self.distance)
+		return utils.format_distance_for_uom_preference(self.distance, self.owner)
 
 	@property
 	def total_elevation_gain_formatted(self):
-		return "{metres} m".format(metres=self.total_elevation_gain) if self.total_elevation_gain else None
+		return utils.format_elevation_for_uom_preference(self.total_elevation_gain, self.owner) if self.total_elevation_gain else None
 
 	@property
 	def average_pace_formatted(self):
-		km_pace = utils.convert_mps_to_km_pace(self.average_speed)
-		average_pace_formatted = "{value} /km".format(value=utils.format_timedelta_minutes(km_pace))
-		return average_pace_formatted
+		return utils.format_pace_for_uom_preference(self.average_speed, self.owner)
+		# km_pace = utils.convert_mps_to_km_pace(self.average_speed)
+		# average_pace_formatted = "{value} /km".format(value=utils.format_timedelta_minutes(km_pace))
+		# return average_pace_formatted
 
 	@property
 	def average_climbing_gradient(self):
@@ -887,7 +889,7 @@ class TrainingGoal(db.Model):
 		if self.goal_metric == "Exercise Sets Completed" and self.goal_dimension_value != "None":
 			goal_dimension_friendly_value = ExerciseCategory.query.get(int(self.goal_dimension_value)).category_name
 		elif self.goal_metric == "Runs Completed Over Distance":
-			goal_dimension_friendly_value = "{value} km".format(value = self.goal_dimension_value)
+			goal_dimension_friendly_value = "{value} {uom}".format(value = self.goal_dimension_value, uom=self.owner.distance_uom_preference)
 		else:	
 			goal_dimension_friendly_value = self.goal_dimension_value
 

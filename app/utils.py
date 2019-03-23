@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-def format_distance_for_uom_preference(m, user, decimal_places=2, show_uom_suffix=True):	
+def format_distance_for_uom_preference(m, user, decimal_places=2, show_uom_suffix=True):
 	if user.distance_uom_preference == "miles":
 		uom_suffix = " miles" if show_uom_suffix else ""
 		distance_formatted = "{value}{uom_suffix}".format(value=convert_m_to_miles(m, decimal_places), uom_suffix=uom_suffix)
@@ -29,6 +29,21 @@ def convert_m_to_miles(m, decimal_places=2):
 		miles = int(miles)
 	return miles
 
+def format_pace_for_uom_preference(mps, user, show_uom_suffix=True):
+	if user.distance_uom_preference == "miles":
+		uom_suffix = " /mile" if show_uom_suffix else ""
+	else:
+		uom_suffix = " /km" if show_uom_suffix else ""
+	pace_formatted = "{value}{uom_suffix}".format(value=format_timedelta_minutes(convert_mps_for_pace_uom_preference(mps, user)), uom_suffix=uom_suffix)
+	return pace_formatted
+
+def convert_mps_for_pace_uom_preference(mps, user):
+	if user.distance_uom_preference == "miles":
+		pace_timedelta = convert_mps_to_mile_pace(mps)
+	else:
+		pace_timedelta = convert_mps_to_km_pace(mps)
+	return pace_timedelta
+
 def convert_mps_to_km_pace(mps):
 	# Prevent divide by zero error
 	if mps == 0:
@@ -38,6 +53,25 @@ def convert_mps_to_km_pace(mps):
 	secs_per_km = int(1 / km_per_sec)
 	pace_timedelta = timedelta(seconds=secs_per_km)
 	return pace_timedelta
+
+def convert_mps_to_mile_pace(mps):
+	# Prevent divide by zero error
+	if mps == 0:
+		return None
+
+	miles_per_sec = float(mps) / 1609.344
+	secs_per_mile = int(1 / miles_per_sec)
+	pace_timedelta = timedelta(seconds=secs_per_mile)
+	return pace_timedelta
+
+def format_elevation_for_uom_preference(m, user, show_uom_suffix=True):
+	if user.elevation_uom_preference == "feet":
+		uom_suffix = " feet" if show_uom_suffix else ""
+		elevation_formatted ="{value}{uom_suffix}".format(value=int(float(m) * 3.28084), uom_suffix=uom_suffix)
+	else:
+		uom_suffix = " m" if show_uom_suffix else ""
+		elevation_formatted ="{value}{uom_suffix}".format(value=int(m), uom_suffix=uom_suffix)
+	return elevation_formatted
 
 def format_distance(m):
 	if m >= 1000:
@@ -78,17 +112,17 @@ def format_percentage_labels(percent):
 def length_of_list(list):
 	return len(list)
 
-def format_goal_units(goal_metric, value):
+def format_goal_units(goal_metric, value, user):
 	if goal_metric == "Exercise Sets Completed":
 		return "{sets} sets".format(sets=value)
 	elif goal_metric == "Runs Completed Over Distance":
 		return "{runs} run(s)".format(runs=value)
 	elif goal_metric == "Weekly Distance":
-		return format_distance(value)
+		return format_distance_for_uom_preference(value, user)
 	elif goal_metric == "Weekly Moving Time":
 		return convert_seconds_to_minutes_formatted(value)
 	elif goal_metric == "Weekly Elevation Gain":
-		return "{metres} m".format(metres=value)
+		return format_elevation_for_uom_preference(value, user)
 	elif goal_metric == "Time Spent Above Cadence":
 		return convert_seconds_to_minutes_formatted(value)
 	elif goal_metric == "Distance Climbing Above Gradient":

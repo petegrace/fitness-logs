@@ -33,7 +33,8 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 		if goal_metric == "Runs Completed Over Distance":
 			for goal in weekly_goals:
 				# 3. Get the stats we need
-				activities_over_distance = [activity for activity in run_activities if activity.distance >= int(goal.goal_dimension_value)*1000]
+				distance_multiplier = 1609.344 if current_user.distance_uom_preference == "miles" else 1000
+				activities_over_distance = [activity for activity in run_activities if activity.distance >= int(goal.goal_dimension_value)*distance_multiplier]
 				# 4. Compare the current stats vs. goal where they're for the same cadence
 				goal.current_metric_value = len(activities_over_distance)
 				# 5. Set to success if the target has been hit and flash a congrats message

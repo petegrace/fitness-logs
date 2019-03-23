@@ -351,6 +351,10 @@ def weekly_activity(year, week=None):
 	gradient_goal_form = GradientGoalForm()
 	exercise_sets_goal_form = ExerciseSetsGoalForm()
 
+	total_distance_goal_form.target_distance.label.text = total_distance_goal_form.target_distance.label.text + " ({uom})".format(uom=current_user.distance_uom_preference)
+	activities_completed_goal_form.minimum_distance.label.text = activities_completed_goal_form.minimum_distance.label.text + " ({uom})".format(uom=current_user.distance_uom_preference)
+	total_elevation_gain_goal_form.target_elevation_gain.label.text = total_elevation_gain_goal_form.target_elevation_gain.label.text + " ({uom})".format(uom=current_user.elevation_uom_preference)
+
 	if year == "current":
 		year = utils.current_year()
 
@@ -388,7 +392,8 @@ def weekly_activity(year, week=None):
 
 	# Create a new distance goal
 	if total_distance_goal_form.validate_on_submit():
-		handle_goal_form_post(form=total_distance_goal_form, current_week=week_options[0], goal_type="weekly distance", goal_metric="Weekly Distance", goal_metric_units="metres", metric_multiplier = 1000)
+		metric_multiplier = 1609.344 if current_user.distance_uom_preference == "miles" else 1000
+		handle_goal_form_post(form=total_distance_goal_form, current_week=week_options[0], goal_type="weekly distance", goal_metric="Weekly Distance", goal_metric_units="metres", metric_multiplier = metric_multiplier)
 
 	# Create a new moving time goal
 	if total_moving_time_goal_form.validate_on_submit():
@@ -396,7 +401,8 @@ def weekly_activity(year, week=None):
 
 	# Create a new elevation gain goal
 	if total_elevation_gain_goal_form.validate_on_submit():
-		handle_goal_form_post(form=total_elevation_gain_goal_form, current_week=week_options[0], goal_type="weekly elevation gain", goal_metric="Weekly Elevation Gain", goal_metric_units="metres", metric_multiplier = 1)
+		metric_multiplier = (1 / 3.28084) if current_user.elevation_uom_preference == "feet" else 1
+		handle_goal_form_post(form=total_elevation_gain_goal_form, current_week=week_options[0], goal_type="weekly elevation gain", goal_metric="Weekly Elevation Gain", goal_metric_units="metres", metric_multiplier = metric_multiplier)
 
 	# Create a new cadence goal or update an existing one if it's a post
 	if cadence_goal_form.validate_on_submit():

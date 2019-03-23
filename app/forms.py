@@ -101,7 +101,7 @@ class ExerciseCategoriesForm(FlaskForm):
 class ActivitiesCompletedGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
 	target_activities_to_complete = IntegerField("Target Runs to Complete", validators=[DataRequired()])
-	minimum_distance = IntegerField("Of at least... (km)", validators=[DataRequired()])
+	minimum_distance = IntegerField("Of at least...", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
 
 	def get_dimension_value_input(self):
@@ -112,7 +112,7 @@ class ActivitiesCompletedGoalForm(FlaskForm):
 
 class TotalDistanceGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
-	target_distance = IntegerField("Target Weekly Distance (km)", validators=[DataRequired()])
+	target_distance = IntegerField("Target Weekly Distance", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
 
 	def get_dimension_value_input(self):
@@ -134,7 +134,7 @@ class TotalMovingTimeGoalForm(FlaskForm):
 
 class TotalElevationGainGoalForm(FlaskForm):
 	goal_relative_week = SelectField('Goal For', choices=[('this', 'This Week'), ('next', 'Next Week')])
-	target_elevation_gain = IntegerField("Target Elevation Gain (m)", validators=[DataRequired()])
+	target_elevation_gain = IntegerField("Target Elevation Gain", validators=[DataRequired()])
 	submit = SubmitField("Set Goal")
 
 	def get_dimension_value_input(self):
