@@ -115,6 +115,9 @@ def planned_activity_json(planned_activity, user):
     }
 
 def completed_activity_json(completed_activity, user):
+    average_climbing_gradient = round((completed_activity.total_elevation_gain / completed_activity.distance) * 100, 1) if completed_activity.distance > 0 and completed_activity.total_elevation_gain else 0
+    average_climbing_gradient_formatted = str(average_climbing_gradient) + " %" if average_climbing_gradient else None
+
     return {
         "id": completed_activity.id,
         "name": completed_activity.name,
@@ -128,7 +131,7 @@ def completed_activity_json(completed_activity, user):
         "median_cadence": str(completed_activity.median_cadence),
         "average_heartrate": str(completed_activity.average_heartrate),
         "total_elevation_gain_formatted": "Bad Data" if completed_activity.is_bad_elevation_data else (utils.format_elevation_for_uom_preference(completed_activity.total_elevation_gain, user) if completed_activity.total_elevation_gain else None),
-        "average_climbing_gradient_formatted": "Bad Data" if completed_activity.is_bad_elevation_data else (str(round(completed_activity.average_climbing_gradient, 1)) + " %" if completed_activity.average_climbing_gradient else None),
+        "average_climbing_gradient_formatted": "Bad Data" if completed_activity.is_bad_elevation_data else average_climbing_gradient_formatted,
         "description": completed_activity.description,
         "is_race": completed_activity.is_race,
         "category_key": completed_activity.category_key,

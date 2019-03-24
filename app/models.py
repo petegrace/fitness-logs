@@ -246,7 +246,6 @@ class User(UserMixin, db.Model):
 											Activity.median_cadence,
 											Activity.average_heartrate,
 											Activity.total_elevation_gain,
-											((Activity.total_elevation_gain / Activity.distance) * 100).label("average_climbing_gradient"),
 											Activity.description,
 											Activity.is_race,
 											Activity.is_bad_elevation_data,
