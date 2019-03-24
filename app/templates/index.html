@@ -66,7 +66,7 @@
 						btn-outline-warning
 					{% endif %}
 					" role="button" href="{{ url_for('connect_strava', action='authorize') }}">
-						<i class="fa fa-check-square-o"></i> {{ scheduled_activity.activity_type }}
+						{{ scheduled_activity.activity_type }}
 						<br />
 						<small>
 							{% if scheduled_activity.description %}
@@ -105,7 +105,7 @@
 						btn-outline-warning
 					{% endif %}
 					" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
-						<i class="fa fa-check-square-o"></i> {{ scheduled_exercise.name }}
+						{{ scheduled_exercise.name }}
 						<br />
 						<small>
 							{% if scheduled_exercise.measured_by == "reps" %}
@@ -212,7 +212,7 @@
 		<div class="card-body exercise-buttons">
 			<p>Wanting to do a few extra exercises? Use the buttons below to record them as adhoc exercises, without adding to your training plan.</p>
 			<a class="btn btn-secondary btn-sm" role="button" href="{{ url_for('new_exercise', context="logging") }}">
-				<i class="fa fa-check"></i> New Exercise Type
+				New Exercise Type
 				<br /><small>&nbsp;</small>
 			</a>
 			{% for exercise_type in exercise_types %}
@@ -237,7 +237,7 @@
 					btn-outline-warning
 				{% endif %}
 				" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
-					<i class="fa fa-check"></i> {{ exercise_type.name }}
+					{{ exercise_type.name }}
 					<br />
 					<small>
 						{% if exercise_type.measured_by == "reps" %}
