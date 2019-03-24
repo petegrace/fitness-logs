@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, date
 from flask import Markup
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct
+from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct, cast, Date
 from markdown import markdown
 from app import db, utils
 from app import login
@@ -220,13 +220,43 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, or_(ScheduledActivity.scheduled_date==CalendarDay.calendar_date, ScheduledActivity.scheduled_day==CalendarDay.day_of_week)
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
 				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
+				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
+										   (CalendarDay.calendar_date <= date.today()))
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
+				).filter(Activity.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).order_by(ScheduledActivity.id)
+
+		return planned_activities_filtered
+
+	def completed_activities_filtered(self, startDate, endDate):
+		planned_activities_filtered = db.session.query(
+											Activity.id,
+											Activity.name,
+											Activity.start_datetime.cast(Date).label("activity_date"),
+											Activity.activity_type,
+											Activity.distance,
+											Activity.moving_time,
+											Activity.average_speed,
+											Activity.average_cadence,
+											Activity.median_cadence,
+											Activity.average_heartrate,
+											Activity.total_elevation_gain,
+											((Activity.total_elevation_gain / Activity.distance) * 100).label("average_climbing_gradient"),
+											Activity.description,
+											Activity.is_race,
+											Activity.is_bad_elevation_data,
+											Activity.external_id,
+											ExerciseCategory.category_key
+				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
+				).filter(Activity.owner == self
+				).filter(Activity.start_datetime.cast(Date) >= startDate
+				).filter(Activity.start_datetime.cast(Date) <= endDate
+				).order_by(Activity.id)
 
 		return planned_activities_filtered
 

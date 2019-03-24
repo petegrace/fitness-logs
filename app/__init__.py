@@ -74,6 +74,7 @@ api.add_resource(auth.resources.UserInfo, "/api/user_info")
 
 api.add_resource(resources.AnnualStats, "/api/annual_stats")
 api.add_resource(resources.ActivityTypes, "/api/activity_types")
+api.add_resource(resources.CompletedActivities, "/api/completed_activities")
 api.add_resource(resources.PlannedActivities, "/api/planned_activities")
 api.add_resource(resources.PlannedActivity, "/api/planned_activity/<planned_activity_id>")
 api.add_resource(resources.PlannedExercises, "/api/planned_exercises")

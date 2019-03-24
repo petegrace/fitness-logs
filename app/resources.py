@@ -114,6 +114,50 @@ def planned_activity_json(planned_activity, user):
         "category_key": planned_activity.category_key
     }
 
+def completed_activity_json(completed_activity, user):
+    return {
+        "id": completed_activity.id,
+        "name": completed_activity.name,
+        "activity_date": completed_activity.activity_date.strftime("%Y-%m-%d"),
+        "activity_type": completed_activity.activity_type,
+        "distance": utils.format_distance_for_uom_preference(completed_activity.distance, user, show_uom_suffix=False),
+        "distance_formatted": utils.format_distance_for_uom_preference(completed_activity.distance, user),
+        "moving_time": str(completed_activity.moving_time), 
+        "average_pace_formatted": utils.format_pace_for_uom_preference(completed_activity.average_speed, user),
+        "average_cadence": str(completed_activity.average_cadence),
+        "median_cadence": str(completed_activity.median_cadence),
+        "average_heartrate": str(completed_activity.average_heartrate),
+        "total_elevation_gain_formatted": "Bad Data" if completed_activity.is_bad_elevation_data else (utils.format_elevation_for_uom_preference(completed_activity.total_elevation_gain, user) if completed_activity.total_elevation_gain else None),
+        "average_climbing_gradient_formatted": "Bad Data" if completed_activity.is_bad_elevation_data else (str(round(completed_activity.average_climbing_gradient, 1)) + " %" if completed_activity.average_climbing_gradient else None),
+        "description": completed_activity.description,
+        "is_race": completed_activity.is_race,
+        "category_key": completed_activity.category_key,
+        "strava_url": "https://www.strava.com/activities/{strava_id}".format(strava_id = completed_activity.external_id)
+    }
+
+
+class CompletedActivities(Resource):
+
+    @jwt_required
+    def get(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("startDate", help="Start date for the period that we're returning completed activities for", required=True)
+        parser.add_argument("endDate", help="Optional end date for the period that we're returning completed activities for. If left blank it will be the same as the start date")
+        args = parser.parse_args()
+        
+        start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
+        end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
+
+        completed_activities = [completed_activity_json(activity, current_user) for activity in current_user.completed_activities_filtered(start_date, end_date).all()]
+
+        return {
+            "completed_activities": completed_activities
+            #TODO: "planned_exercises": planned_exercises_json(current_user, start_date, end_date)
+        }
+
 
 class PlannedActivities(Resource):
 
