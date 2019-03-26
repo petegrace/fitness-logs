@@ -88,6 +88,7 @@ def copy_training_plan_template(template_id, user):
 
                     if not scheduled_exercise:
                         scheduled_exercise = ScheduledExercise(type=new_exercise_type,
+                                                                recurrence="weekly",
                                                                 scheduled_day=template_scheduled_exercise.scheduled_day,
                                                                 sets=template_exercise_type.default_sets,
                                                                 reps=new_exercise_type.default_reps,
