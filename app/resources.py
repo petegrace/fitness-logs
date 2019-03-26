@@ -2,11 +2,27 @@ from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta, date
 from sqlalchemy import desc, and_, or_, null
+import logging
+
 from app import db, utils
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
 from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate
 from app.ga import track_event
 from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
+
+class Monitoring(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("type", help="Type of message to be logged, e.g. error")
+        parser.add_argument("message", help="Message to be logged")
+        data = parser.parse_args()
+
+        if data["type"] == "error":
+            logging.error(data["message"])
+        else:
+            logging.info(data["message"])
+
+        return "", 204
 
 class AnnualStats(Resource):
     @jwt_required
