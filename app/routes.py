@@ -1439,3 +1439,7 @@ def privacy_policy():
 @app.route("/test")
 def test():
 	return render_template("_hub.html")
+
+@app.route("/error")
+def error():
+	return render_template("500.html")
