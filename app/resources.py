@@ -126,7 +126,7 @@ def planned_activity_json(planned_activity, user):
         "activity_type": planned_activity.activity_type,
         "scheduled_day": planned_activity.scheduled_day,
         "description": planned_activity.description,
-        "planned_distance": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=0, show_uom_suffix=False) if planned_activity.planned_distance else None,
+        "planned_distance": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=2, show_uom_suffix=False) if planned_activity.planned_distance else None,
         "category_key": planned_activity.category_key
     }
 
@@ -305,7 +305,7 @@ class PlannedActivity(Resource):
         if data["planned_distance"] and len(data["planned_distance"]) == 0:
             data["planned_distance"] = None
 
-        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(int(data["planned_distance"]), current_user) if data["planned_distance"] else None
+        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["planned_distance"]), current_user) if data["planned_distance"] else None
 
         scheduled_activity = ScheduledActivity.query.get(int(planned_activity_id))
 
