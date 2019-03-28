@@ -81,6 +81,10 @@ def format_distance(m):
 	return distance_formatted
 
 def format_timedelta_minutes(timedelta):
+	# don't try to format none
+	if not timedelta:
+		return None
+
 	minutes_split = convert_seconds_to_minutes_split(timedelta.seconds)
 	timedelta_formatted = "%d:%02d" % (minutes_split["minutes"], minutes_split["seconds"])
 	return timedelta_formatted
