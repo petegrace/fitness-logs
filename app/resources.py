@@ -173,8 +173,8 @@ class CompletedActivities(Resource):
         completed_activities = [completed_activity_json(activity, current_user) for activity in current_user.completed_activities_filtered(start_date, end_date).all()]
 
         return {
-            "completed_activities": completed_activities
-            #TODO: "planned_exercises": planned_exercises_json(current_user, start_date, end_date)
+            "completed_activities": completed_activities,
+            "completed_exercises": completed_exercises_json(current_user, start_date, end_date)
         }
 
 
@@ -322,6 +322,53 @@ class PlannedActivity(Resource):
         db.session.commit()
 
         return "", 204
+
+
+def completed_exercise_json(completed_exercise):
+    return {
+        "id": completed_exercise.id,
+        "exercise_date": completed_exercise.exercise_date.strftime("%Y-%m-%d"),
+        "exercise_time": completed_exercise.exercise_datetime.strftime("%H-%M-%S"),
+        "exercise_type_id": completed_exercise.exercise_type_id,
+        "exercise_name": completed_exercise.exercise_name,
+        "category_name": completed_exercise.category_name,
+        "measured_by": completed_exercise.measured_by,
+        "reps": completed_exercise.reps,
+        "seconds": completed_exercise.seconds,
+        "category_key": completed_exercise.category_key
+    }
+
+def completed_exercises_json(user, start_date, end_date):
+    completed_exercises = user.completed_exercises_filtered(start_date, end_date).all()
+    categories = user.exercise_categories.all()
+
+    # Make sure we still present any uncategorised exercises
+    temp_uncategorised = ExerciseCategory(category_name="Uncategorised",
+                                          category_key="uncategorised",
+                                          owner=user)
+    categories.append(temp_uncategorised)
+
+    completed_exercises_by_category = []
+
+    # Group up the planned exercises by category
+    for category in categories:
+        calendar_date = start_date
+        
+        while calendar_date <= end_date:
+            category_completed_exercises = [completed_exercise for completed_exercise in completed_exercises if completed_exercise.category_name==category.category_name and completed_exercise.exercise_date==calendar_date.date()]
+            if len(category_completed_exercises) > 0:
+                completed_exercises_category = {
+                    "exercise_date": calendar_date.strftime("%Y-%m-%d"),
+                    "category_name": category.category_name,
+                    "category_key": category.category_key,
+                    "exercises": [completed_exercise_json(completed_exercise) for completed_exercise in category_completed_exercises]
+                }
+                completed_exercises_by_category.append(completed_exercises_category)
+
+            calendar_date = calendar_date + timedelta(days=1)
+
+    return completed_exercises_by_category
+
     
 def planned_exercise_json(planned_exercise):
     return {
