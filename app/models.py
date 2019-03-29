@@ -277,9 +277,12 @@ class User(UserMixin, db.Model):
 				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
 				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
+				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
+										   (CalendarDay.calendar_date <= date.today()))
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
+				).filter(Exercise.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
