@@ -328,7 +328,7 @@ def completed_exercise_json(completed_exercise):
     return {
         "id": completed_exercise.id,
         "exercise_date": completed_exercise.exercise_date.strftime("%Y-%m-%d"),
-        "exercise_time": completed_exercise.exercise_datetime.strftime("%H-%M-%S"),
+        "exercise_time": completed_exercise.exercise_datetime.strftime("%H:%M:%S"),
         "exercise_type_id": completed_exercise.exercise_type_id,
         "exercise_name": completed_exercise.exercise_name,
         "category_name": completed_exercise.category_name,
