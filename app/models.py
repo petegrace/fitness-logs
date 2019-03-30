@@ -7,6 +7,7 @@ from markdown import markdown
 from app import db, utils
 from app import login
 from itertools import groupby
+from passlib.hash import pbkdf2_sha256 as sha256
 
 class ExerciseDateGroup:
 	def __init__(self, exercise_date, exercises):
@@ -19,6 +20,8 @@ class User(UserMixin, db.Model):
 	display_name = db.Column(db.String(50)) # only needed for blog authors at present so only updated via DB
 	auth_type = db.Column(db.String(50))
 	password_hash = db.Column(db.String(128))
+	first_name = db.Column(db.String(100))
+	last_name = db.Column(db.String(100))
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	exercise_types = db.relationship("ExerciseType", backref="owner", lazy="dynamic")
 	exercise_categories = db.relationship("ExerciseCategory", backref="owner", lazy="dynamic")
@@ -52,11 +55,13 @@ class User(UserMixin, db.Model):
 	def load_user(id):
 		return User.query.get(int(id))
 
-	def set_password(self, password):
-		self.password_hash = generate_password_hash(password)
+	@staticmethod
+	def generate_hash(password):
+		return sha256.hash(password)
 
-	def check_password(self, password):
-		return check_password_hash(self.password_hash, password)
+	@staticmethod
+	def verify_hash(password, hash):
+		return sha256.verify(password, hash)
 
 	def most_recent_strava_activity_datetime(self):
 		most_recent_strava_activity_datetime_result = db.session.query(

@@ -21,27 +21,33 @@ class UserLogin(Resource):
     def post(self):
         # 1. retrieve the body from the post that should include an access token for google auth
         parser = reqparse.RequestParser()
-        parser.add_argument("google_access_token", help="Must supply an access token for Google auth", required=True)
+        parser.add_argument("authType", help="Whether the authentication method is via Google or direct", required=True)
+        parser.add_argument("google_access_token", help="Must supply an access token for Google auth")
+        parser.add_argument("email", help="Email address used to login, only supplied for direct auth")
+        parser.add_argument("password", help="Only required for direct authentication")
         data = parser.parse_args()
 
         # 1. Get the google user using the google_access_token we now have
-        with requests.Session() as s:
-            s.auth = OAuth2BearerToken(data["google_access_token"])
-            discovery_request = s.get("https://accounts.google.com/.well-known/openid-configuration")
-            discovery_request.raise_for_status()
-            userinfo_endpoint = discovery_request.json()["userinfo_endpoint"]
+        if data["authType"] == "Google":
+            with requests.Session() as s:
+                s.auth = OAuth2BearerToken(data["google_access_token"])
+                discovery_request = s.get("https://accounts.google.com/.well-known/openid-configuration")
+                discovery_request.raise_for_status()
+                userinfo_endpoint = discovery_request.json()["userinfo_endpoint"]
 
-            userinfo_request = s.get(userinfo_endpoint)
-            userinfo_request.raise_for_status()
-            user_email = userinfo_request.json()["email"]
+                userinfo_request = s.get(userinfo_endpoint)
+                userinfo_request.raise_for_status()
+                user_email = userinfo_request.json()["email"]
+        else:
+            user_email = data["email"]
 
         # 2. Lookup the user in our DB, and redirect to registration if we can't find them
         current_user = User.query.filter_by(email=user_email).first()
 
         if not current_user:
              return { 
-                 "google_email": user_email,
-                 "message": "No user found. Please register"
+                 "email": user_email,
+                 "message": "No user found. Please register or try again"
               }, 401  # 401 for unauthorized to indicate they need to register
         else:
             # 3. Create access token (with 60-min expiry)
@@ -79,13 +85,27 @@ class RegisterUser(Resource):
     def post(self):
         # 1. Retrieve the body
         parser = reqparse.RequestParser()
-        parser.add_argument("email", help="Must supply an email address to register", required=True)
-        parser.add_argument("opt_in_to_marketing_emails", type=inputs.boolean)
+        parser.add_argument("authType", help="Whether the authentication is using Google account or direct with Training Ticks", required=True)
+        parser.add_argument("email", help="Email address used to login, which is used for both Google and direct auth", required=True)
+        parser.add_argument("password", help="Only required for direct authentication")
+        parser.add_argument("first_name", help="First name of the user who is registering, only required for direct authentication at present")
+        parser.add_argument("last_name", help="Surname of the user who is registering, only required for direct authentication at present")
+        parser.add_argument("opt_in_to_marketing_emails", help="Flag to indicate if the user wants to receive email updates", type=inputs.boolean)
         data = parser.parse_args()
+
+        # 2. Validate for an existing user with same email
+        existing_user = User.query.filter_by(email=data["email"]).first()
+        if existing_user:
+            return {
+                    "message": "Email address is already registered."
+            }, 409 # conflict status code
 
         # 2. Add new user
         new_user = User(email=data["email"],
-						auth_type="Google",
+						auth_type=data["authType"],
+                        password_hash=User.generate_hash(data["password"]),
+                        first_name=data["first_name"],
+                        last_name=data["last_name"],
 						is_opted_in_for_marketing_emails=data["opt_in_to_marketing_emails"])
         db.session.add(new_user)
         db.session.commit()
