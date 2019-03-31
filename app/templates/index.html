@@ -45,27 +45,7 @@
 					<p>Here are your planned activities and exercises that you have left to do today. Use the buttons to tick each one off.</p>
 				{% endif %}
 				{% for scheduled_activity in activities_for_today_remaining %}
-					<a class="btn btn-sm
-					{% if scheduled_activity.category_key is none %}
-						btn-outline-secondary
-					{% elif scheduled_activity.category_key == 'cat_green' %}
-						btn-success
-					{% elif scheduled_activity.category_key == 'cat_green_outline' %}
-						btn-outline-success
-					{% elif scheduled_activity.category_key == 'cat_blue' %}
-						btn-primary
-					{% elif scheduled_activity.category_key == 'cat_blue_outline' %}
-						btn-outline-primary
-					{% elif scheduled_activity.category_key == 'cat_red' %}
-						btn-danger
-					{% elif scheduled_activity.category_key == 'cat_red_outline' %}
-						btn-outline-danger
-					{% elif scheduled_activity.category_key == 'cat_yellow' %}
-						btn-warning
-					{% elif scheduled_activity.category_key == 'cat_yellow_outline' %}
-						btn-outline-warning
-					{% endif %}
-					" role="button" href="{{ url_for('connect_strava', action='authorize') }}">
+					<a class="btn btn-sm {{scheduled_activity.category_key }}" role="button" href="{{ url_for('connect_strava', action='authorize') }}">
 						{{ scheduled_activity.activity_type }}
 						<br />
 						<small>
@@ -84,27 +64,7 @@
 					</a>
 				{% endfor %}
 				{% for scheduled_exercise in exercises_for_today_remaining %}
-					<a class="btn btn-sm
-					{% if scheduled_exercise.category_key is none %}
-						btn-outline-secondary
-					{% elif scheduled_exercise.category_key == 'cat_green' %}
-						btn-success
-					{% elif scheduled_exercise.category_key == 'cat_green_outline' %}
-						btn-outline-success
-					{% elif scheduled_exercise.category_key == 'cat_blue' %}
-						btn-primary
-					{% elif scheduled_exercise.category_key == 'cat_blue_outline' %}
-						btn-outline-primary
-					{% elif scheduled_exercise.category_key == 'cat_red' %}
-						btn-danger
-					{% elif scheduled_exercise.category_key == 'cat_red_outline' %}
-						btn-outline-danger
-					{% elif scheduled_exercise.category_key == 'cat_yellow' %}
-						btn-warning
-					{% elif scheduled_exercise.category_key == 'cat_yellow_outline' %}
-						btn-outline-warning
-					{% endif %}
-					" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
+					<a class="btn btn-sm {{ scheduled_exercise.category_key }}" role="button" href="{{ url_for('log_exercise', scheduled='scheduled', id=scheduled_exercise.id) }}">
 						{{ scheduled_exercise.name }}
 						<br />
 						<small>
@@ -216,27 +176,7 @@
 				<br /><small>&nbsp;</small>
 			</a>
 			{% for exercise_type in exercise_types %}
-				<a class="btn btn-sm
-				{% if exercise_type.category_key is none %}
-					btn-outline-secondary
-				{% elif exercise_type.category_key == 'cat_green' %}
-					btn-success
-				{% elif exercise_type.category_key == 'cat_green_outline' %}
-					btn-outline-success
-				{% elif exercise_type.category_key == 'cat_blue' %}
-					btn-primary
-				{% elif exercise_type.category_key == 'cat_blue_outline' %}
-					btn-outline-primary
-				{% elif exercise_type.category_key == 'cat_red' %}
-					btn-danger
-				{% elif exercise_type.category_key == 'cat_red_outline' %}
-					btn-outline-danger
-				{% elif exercise_type.category_key == 'cat_yellow' %}
-					btn-warning
-				{% elif exercise_type.category_key == 'cat_yellow_outline' %}
-					btn-outline-warning
-				{% endif %}
-				" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
+				<a class="btn btn-sm {{ exercise_type.category_key }}" role="button" href="{{ url_for('log_exercise', scheduled='other', id=exercise_type.id) }}">
 					{{ exercise_type.name }}
 					<br />
 					<small>
