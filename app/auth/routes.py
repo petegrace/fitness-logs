@@ -3,7 +3,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from flask_mail import Message
 from werkzeug.urls import url_parse
 from app.auth import bp
-from app.auth.forms import LoginForm, RegisterForm, PreferencesForm
+from app.auth.forms import LoginForm, RegisterForm, PreferencesForm, ResetPasswordForm
 from app.auth.common import configured_google_client
 from app.models import User, ExerciseForToday, ActivityForToday
 from app import db, app, mail
@@ -64,6 +64,24 @@ def register_user(user):
 	Thread(target=send_async_email, args=(app, msg)).start()
 
 	return redirect(url_for("index", is_new_user=True))
+
+@bp.route("/reset_password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+	if current_user.is_authenticated:
+		return redirect(url_for("index"))
+
+	user = User.verify_reset_password_token(token)
+	if not user:
+		return redirect(url_for("index"))
+
+	form = ResetPasswordForm()
+	if form.validate_on_submit():
+		user.password_hash = User.generate_hash(form.password.data)
+		db.session.commit()
+		flash("Password has been reset. Please login from the home page.")
+
+	return render_template("auth/reset_password.html", form=form)
+
 
 
 @bp.route("/react_login")

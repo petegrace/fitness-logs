@@ -16,6 +16,10 @@ class RegisterForm(FlaskForm):
 	opt_in_to_marketing_emails = BooleanField("(Optional) I'd like to receive occasional updates from Training Ticks to tell me about new features being released or in development that might help me out with my training.")
 	submit = SubmitField("Complete Registration")
 
+class ResetPasswordForm(FlaskForm):
+	password = PasswordField("New Password", validators=[DataRequired()])
+	password2 = PasswordField("Confirm New Password", validators=[DataRequired(), EqualTo("password")])
+	submit = SubmitField("Set Password")
 
 class PreferencesForm(FlaskForm):
 	opt_in_to_marketing_emails = BooleanField("Subscribe to email updates. Tick this box to receive occasional updates from Training Ticks when we launch new features that you might find useful.")

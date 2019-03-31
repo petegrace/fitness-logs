@@ -1,4 +1,4 @@
-from flask import make_response, flash, session
+from flask import make_response, flash, session, url_for
 from flask_login import login_user
 from flask_restful import Resource, reqparse, inputs
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt
@@ -43,11 +43,17 @@ class UserLogin(Resource):
 
         # 2. Lookup the user in our DB, and redirect to registration if we can't find them
         current_user = User.query.filter_by(email=user_email).first()
+        
+        is_authenticated = False
+        if data["authType"] == "Google" and current_user:
+            is_authenticated = True
+        elif data["authType"] == "direct":
+            is_authenticated = current_user.verify_password(data["password"])
 
-        if not current_user:
+        if not is_authenticated:
              return { 
                  "email": user_email,
-                 "message": "No user found. Please register or try again"
+                 "message": "No user found or password incorrect. Please register or try again"
               }, 401  # 401 for unauthorized to indicate they need to register
         else:
             # 3. Create access token (with 60-min expiry)
@@ -160,6 +166,49 @@ class RegisterUser(Resource):
             "x-auth-token": access_token # we have to expose this header in the CORS configuration in __init__
         }
 
+class ResetPasswordRequest(Resource):
+    def post(self):
+        # 1. retrieve the body from the post
+        parser = reqparse.RequestParser()
+        parser.add_argument("email", help="Email address used to login, only supplied for direct auth")
+        data = parser.parse_args()
+
+        # 2. Lookup the user in our DB, and return unauthorised if we can't find them or not using direct auth
+        existing_user = User.query.filter_by(email=data["email"]).first()
+        
+        if (not existing_user) or (existing_user.auth_type != "direct"):
+            return { 
+                 "message": "Cannot reset password for email provided"
+              }, 401
+
+        # 3. Send the email
+        reset_token = existing_user.get_reset_password_token()
+        msg = Message(subject="Reset Password",
+		   		  sender=("Training Ticks", "support@trainingticks.com"),
+		   		  recipients=[existing_user.email])
+
+        msg.html = """
+                    <h1>Reset Password for Training Ticks</h1>
+				
+                    <p><a href={url}">Click here</a> to reset your password for Training Ticks.</p>
+                    
+                    <p>Or you can paste the following link into your browser's address bar:</p>
+
+                    <p>{url}</p>
+                    
+                    <p>If you've not chosen to reset your password and weren't expecting this email please let us know at support@trainingticks.com.</p>
+
+                    <p>Thanks,</p>
+
+                    <p>Training Ticks Support</p>
+                """.format(url=url_for("auth.reset_password", token=reset_token, _external=True))
+
+        # Send the mail asynchronously from separate thread
+        Thread(target=send_async_email, args=(app, msg)).start()
+
+        return "", 204 # Report back success
+
+        
 
 # TODO: Consider if this is worthwhile or if we just go with a short-lived (e.g. 60 mins) access token, not using it currently
 class TokenRefresh(Resource):

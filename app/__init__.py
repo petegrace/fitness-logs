@@ -71,6 +71,7 @@ api.add_resource(auth.resources.TokenRefresh, "/api/token/refresh")
 api.add_resource(auth.resources.CheckToken, "/api/check_token")
 api.add_resource(auth.resources.RegisterUser, "/api/register")
 api.add_resource(auth.resources.UserInfo, "/api/user_info")
+api.add_resource(auth.resources.ResetPasswordRequest, "/api/reset_password_request")
 
 api.add_resource(resources.Monitoring, "/api/monitoring")
 

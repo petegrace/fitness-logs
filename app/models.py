@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, date
+from time import time
 from flask import Markup
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct, cast, Date
 from markdown import markdown
-from app import db, utils
-from app import login
 from itertools import groupby
 from passlib.hash import pbkdf2_sha256 as sha256
+import jwt
+
+from app import app, db, utils, login
 
 class ExerciseDateGroup:
 	def __init__(self, exercise_date, exercises):
@@ -59,9 +61,26 @@ class User(UserMixin, db.Model):
 	def generate_hash(password):
 		return sha256.hash(password)
 
+	def verify_password(self, password):
+		if self.auth_type != "direct":
+			return False
+
+		return sha256.verify(password, self.password_hash)
+
+	def get_reset_password_token(self, expires_in=600):
+		return jwt.encode({
+				"reset_password": self.id,
+				"exp": time() + expires_in
+			},
+			app.config["SECRET_KEY"], algorithm="HS256").decode("utf-8")
+
 	@staticmethod
-	def verify_hash(password, hash):
-		return sha256.verify(password, hash)
+	def verify_reset_password_token(token):
+		try:
+			id = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])["reset_password"]
+		except:
+			return
+		return User.query.get(id)
 
 	def most_recent_strava_activity_datetime(self):
 		most_recent_strava_activity_datetime_result = db.session.query(
