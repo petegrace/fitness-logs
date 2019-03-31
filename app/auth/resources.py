@@ -47,7 +47,7 @@ class UserLogin(Resource):
         is_authenticated = False
         if data["authType"] == "Google" and current_user:
             is_authenticated = True
-        elif data["authType"] == "direct":
+        elif data["authType"] == "direct" and current_user:
             is_authenticated = current_user.verify_password(data["password"])
 
         if not is_authenticated:
