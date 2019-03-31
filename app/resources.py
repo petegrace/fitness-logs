@@ -223,7 +223,7 @@ class PlannedActivities(Resource):
         if data["planned_distance"] and len(data["planned_distance"]) == 0:
             data["planned_distance"] = None
 
-        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(int(data["planned_distance"]), current_user) if data["planned_distance"] else None
+        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["planned_distance"]), current_user) if data["planned_distance"] else None
 
         track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
         scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
