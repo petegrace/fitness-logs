@@ -6,7 +6,7 @@ import logging
 
 from app import db, utils
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
-from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledExercise, ScheduledExerciseSkippedDate
+from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate
 from app.ga import track_event
 from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
 
@@ -197,7 +197,8 @@ class PlannedActivities(Resource):
 
         return {
             "planned_activities": planned_activities,
-            "planned_exercises": planned_exercises_json(current_user, start_date, end_date)
+            "planned_exercises": planned_exercises_json(current_user, start_date, end_date),
+            "planned_races": planned_races_json(current_user, start_date, end_date)
         }
 
     @jwt_required
@@ -322,6 +323,67 @@ class PlannedActivity(Resource):
         db.session.commit()
 
         return "", 204
+
+
+def planned_race_json(planned_race, user):
+    return {
+        "id": planned_race.id,
+        "name": planned_race.name,
+        "race_type": planned_race.race_type,
+        "planned_date": planned_race.scheduled_date.strftime("%Y-%m-%d"),
+        "notes": planned_race.notes,
+        "distance": utils.format_distance_for_uom_preference(planned_race.distance, user, decimal_places=2, show_uom_suffix=False) if planned_race.distance else None,
+        "category_key": planned_race.category_key
+    }
+
+def planned_races_json(user, start_date, end_date):
+    planned_races = [planned_race_json(race, user) for race in user.planned_races_filtered(start_date, end_date).all()]
+    return planned_races
+
+
+class PlannedRaces(Resource):
+
+    @jwt_required
+    def post(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", help="Name of the race")
+        parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("race_type", help="Whether the race is a Run, Ride, Swim or other type of event")
+        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
+        parser.add_argument("distance", help="Race distance in the user's preferred UOM")
+        data = parser.parse_args()
+
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+
+        if data["notes"] and len(data["notes"]) == 0:
+            data["notes"] = None
+
+        if data["distance"] and len(data["distance"]) == 0:
+            data["distance"] = None
+
+        distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["distance"]), current_user) if data["distance"] else None
+
+        track_event(category="Schedule", action="Scheduled race created", userId = str(current_user.id))
+        scheduled_race = ScheduledRace(name=data["name"],
+                                       race_type=data["race_type"],
+                                       owner=current_user,
+                                       scheduled_date=planned_date,
+                                       notes=data["notes"],
+                                       distance=distance_m)
+        db.session.add(scheduled_race)
+        db.session.commit()
+        
+        if current_user.is_training_plan_user == False:
+            current_user.is_training_plan_user = True
+            db.session.commit()
+            
+
+        return {
+            "id": 1#scheduled_activity.id
+        }, 201
 
 
 def completed_exercise_json(completed_exercise):

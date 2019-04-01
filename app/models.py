@@ -30,6 +30,7 @@ class User(UserMixin, db.Model):
 	activities = db.relationship("Activity", backref="owner", lazy="dynamic")
 	training_goals = db.relationship("TrainingGoal", backref="owner", lazy="dynamic")
 	scheduled_activities = db.relationship("ScheduledActivity", backref="owner", lazy="dynamic")
+	scheduled_races = db.relationship("ScheduledRace", backref="owner", lazy="dynamic")
 	blog_posts = db.relationship("BlogPost", backref="author", lazy="dynamic")
 	last_login_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 	is_exercises_user = db.Column(db.Boolean, default=False)
@@ -282,6 +283,28 @@ class User(UserMixin, db.Model):
 				).order_by(Activity.id)
 
 		return planned_activities_filtered
+
+	def planned_races_filtered(self, startDate, endDate):
+		planned_races_filtered = db.session.query(
+											ScheduledRace.id,
+											ScheduledRace.name,
+											ScheduledRace.scheduled_date,
+											ScheduledRace.race_type,
+											ScheduledRace.distance,
+											ScheduledRace.notes,
+											ExerciseCategory.category_key
+				).outerjoin(ExerciseCategory, and_(ScheduledRace.race_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledRace.user_id)
+				).outerjoin(Activity, and_((ScheduledRace.user_id == Activity.user_id),
+										   Activity.start_datetime.cast(Date) == ScheduledRace.scheduled_date)
+				).filter(ScheduledRace.owner == self
+				#).filter(ScheduledRace.is_removed == False
+				).filter(Activity.id == None
+				).filter(ScheduledRace.scheduled_date >= date.today()
+				).filter(ScheduledRace.scheduled_date >= startDate
+				).filter(ScheduledRace.scheduled_date <= endDate
+				).order_by(ScheduledRace.id)
+
+		return planned_races_filtered
 
 	def planned_exercises_filtered(self, startDate, endDate):
 		planned_exercises_filtered = db.session.query(
@@ -920,6 +943,20 @@ class ScheduledActivity(db.Model):
 	@property
 	def planned_distance_formatted(self):
 		return utils.format_distance(self.planned_distance) if self.planned_distance else ""
+
+
+class ScheduledRace(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+	name = db.Column(db.String(100))
+	race_type = db.Column(db.String(50))
+	scheduled_date = db.Column(db.Date)
+	notes = db.Column(db.String(500))
+	distance = db.Column(db.Integer)
+
+	def __repr__(self):
+		return "<ScheduledRace of {name} for {user} on {date}>".format(
+			name=self.name, user=self.owner.email, date=self.scheduled_date)
 
 
 class ActivityForToday(db.Model):
