@@ -302,7 +302,7 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
 				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
 				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
-										   (CalendarDay.calendar_date <= date.today()))
+										   Exercise.exercise_datetime.cast(Date) == CalendarDay.calendar_date)
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
