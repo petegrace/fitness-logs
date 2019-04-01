@@ -245,7 +245,7 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
 				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
 				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
-										   (CalendarDay.calendar_date <= date.today()))
+										   Activity.start_datetime.cast(Date) == CalendarDay.calendar_date)
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
