@@ -331,6 +331,8 @@ def planned_race_json(planned_race, user):
         "name": planned_race.name,
         "race_type": planned_race.race_type,
         "planned_date": planned_race.scheduled_date.strftime("%Y-%m-%d"),
+        "entry_status": planned_race.entry_status,
+        "race_website_url": planned_race.race_website_url,
         "notes": planned_race.notes,
         "distance": utils.format_distance_for_uom_preference(planned_race.distance, user, decimal_places=2, show_uom_suffix=False) if planned_race.distance else None,
         "category_key": planned_race.category_key
@@ -352,17 +354,25 @@ class PlannedRaces(Resource):
         parser.add_argument("name", help="Name of the race")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("race_type", help="Whether the race is a Run, Ride, Swim or other type of event")
-        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
         parser.add_argument("distance", help="Race distance in the user's preferred UOM")
+        parser.add_argument("entry_status", help="Whether the user has already Entered, or the race is a Probable or Possible")
+        parser.add_argument("race_website_url", help="External web URL linking to the website for the race")
+        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
 
-        if data["notes"] and len(data["notes"]) == 0:
-            data["notes"] = None
-
         if data["distance"] and len(data["distance"]) == 0:
             data["distance"] = None
+            
+        if data["entry_status"] and len(data["entry_status"]) == 0:
+            data["entry_status"] = None
+
+        if data["race_website_url"] and len(data["race_website_url"]) == 0:
+            data["race_website_url"] = None
+
+        if data["notes"] and len(data["notes"]) == 0:
+            data["notes"] = None
 
         distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["distance"]), current_user) if data["distance"] else None
 
@@ -371,8 +381,10 @@ class PlannedRaces(Resource):
                                        race_type=data["race_type"],
                                        owner=current_user,
                                        scheduled_date=planned_date,
-                                       notes=data["notes"],
-                                       distance=distance_m)
+                                       distance=distance_m,
+                                       entry_status=data["entry_status"],
+                                       race_website_url=data["race_website_url"],
+                                       notes=data["notes"])
         db.session.add(scheduled_race)
         db.session.commit()
         
@@ -414,17 +426,25 @@ class PlannedRace(Resource):
         parser.add_argument("name", help="Name of the race")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("race_type", help="Whether the race is a Run, Ride, Swim or other type of event")
-        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
         parser.add_argument("distance", help="Race distance in the user's preferred UOM")
+        parser.add_argument("entry_status", help="Whether the user has already Entered, or the race is a Probable or Possible")
+        parser.add_argument("race_website_url", help="External web URL linking to the website for the race")
+        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
 
-        if data["notes"] and len(data["notes"]) == 0:
-            data["notes"] = None
-
         if data["distance"] and len(data["distance"]) == 0:
             data["distance"] = None
+            
+        if data["entry_status"] and len(data["entry_status"]) == 0:
+            data["entry_status"] = None
+
+        if data["race_website_url"] and len(data["race_website_url"]) == 0:
+            data["race_website_url"] = None
+
+        if data["notes"] and len(data["notes"]) == 0:
+            data["notes"] = None
 
         distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["distance"]), current_user) if data["distance"] else None
 
@@ -438,6 +458,8 @@ class PlannedRace(Resource):
         scheduled_race.scheduled_date = planned_date
         scheduled_race.race_type = data["race_type"]
         scheduled_race.distance = distance_m
+        scheduled_race.entry_status = data["entry_status"]
+        scheduled_race.race_website_url = data["race_website_url"]
         scheduled_race.notes = data["notes"]
         db.session.commit()
 
