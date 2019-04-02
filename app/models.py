@@ -292,12 +292,15 @@ class User(UserMixin, db.Model):
 											ScheduledRace.race_type,
 											ScheduledRace.distance,
 											ScheduledRace.notes,
+											ScheduledRace.entry_status,
+											ScheduledRace.entries_close_date,
+											ScheduledRace.race_website_url,
 											ExerciseCategory.category_key
 				).outerjoin(ExerciseCategory, and_(ScheduledRace.race_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledRace.user_id)
 				).outerjoin(Activity, and_((ScheduledRace.user_id == Activity.user_id),
 										   Activity.start_datetime.cast(Date) == ScheduledRace.scheduled_date)
 				).filter(ScheduledRace.owner == self
-				#).filter(ScheduledRace.is_removed == False
+				).filter(ScheduledRace.is_removed == False
 				).filter(Activity.id == None
 				).filter(ScheduledRace.scheduled_date >= date.today()
 				).filter(ScheduledRace.scheduled_date >= startDate
@@ -953,6 +956,10 @@ class ScheduledRace(db.Model):
 	scheduled_date = db.Column(db.Date)
 	notes = db.Column(db.String(500))
 	distance = db.Column(db.Integer)
+	entry_status = db.Column(db.String(50))
+	entries_close_date = db.Column(db.Date)
+	race_website_url = db.Column(db.String(250))
+	is_removed = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<ScheduledRace of {name} for {user} on {date}>".format(

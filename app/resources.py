@@ -293,7 +293,7 @@ class PlannedActivity(Resource):
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
-        parser.add_argument("planned_distance", help="Planned distance for the activity in km")
+        parser.add_argument("planned_distance", help="Planned distance for the activity in the user's preferred UOM")
         data = parser.parse_args()
 
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
@@ -384,6 +384,64 @@ class PlannedRaces(Resource):
         return {
             "id": 1#scheduled_activity.id
         }, 201
+        
+        
+class PlannedRace(Resource):
+    @jwt_required
+    def delete(self, planned_race_id):
+        user_id = get_jwt_identity() 
+        track_event(category="Schedule", action="Scheduled race removed", userId = str(user_id))
+        
+        scheduled_race = ScheduledRace.query.get(int(planned_race_id))
+
+        if scheduled_race.user_id != user_id:
+            return {
+                "message": "race belongs to a different user"
+            }, 403
+            
+        scheduled_race.is_removed = True
+        db.session.commit()
+
+        return "", 204
+
+    @jwt_required
+    def patch(self, planned_race_id):
+        user_id = get_jwt_identity() 
+        current_user = User.query.get(int(user_id))
+        track_event(category="Schedule", action="Scheduled race updated", userId = str(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("name", help="Name of the race")
+        parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("race_type", help="Whether the race is a Run, Ride, Swim or other type of event")
+        parser.add_argument("notes", help="Any additional info about the race that the user wishes to record")
+        parser.add_argument("distance", help="Race distance in the user's preferred UOM")
+        data = parser.parse_args()
+
+        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+
+        if data["notes"] and len(data["notes"]) == 0:
+            data["notes"] = None
+
+        if data["distance"] and len(data["distance"]) == 0:
+            data["distance"] = None
+
+        distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["distance"]), current_user) if data["distance"] else None
+
+        scheduled_race = ScheduledRace.query.get(int(planned_race_id))
+        if scheduled_race.user_id != user_id:
+            return {
+                "message": "race belongs to a different user"
+            }, 403
+
+        scheduled_race.name = data["name"]
+        scheduled_race.scheduled_date = planned_date
+        scheduled_race.race_type = data["race_type"]
+        scheduled_race.distance = distance_m
+        scheduled_race.notes = data["notes"]
+        db.session.commit()
+
+        return "", 204
 
 
 def completed_exercise_json(completed_exercise):
