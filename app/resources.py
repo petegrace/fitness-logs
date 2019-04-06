@@ -209,6 +209,7 @@ class PlannedActivities(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("activity_type", help="Whether the activity is a Run, Ride or Swim")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
+        parser.add_argument("planning_period", help="Whether the activity is planned for a specific day or any time during the week (in which case planned_date should be the Monday of that week)")
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
         parser.add_argument("planned_distance", help="Planned distance for the activity in the user's preferred UOM")
@@ -229,6 +230,7 @@ class PlannedActivities(Resource):
         track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
         scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
                                                owner=current_user,
+                                               planning_period=data["planning_period"],
                                                recurrence=data["recurrence"],
                                                scheduled_date=planned_date,
                                                scheduled_day=planned_day_of_week,
@@ -571,6 +573,7 @@ class PlannedExercises(Resource):
         parser.add_argument("exercise_name", help="Name of the exercise when scheduling a new type")
         parser.add_argument("measured_by", help="Whether the exercise is measured by number of reps or time to hold position")
         parser.add_argument("exercise_category_id", help="Foreign key to category for exercise if creating a new type")
+        parser.add_argument("planning_period", help="Whether the exercise is planned for a specific day or any time during the week (in which case planned_date should be the Monday of that week)")
         parser.add_argument("recurrence", help="Whether or not the planned exercise will be repeated each week")
         parser.add_argument("planned_date", help="Date that the exercise is planned for")
         parser.add_argument("planned_reps", help="Planned number of reps to do in each set if the exercise is measured in reps")
@@ -578,6 +581,8 @@ class PlannedExercises(Resource):
         # template id gets supplied on its own by a separate type of request to copy template into pllan
         parser.add_argument("template_id", help="Id for a template that the user wants to copy into their plan")
         data = parser.parse_args()
+
+        print(data["planning_period"])
 
         if data["template_id"]:
             track_event(category="Schedule", action="Attempting to copy training plan from template", userId = str(current_user.id))
@@ -632,6 +637,7 @@ class PlannedExercises(Resource):
             # Schedule the exercise based on defaults
             track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
             scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
+                                                planning_period=data["planning_period"],
                                                 recurrence=data["recurrence"],
                                                 scheduled_date=planned_date,
                                                 scheduled_day=planned_day_of_week,

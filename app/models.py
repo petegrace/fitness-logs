@@ -887,6 +887,7 @@ class Exercise(db.Model):
 class ScheduledExercise(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	exercise_type_id = db.Column(db.Integer, db.ForeignKey("exercise_type.id"))
+	planning_period = db.Column(db.String(20), default="day")
 	recurrence = db.Column(db.String(20))
 	scheduled_date = db.Column(db.Date)
 	scheduled_day = db.Column(db.String(10))
@@ -929,6 +930,7 @@ class ScheduledActivity(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 	activity_type = db.Column(db.String(50))
+	planning_period = db.Column(db.String(20), default="day")
 	recurrence = db.Column(db.String(20))
 	scheduled_date = db.Column(db.Date)
 	scheduled_day = db.Column(db.String(10))
