@@ -42,6 +42,7 @@ class User(UserMixin, db.Model):
 	is_blog_author = db.Column(db.Boolean, default=False)
 	distance_uom_preference = db.Column(db.String(10), default="km")
 	elevation_uom_preference = db.Column(db.String(10), default="m")
+	has_weekly_flexible_planning_enabled = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<User {email}>".format(email=self.email)

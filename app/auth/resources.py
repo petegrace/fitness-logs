@@ -230,9 +230,38 @@ class UserInfo(Resource):
         current_user = User.query.get(int(user_id))
 
         user_info = {
-            "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km"
+            "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km",
+            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled
         }
 
         return {
             "user_info": user_info
+        }, 200
+
+    @jwt_required
+    def patch(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("distance_uom_preference", help="Whether the user wants to see distances in km or miles")
+        parser.add_argument("has_flexible_planning_enabled", help="Whether the user has enabled the ability to plan activities and exercises for a week without having to choose a day")
+        data = parser.parse_args()
+
+        print(data["has_flexible_planning_enabled"])
+
+        current_user.distance_uom_preference = data["distance_uom_preference"]
+        current_user.has_weekly_flexible_planning_enabled = True if data["has_flexible_planning_enabled"] == "True" else False
+
+        db.session.commit()
+        
+        updated_user_info = {
+            "distance_uom_preference": current_user.distance_uom_preference,
+            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled
         }
+
+        print(updated_user_info)
+
+        return {
+            "updated_user_info": updated_user_info
+        }, 200
