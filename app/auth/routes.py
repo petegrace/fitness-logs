@@ -126,7 +126,7 @@ def oauth2callback():
 
 @bp.route("/cancel")
 def cancel():
-	if "email" in session:
+	if session and "email" in session:
 		# Delete the user's profile and the credentials stored by oauth2.
 		del session["email"]
 		session.modified = True
@@ -136,11 +136,10 @@ def cancel():
 
 @bp.route("/logout")
 def logout():
-	if current_user.auth_type == "Google":
-		# Delete the user's profile and the credentials stored by oauth2.
-		if "email" in session:
-			del session["email"]
-			session.modified = True
+	# Delete the user's profile and the credentials stored by oauth2.
+	if session and "email" in session:
+		del session["email"]
+		session.modified = True
 
 	logout_user()
 	return redirect(url_for("index"))
