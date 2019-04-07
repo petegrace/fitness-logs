@@ -121,6 +121,7 @@ class TrainingPlanTemplates(Resource):
 def planned_activity_json(planned_activity, user):
     return {
         "id": planned_activity.id,
+        "planning_period": planned_activity.planning_period,
         "recurrence": planned_activity.recurrence,
         "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
         "activity_type": planned_activity.activity_type,
@@ -547,13 +548,25 @@ def planned_exercises_json(user, start_date, end_date):
         calendar_date = start_date
         
         while calendar_date <= end_date:
-            category_planned_exercises = [planned_exercise for planned_exercise in planned_exercises if planned_exercise.category_name==category.category_name and planned_exercise.planned_date==calendar_date.date()]
-            if len(category_planned_exercises) > 0:
+            category_planned_exercises_for_day = [planned_exercise for planned_exercise in planned_exercises if planned_exercise.category_name==category.category_name and planned_exercise.planned_date==calendar_date.date() and planned_exercise.planning_period=="day"]
+            if len(category_planned_exercises_for_day) > 0:
                 planned_exercises_category = {
                     "planned_date": calendar_date.strftime("%Y-%m-%d"),
+                    "planning_period": "day",
                     "category_name": category.category_name,
                     "category_key": category.category_key,
-                    "exercises": [planned_exercise_json(planned_exercise) for planned_exercise in category_planned_exercises]
+                    "exercises": [planned_exercise_json(planned_exercise) for planned_exercise in category_planned_exercises_for_day]
+                }
+                planned_exercises_by_category.append(planned_exercises_category)
+
+            category_planned_exercises_for_week = [planned_exercise for planned_exercise in planned_exercises if planned_exercise.category_name==category.category_name and planned_exercise.planned_date==calendar_date.date() and planned_exercise.planning_period=="week"]
+            if len(category_planned_exercises_for_week) > 0:
+                planned_exercises_category = {
+                    "planned_date": calendar_date.strftime("%Y-%m-%d"),
+                    "planning_period": "week",
+                    "category_name": category.category_name,
+                    "category_key": category.category_key,
+                    "exercises": [planned_exercise_json(planned_exercise) for planned_exercise in category_planned_exercises_for_week]
                 }
                 planned_exercises_by_category.append(planned_exercises_category)
 

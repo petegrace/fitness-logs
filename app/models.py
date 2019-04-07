@@ -236,6 +236,7 @@ class User(UserMixin, db.Model):
 	def planned_activities_filtered(self, startDate, endDate):
 		planned_activities_filtered = db.session.query(
 											ScheduledActivity.id,
+											ScheduledActivity.planning_period,
 											ScheduledActivity.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
 											ScheduledActivity.activity_type,
@@ -315,6 +316,7 @@ class User(UserMixin, db.Model):
 											ScheduledExercise.id,
 											ScheduledExercise.exercise_type_id,
 											ExerciseType.name.label("exercise_name"),
+											ScheduledExercise.planning_period,
 											ScheduledExercise.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
 											func.coalesce(ExerciseCategory.category_name, "Uncategorised").label("category_name"),
