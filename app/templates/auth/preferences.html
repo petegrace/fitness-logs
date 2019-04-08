@@ -7,7 +7,11 @@
         {{ form.hidden_tag() }}
         <p>Below are your current preferences. If you'd like to be able to change things such as distance units or your timezone then watch this space
             as we'll be adding option for these in the not too distant future!</p>
-        <p>{{ form.opt_in_to_marketing_emails() }} {{ form.opt_in_to_marketing_emails.label }}</p>
-        <p>{{ form.submit(class_="btn btn-primary") }}</p>
+        <p class="mt-4 pt-4">
+            <span class="font-weight-bold">{{ form.enable_flexible_planning.label }}</span><br />
+            {{ form.enable_flexible_planning }}
+        </p>
+        <p class="mt-4 pt-4">{{ form.opt_in_to_marketing_emails() }} <span class="font-weight-bold">{{ form.opt_in_to_marketing_emails.label }}</span> Tick this box to receive occasional updates from Training Ticks when we launch new features that you might find useful.</p>
+        <p class="mt-4 pt-2">{{ form.submit(class_="btn btn-primary") }}</p>
     </form>
 {% endblock %}

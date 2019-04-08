@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, SubmitField, HiddenField, BooleanField
+from wtforms import StringField, PasswordField, SubmitField, HiddenField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 from app.models import User
 
@@ -8,7 +8,6 @@ class LoginForm(FlaskForm):
 	email = StringField("Email", validators=[DataRequired()])
 	password = PasswordField("Password", validators=[DataRequired()])
 	submit = SubmitField("Sign In")
-
 
 class RegisterForm(FlaskForm):
 	google_email = HiddenField("google_email")
@@ -22,5 +21,6 @@ class ResetPasswordForm(FlaskForm):
 	submit = SubmitField("Set Password")
 
 class PreferencesForm(FlaskForm):
-	opt_in_to_marketing_emails = BooleanField("Subscribe to email updates. Tick this box to receive occasional updates from Training Ticks when we launch new features that you might find useful.")
+	opt_in_to_marketing_emails = BooleanField("Subscribe to email updates.")
+	enable_flexible_planning = SelectField('Enable Flexible Planning?', choices=[("false", "No thanks, I'll plan my activity for specific days"), ("true", "Yes please, let me plan activities to do on any day during the week")])
 	submit = SubmitField("Save Changes")

@@ -152,11 +152,13 @@ def preferences():
 
 	if preferences_form.validate_on_submit():
 		current_user.is_opted_in_for_marketing_emails = preferences_form.opt_in_to_marketing_emails.data
+		current_user.has_weekly_flexible_planning_enabled = True if preferences_form.enable_flexible_planning.data == "true" else False
 		db.session.commit()
 		flash("Your user preferences have been changed.")
 
 	# If it's a get...
 	preferences_form.opt_in_to_marketing_emails.data = current_user.is_opted_in_for_marketing_emails
+	preferences_form.enable_flexible_planning.data = "true" if current_user.has_weekly_flexible_planning_enabled else "false"
 	return render_template("auth/preferences.html", title="Preferences", form=preferences_form)
 
 @bp.route("/test_email")
