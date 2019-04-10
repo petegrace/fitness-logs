@@ -128,6 +128,7 @@ def planned_activity_json(planned_activity, user):
         "scheduled_day": planned_activity.scheduled_day,
         "description": planned_activity.description,
         "planned_distance": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=2, show_uom_suffix=False) if planned_activity.planned_distance else None,
+        "planned_distance_formatted": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=2) if planned_activity.planned_distance else None,
         "category_key": planned_activity.category_key
     }
 
@@ -525,6 +526,7 @@ def planned_exercise_json(planned_exercise):
         "category_name": planned_exercise.category_name,
         "scheduled_day": planned_exercise.scheduled_day,
         "planned_sets": planned_exercise.sets,
+        "completed_sets": planned_exercise.completed_sets,
         "measured_by": planned_exercise.measured_by,
         "planned_reps": planned_exercise.reps,
         "planned_seconds": planned_exercise.seconds,

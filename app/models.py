@@ -115,6 +115,47 @@ class User(UserMixin, db.Model):
 
 		return first_active_year
 
+	def has_planned_activity_for_day(self, selected_date):
+		has_planned_activity_for_day = False
+
+		planned_activities = db.session.query(
+											ScheduledActivity.id,
+											CalendarDay.calendar_date.label("planned_date")
+				).join(CalendarDay, or_(ScheduledActivity.scheduled_date==CalendarDay.calendar_date, ScheduledActivity.scheduled_day==CalendarDay.day_of_week)
+				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
+				).filter(ScheduledActivity.owner == self
+				).filter(ScheduledActivity.is_removed == False
+				).filter(ScheduledActivitySkippedDate.id == None
+				).filter(CalendarDay.calendar_date == selected_date)
+
+		has_planned_activity_for_day = True if planned_activities else False
+
+		# only need to check planned races and exercises if no activities found
+		if not has_planned_activity_for_day:
+			planned_races = db.session.query(
+										ScheduledRace.id,
+										ScheduledRace.scheduled_date
+				).filter(ScheduledRace.owner == self
+				).filter(ScheduledRace.is_removed == False
+				).filter(ScheduledRace.scheduled_date == selected_date)
+
+			has_planned_activity_for_day = True if planned_races else False
+
+		if not has_planned_activity_for_day:
+			planned_exercises = db.session.query(
+											ScheduledExercise.id,
+											CalendarDay.calendar_date.label("planned_date")																											
+				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
+				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
+				).filter(ExerciseType.owner == self
+				).filter(ScheduledExercise.is_removed == False
+				).filter(ScheduledExerciseSkippedDate.id == None
+				).filter(CalendarDay.calendar_date == selected_date)
+
+			has_planned_activity_for_day = True if planned_exercises else False
+
+		return has_planned_activity_for_day
+
 	def current_year_activity_stats(self):
 		current_year_activity_stats = db.session.query(
 						Activity.activity_type,
@@ -261,7 +302,7 @@ class User(UserMixin, db.Model):
 		return planned_activities_filtered
 
 	def completed_activities_filtered(self, startDate, endDate):
-		planned_activities_filtered = db.session.query(
+		completed_activities_filtered = db.session.query(
 											Activity.id,
 											Activity.name,
 											Activity.start_datetime.cast(Date).label("activity_date"),
@@ -284,7 +325,7 @@ class User(UserMixin, db.Model):
 				).filter(Activity.start_datetime.cast(Date) <= endDate
 				).order_by(Activity.id)
 
-		return planned_activities_filtered
+		return completed_activities_filtered
 
 	def planned_races_filtered(self, startDate, endDate):
 		planned_races_filtered = db.session.query(
@@ -325,7 +366,8 @@ class User(UserMixin, db.Model):
 											ExerciseType.measured_by,
 											ScheduledExercise.reps,
 											ScheduledExercise.seconds,
-											func.coalesce(ExerciseCategory.category_key, "uncategorised").label("category_key")																													
+											func.coalesce(ExerciseCategory.category_key, "uncategorised").label("category_key"),
+											func.count(Exercise.id).label("completed_sets")																													
 				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
@@ -335,11 +377,24 @@ class User(UserMixin, db.Model):
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
-				).filter(Exercise.id == None
 				).filter(CalendarDay.calendar_date >= date.today()
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
-				).order_by(ScheduledExercise.id)
+				).group_by(
+						ScheduledExercise.id,
+						ScheduledExercise.exercise_type_id,
+						ExerciseType.name,
+						ScheduledExercise.planning_period,
+						ScheduledExercise.recurrence,
+						CalendarDay.calendar_date,
+						ExerciseCategory.category_name,
+						ScheduledExercise.scheduled_day,
+						ScheduledExercise.sets,
+						ExerciseType.measured_by,
+						ScheduledExercise.reps,
+						ScheduledExercise.seconds,
+						ExerciseCategory.category_key
+				).having((ScheduledExercise.sets - func.count(Exercise.id)) > 0)
 
 		return planned_exercises_filtered
 

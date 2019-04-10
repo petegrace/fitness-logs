@@ -6,7 +6,7 @@ from flask_mail import Message
 from app import app, db, mail, training_plan_utils
 from app.models import User
 from requests_oauth2 import OAuth2BearerToken
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from threading import Thread
 import requests
 import json
@@ -228,10 +228,12 @@ class UserInfo(Resource):
     def get(self):
         user_id = get_jwt_identity()
         current_user = User.query.get(int(user_id))
+        today = date.today()
 
         user_info = {
             "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km",
-            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled
+            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled,
+            "has_planned_activity_for_today": current_user.has_planned_activity_for_day(today)
         }
 
         return {
