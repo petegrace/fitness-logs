@@ -538,7 +538,8 @@ class CompletedExercises(Resource):
         db.session.commit()
         
         return {
-            "id": exercise.id
+            "id": exercise.id,
+            "exercise_name": exercise.type.name
         }, 201
 
     
