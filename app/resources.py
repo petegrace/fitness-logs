@@ -6,7 +6,7 @@ import logging
 
 from app import db, utils
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
-from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate
+from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Exercise
 from app.ga import track_event
 from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
 
@@ -395,10 +395,9 @@ class PlannedRaces(Resource):
         if current_user.is_training_plan_user == False:
             current_user.is_training_plan_user = True
             db.session.commit()
-            
 
         return {
-            "id": 1#scheduled_activity.id
+            "id": scheduled_activity.id
         }, 201
         
         
@@ -514,6 +513,33 @@ def completed_exercises_json(user, start_date, end_date):
             calendar_date = calendar_date + timedelta(days=1)
 
     return completed_exercises_by_category
+
+    
+class CompletedExercises(Resource):
+    @jwt_required
+    def post(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("planned_exercise_id", help="Unique ID for planned exercise if the completed exercise was planned")
+        # todo: separate argument for the type of an adhoc exercise
+        data = parser.parse_args()
+
+        track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
+        scheduled_exercise = ScheduledExercise.query.get(int(data["planned_exercise_id"]))
+        
+        exercise = Exercise(type=scheduled_exercise.type,
+                            scheduled_exercise=scheduled_exercise,
+                            exercise_datetime=datetime.utcnow(),
+                            reps=scheduled_exercise.reps,
+                            seconds=scheduled_exercise.seconds)
+        db.session.add(exercise)
+        db.session.commit()
+        
+        return {
+            "id": exercise.id
+        }, 201
 
     
 def planned_exercise_json(planned_exercise):

@@ -82,6 +82,7 @@ api.add_resource(resources.PlannedActivities, "/api/planned_activities")
 api.add_resource(resources.PlannedActivity, "/api/planned_activity/<planned_activity_id>")
 api.add_resource(resources.PlannedRaces, "/api/planned_races")
 api.add_resource(resources.PlannedRace, "/api/planned_race/<planned_race_id>")
+api.add_resource(resources.CompletedExercises, "/api/completed_exercises")
 api.add_resource(resources.PlannedExercises, "/api/planned_exercises")
 api.add_resource(resources.PlannedExercise, "/api/planned_exercise/<planned_exercise_id>")
 
