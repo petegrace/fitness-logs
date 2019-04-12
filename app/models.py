@@ -124,6 +124,7 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, or_(ScheduledActivity.scheduled_date==CalendarDay.calendar_date, ScheduledActivity.scheduled_day==CalendarDay.day_of_week)
 				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
 				).filter(ScheduledActivity.owner == self
+				).filter(ScheduledActivity.planning_period == "day"
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
@@ -148,6 +149,7 @@ class User(UserMixin, db.Model):
 				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
 				).filter(ExerciseType.owner == self
+				).filter(ScheduledExercise.planning_period == "day"
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
@@ -155,6 +157,43 @@ class User(UserMixin, db.Model):
 			has_planned_activity_for_day = True if planned_exercises else False
 
 		return has_planned_activity_for_day
+
+	def has_planned_activity_for_week(self, selected_date):
+		has_planned_activity_for_week = False
+
+		if self.has_weekly_flexible_planning_enabled == True:
+			planned_activities = db.session.query(
+												ScheduledActivity.id,
+												CalendarDay.calendar_date.label("planned_date")
+					).join(CalendarDay, or_(and_(ScheduledActivity.scheduled_date >= CalendarDay.calendar_date - timedelta(days=6),
+												 ScheduledActivity.scheduled_date <= CalendarDay.calendar_date),
+											ScheduledActivity.scheduled_day=="Mon")
+					).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
+					).filter(ScheduledActivity.owner == self
+					).filter(ScheduledActivity.planning_period == "week"
+					).filter(ScheduledActivity.is_removed == False
+					).filter(ScheduledActivitySkippedDate.id == None
+					).filter(CalendarDay.calendar_date == selected_date)
+
+			has_planned_activity_for_week = True if planned_activities else False
+
+			if not has_planned_activity_for_week:
+				planned_exercises = db.session.query(
+												ScheduledExercise.id,
+												CalendarDay.calendar_date.label("planned_date")	
+					).join(CalendarDay, or_(and_(ScheduledExercise.scheduled_date >= CalendarDay.calendar_date - timedelta(days=6),
+												 ScheduledExercise.scheduled_date <= CalendarDay.calendar_date),
+											ScheduledExercise.scheduled_day=="Mon")
+					).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
+					).filter(ExerciseType.owner == self
+					).filter(ScheduledExercise.planning_period == "week"
+					).filter(ScheduledExercise.is_removed == False
+					).filter(ScheduledExerciseSkippedDate.id == None
+					).filter(CalendarDay.calendar_date == selected_date)
+
+				has_planned_activity_for_week = True if planned_exercises else False
+
+		return has_planned_activity_for_week
 
 	def current_year_activity_stats(self):
 		current_year_activity_stats = db.session.query(
@@ -373,7 +412,8 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseCategory, ExerciseCategory.id == ExerciseType.exercise_category_id
 				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
 				).outerjoin(Exercise, and_((ScheduledExercise.id == Exercise.scheduled_exercise_id),
-										   Exercise.exercise_datetime.cast(Date) == CalendarDay.calendar_date)
+										   Exercise.exercise_datetime.cast(Date) >= CalendarDay.calendar_date,
+										   Exercise.exercise_datetime.cast(Date) <= CalendarDay.calendar_date + timedelta(days=6)) # in the same week handles both week and day planning period given recurrence options
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
