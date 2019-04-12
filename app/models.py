@@ -294,7 +294,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(Activity.id == None
-				).filter(CalendarDay.calendar_date >= date.today()
+				).filter(or_(CalendarDay.calendar_date >= date.today(), and_(ScheduledActivity.planning_period=="week", CalendarDay.calendar_date >= (date.today() - timedelta(days=6))))
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).order_by(ScheduledActivity.id)
@@ -377,7 +377,7 @@ class User(UserMixin, db.Model):
 				).filter(ExerciseType.owner == self
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
-				).filter(CalendarDay.calendar_date >= date.today()
+				).filter(or_(CalendarDay.calendar_date >= date.today(), and_(ScheduledExercise.planning_period=="week", CalendarDay.calendar_date >= (date.today() - timedelta(days=6))))
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).group_by(
