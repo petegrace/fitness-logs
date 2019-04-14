@@ -234,7 +234,9 @@ class UserInfo(Resource):
             "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km",
             "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled,
             "has_planned_activity_for_today": current_user.has_planned_activity_for_day(today),
-            "has_planned_activity_for_this_week": current_user.has_planned_activity_for_week(today)
+            "has_planned_activity_for_this_week": current_user.has_planned_activity_for_week(today),
+            "strava_client_id": app.config["STRAVA_OAUTH2_CLIENT_ID"],
+            "strava_client_secret": app.config["STRAVA_OAUTH2_CLIENT_SECRET"]
         }
 
         return {
@@ -260,7 +262,9 @@ class UserInfo(Resource):
         
         updated_user_info = {
             "distance_uom_preference": current_user.distance_uom_preference,
-            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled
+            "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled,
+            "has_planned_activity_for_today": current_user.has_planned_activity_for_day(today),
+            "has_planned_activity_for_this_week": current_user.has_planned_activity_for_week(today)
         }
 
         print(updated_user_info)

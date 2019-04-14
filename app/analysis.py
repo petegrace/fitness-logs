@@ -11,16 +11,29 @@ import pandas as pd
 import math
 from datetime import datetime, timedelta
 
-def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_function=None):
+def evaluate_all_running_goals_for_current_week(user):
+	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
+	current_week = current_day.calendar_week_start_date
+	evaluate_running_goals(week=current_week, goal_metric="Runs Completed Over Distance", user=user)
+	evaluate_running_goals(week=current_week, goal_metric="Weekly Distance", user=user)
+	evaluate_running_goals(week=current_week, goal_metric="Weekly Moving Time", user=user)
+	evaluate_running_goals(week=current_week, goal_metric="Weekly Elevation Gain", user=user)
+	evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=calculate_weekly_cadence_aggregations, user=user)
+	evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=calculate_weekly_gradient_aggregations, user=user)
+
+def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_function=None, user=None):
+	# Hack to handle parallel running of original approach and REST API
+	user = current_user if not user else user
+
 	# 1. Get the in-progress goals, or goals for the current week that have already been hit but might have got better
-	current_goals = current_user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric=goal_metric).all()
+	current_goals = user.training_goals.filter(or_(TrainingGoal.goal_start_date == week, TrainingGoal.goal_status == "In Progress")).filter_by(goal_metric=goal_metric).all()
 
 	weeks_to_evaluate = []
 	[weeks_to_evaluate.append(goal.goal_start_date) for goal in current_goals if goal.goal_start_date not in weeks_to_evaluate]
 
 	for week in weeks_to_evaluate:
-		run_activities = current_user.activities_filtered(activity_type="Run", week=week).all()
-		weekly_goals = current_user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
+		run_activities = user.activities_filtered(activity_type="Run", week=week).all()
+		weekly_goals = user.training_goals.filter_by(goal_start_date=week).filter_by(goal_metric=goal_metric).all()
 
 		# 2. Ensure that all Run activities for the week have cadence calculated, bearing in mind that if user hasn't sync'ed for a few weeks we might need to look back at a historic week
 		for run in run_activities:
@@ -33,7 +46,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 		if goal_metric == "Runs Completed Over Distance":
 			for goal in weekly_goals:
 				# 3. Get the stats we need
-				distance_multiplier = 1609.344 if current_user.distance_uom_preference == "miles" else 1000
+				distance_multiplier = 1609.344 if user.distance_uom_preference == "miles" else 1000
 				activities_over_distance = [activity for activity in run_activities if activity.distance >= int(goal.goal_dimension_value)*distance_multiplier]
 				# 4. Compare the current stats vs. goal where they're for the same cadence
 				goal.current_metric_value = len(activities_over_distance)
@@ -47,7 +60,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 		if goal_metric in (["Weekly Distance", "Weekly Moving Time", "Weekly Elevation Gain"]):
 			for goal in weekly_goals:
 				# 3. Get the stats we need
-				weekly_summary_stats = current_user.weekly_activity_type_stats(week=week).filter(Activity.activity_type=="Run").all()
+				weekly_summary_stats = user.weekly_activity_type_stats(week=week).filter(Activity.activity_type=="Run").all()
 				# 4. Compare the current stats vs. goal where they're for the same cadence
 				for row in weekly_summary_stats: # Use a for loop to deal with it potentially being zero rows
 					if goal_metric == "Weekly Distance":
@@ -65,7 +78,7 @@ def evaluate_running_goals(week, goal_metric, calculate_weekly_aggregations_func
 
 		elif goal_metric in (["Time Spent Above Cadence", "Distance Climbing Above Gradient"]):
 			# 3. Get weekly stats as for the graph
-			weekly_aggregations = calculate_weekly_aggregations_function(week)
+			weekly_aggregations = calculate_weekly_aggregations_function(week, user)
 			
 			for goal in weekly_goals:
 				goal_dimension_value = int(goal.goal_dimension_value)
@@ -94,16 +107,19 @@ def aggregate_stream_data(data_points_df, groupby_field, sort_order="DESC"):
 	return grouped_data
 
 
-def parse_streams(activity):
+def parse_streams(activity, strava_access_token = None):
+	# Hack to handle parallel running of original approach and REST API
+	user = current_user if not user else user
+
 	if activity.activity_type != "Run":
 		return "Invalid activity type"
 
 	strava_client = Client()
 
-	if not session.get("strava_access_token"):
+	if not (session.get("strava_access_token") or strava_access_token):
 		return "Not authorized"
 
-	access_token = session["strava_access_token"]
+	access_token = session["strava_access_token"] if strava_access_token is None else strava_access_token
 	strava_client.access_token = access_token
 
 	stream_types = ["time", "cadence", "velocity_smooth", "distance", "altitude", "grade_smooth"]
@@ -234,8 +250,11 @@ def parse_streams(activity):
 		return "No activity streams available"
 
 
-def calculate_weekly_cadence_aggregations(week):
-	weekly_cadence_stats = current_user.weekly_cadence_stats(week=week).all()
+def calculate_weekly_cadence_aggregations(week, user=None):
+	# Hack to handle parallel running of original approach and REST API
+	user = current_user if user is None else user
+
+	weekly_cadence_stats = user.weekly_cadence_stats(week=week).all()
 	min_significant_cadence = 30
 	max_significant_cadence = 300
 	previous_cadence = 0
@@ -270,8 +289,11 @@ def calculate_weekly_cadence_aggregations(week):
 	return weekly_cadence_aggregations
 
 
-def calculate_weekly_gradient_aggregations(week):
-	weekly_gradient_stats = current_user.weekly_gradient_stats(week=week).all()
+def calculate_weekly_gradient_aggregations(week, user=None):
+	# Hack to handle parallel running of original approach and REST API
+	user = current_user if user is None else user
+
+	weekly_gradient_stats = user.weekly_gradient_stats(week=week).all()
 	min_significant_gradient = 1
 	max_significant_gradient = 100
 	previous_gradient = 0

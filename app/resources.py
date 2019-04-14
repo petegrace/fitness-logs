@@ -4,10 +4,11 @@ from datetime import datetime, timedelta, date
 from sqlalchemy import desc, and_, or_, null
 import logging
 
-from app import db, utils
+from app import db, utils, analysis
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
 from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Exercise
 from app.ga import track_event
+from app.strava_utils import import_strava_activity
 from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
 
 class Monitoring(Resource):
@@ -132,6 +133,24 @@ def planned_activity_json(planned_activity, user):
         "category_key": planned_activity.category_key
     }
 
+def combined_activity_json(combined_activity, user):
+    return {
+        "id": combined_activity.id,
+		"source": combined_activity.source,
+		"activity_datetime": combined_activity.activity_datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+		"activity_date": combined_activity.activity_date.strftime("%Y-%m-%d"),
+		"name": combined_activity.name,
+		"scheduled_exercise_id": combined_activity.scheduled_exercise_id,
+		"is_race": combined_activity.is_race,
+		"reps": combined_activity.reps,
+		"seconds": combined_activity.seconds,
+        "distance": utils.format_distance_for_uom_preference(combined_activity.distance, user, show_uom_suffix=False) if combined_activity.distance else None,
+        "distance_formatted": utils.format_distance_for_uom_preference(combined_activity.distance, user) if combined_activity.distance else None,
+		"measured_by": combined_activity.measured_by,
+		"external_id": combined_activity.external_id,
+        "strava_url": "https://www.strava.com/activities/{strava_id}".format(strava_id = combined_activity.external_id) if combined_activity.source == "Strava" else None
+    }
+
 def completed_activity_json(completed_activity, user):
     average_climbing_gradient = round((completed_activity.total_elevation_gain / completed_activity.distance) * 100, 1) if completed_activity.distance > 0 and completed_activity.total_elevation_gain else 0
     average_climbing_gradient_formatted = str(average_climbing_gradient) + " %" if average_climbing_gradient else None
@@ -165,19 +184,96 @@ class CompletedActivities(Resource):
         current_user = User.query.get(int(user_id))
 
         parser = reqparse.RequestParser()
-        parser.add_argument("startDate", help="Start date for the period that we're returning completed activities for", required=True)
+        parser.add_argument("startDate", help="Start date for the period that we're returning completed activities for")
         parser.add_argument("endDate", help="Optional end date for the period that we're returning completed activities for. If left blank it will be the same as the start date")
+        parser.add_argument("pageNo", help="Page number for when paging through recent activities in descending order")
+        parser.add_argument("pageSize", help="Number of activities to return for the repquested page")
+        parser.add_argument("combineExercises", help="When true, exercises will be unioned into the results with activities")
         args = parser.parse_args()
         
-        start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
-        end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
+        if args["startDate"]:
+            start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
+            end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 
-        completed_activities = [completed_activity_json(activity, current_user) for activity in current_user.completed_activities_filtered(start_date, end_date).all()]
+            completed_activities = [completed_activity_json(activity, current_user) for activity in current_user.completed_activities_filtered(start_date, end_date).all()]
+
+            result = {
+                "completed_activities": completed_activities,
+                "completed_exercises": completed_exercises_json(current_user, start_date, end_date)
+            }
+        elif args["pageNo"]:
+            page_no = int(args["pageNo"])
+            page_size = int(args["pageSize"]) if args["pageSize"] else app.config["EXERCISES_PER_PAGE"]
+            combine_exercises = True if args["combineExercises"] == "true" else False
+
+            if combine_exercises:
+                recent_activities = current_user.recent_activities().order_by(desc("created_datetime"), desc("activity_datetime")).paginate(page_no, page_size, False) # Pagination object
+                next_page_no = recent_activities.next_num if recent_activities.has_next else None
+                prev_page_no = recent_activities.prev_num if recent_activities.has_prev else None
+                recent_activities_json = [combined_activity_json(recent_activity, current_user) for recent_activity in recent_activities.items]
+            else:
+                recent_activities_json = [] # Not yet implemented
+
+            result = {
+                "page_no": page_no,
+                "prev_page_no": prev_page_no,
+                "next_page_no": next_page_no,
+                "activities_and_exercises": recent_activities_json
+            }
+
+        return result, 200
+
+    @jwt_required
+    def post(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("strava_access_token", help="Access token returned by Strava after the user has been through OAth2 authentication")
+        data = parser.parse_args()
+
+        track_event(category="Strava", action="Starting import of Strava activity", userId = str(current_user.id))
+        result = import_strava_activity(data["strava_access_token"], current_user)
+
+        response_messages = []
+
+        if result["status"] == "success":
+            track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
+            response_messages.append(result["message"])
+        else:
+            track_event(category="Strava", action="Failure on import of Strava activity", userId = str(current_user.id))
+            return "", 500
+
+        # Evaluate the user's goals for the week based on new data
+        analysis.evaluate_all_running_goals_for_current_week(current_user)
+        
+        #TODO: This duplicates what's in the routes version
+        # If the user hasn't used categories yet then apply some defaults
+        if len(current_user.exercise_categories.all()) == 0:
+            run_category = ExerciseCategory(owner=current_user,
+                                            category_key="cat_green",
+                                            category_name="Run",
+                                            fill_color="#588157",
+                                            line_color="#588157")
+            ride_category = ExerciseCategory(owner=current_user,
+                                            category_key="cat_blue",
+                                            category_name="Ride",
+                                            fill_color="#3f7eba",
+                                            line_color="#3f7eba")
+            swim_category = ExerciseCategory(owner=current_user,
+                                            category_key="cat_red",
+                                            category_name="Swim",
+                                            fill_color="#ef6461",
+                                            line_color="#ef6461")
+            db.session.add(run_category)
+            db.session.add(ride_category)
+            db.session.add(swim_category)
+            db.session.commit()
+            response_messages.append("Default categories have been added to colour-code your Strava activities. Configure them from the Manage Exercises section.")
 
         return {
-            "completed_activities": completed_activities,
-            "completed_exercises": completed_exercises_json(current_user, start_date, end_date)
-        }
+            "messages": response_messages
+        }, 200
 
 
 class PlannedActivities(Resource):
@@ -529,18 +625,59 @@ class CompletedExercises(Resource):
         track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
         scheduled_exercise = ScheduledExercise.query.get(int(data["planned_exercise_id"]))
         
-        exercise = Exercise(type=scheduled_exercise.type,
+        completed_exercise = Exercise(type=scheduled_exercise.type,
                             scheduled_exercise=scheduled_exercise,
                             exercise_datetime=datetime.utcnow(),
                             reps=scheduled_exercise.reps,
                             seconds=scheduled_exercise.seconds)
-        db.session.add(exercise)
+        db.session.add(completed_exercise)
         db.session.commit()
         
         return {
-            "id": exercise.id,
-            "exercise_name": exercise.type.name
+            "id": completed_exercise.id,
+            "exercise_name": completed_exercise.type.name,
+            "exercise_datetime": completed_exercise.exercise_datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "measured_by": completed_exercise.type.measured_by,
+            "reps": completed_exercise.reps,
+            "seconds": completed_exercise.seconds
         }, 201
+
+class CompletedExercise(Resource):
+    @jwt_required
+    def patch(self, completed_exercise_id):
+        user_id = get_jwt_identity() 
+        track_event(category="Schedule", action="Scheduled exercise updated", userId = str(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("reps", help="Number of reps completed if the exercise is measured in reps")
+        parser.add_argument("seconds", help="Number of seconds that the position was held for if the exercise is measured in seconds")
+        data = parser.parse_args()
+        
+        if data["reps"] and len(data["reps"]) == 0:
+            data["reps"] = None
+
+        if data["seconds"] and len(data["seconds"]) == 0:
+            data["seconds"] = None
+
+        completed_exercise = Exercise.query.get(int(completed_exercise_id))
+        
+        if completed_exercise.type.user_id != user_id:
+            return {
+                "message": "exercise belongs to a different user"
+            }, 403
+
+        completed_exercise.reps = int(data["reps"]) if data["reps"] is not None else None
+        completed_exercise.seconds = int(data["seconds"]) if data["seconds"] is not None else None
+        db.session.commit()
+
+        return {
+            "id": completed_exercise.id,
+            "exercise_name": completed_exercise.type.name,
+            "exercise_datetime": completed_exercise.exercise_datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "measured_by": completed_exercise.type.measured_by,
+            "reps": completed_exercise.reps,
+            "seconds": completed_exercise.seconds
+        }, 200
 
     
 def planned_exercise_json(planned_exercise):

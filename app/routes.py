@@ -1115,7 +1115,7 @@ def copy_template_to_schedule(template_id):
 	# Send the user back to the schedule page
 	return redirect(url_for("schedule", schedule_freq="weekly"))	
 
-
+#TODO: Refactor to use strava_utils if we need to make any changes before killing this off
 @app.route("/import_strava_activity")
 @login_required
 def import_strava_activity():
@@ -1187,6 +1187,7 @@ def import_strava_activity():
 	track_event(category="Strava", action="Completed import of Strava activity", userId = str(current_user.id))
 	db.session.commit()
 
+	#TODO: refactor to use analysis function
 	# Evaluate any goals that the user has, including processing any additional data e.g. cadence
 	current_day = CalendarDay.query.filter(CalendarDay.calendar_date==datetime.date(datetime.today())).first()
 	current_week = current_day.calendar_week_start_date
@@ -1197,6 +1198,7 @@ def import_strava_activity():
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Time Spent Above Cadence", calculate_weekly_aggregations_function=analysis.calculate_weekly_cadence_aggregations)
 	analysis.evaluate_running_goals(week=current_week, goal_metric="Distance Climbing Above Gradient", calculate_weekly_aggregations_function=analysis.calculate_weekly_gradient_aggregations)
 	
+	# TODO: refactor to avoid duplication in resources
 	# If the user hasn't used categories yet then apply some defaults
 	if len(current_user.exercise_categories.all()) == 0:
 		run_category = ExerciseCategory(owner=current_user,
