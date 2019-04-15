@@ -620,12 +620,19 @@ class CompletedExercises(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("planned_exercise_id", help="Unique ID for planned exercise if the completed exercise was planned")
         parser.add_argument("exercise_type_id", help="Unique ID for exercise type being completed if it was an adhoc exercise")
+        parser.add_argument("exercise_name", help="Name of the exercise when recording a new type")
+        parser.add_argument("measured_by", help="Whether the exercise is measured by number of reps or time to hold position")
+        parser.add_argument("exercise_category_id", help="Foreign key to category for exercise if creating a new type")
+        parser.add_argument("reps", help="Number of reps completed if the exercise is measured in reps")
+        parser.add_argument("seconds", help="Number of seconds the position was held for if the exercise is measured in seconds")        
         data = parser.parse_args()
 
         if data["planned_exercise_id"] and len(data["planned_exercise_id"]) == 0:
             data["planned_exercise_id"] = None
 
-        
+        if data["exercise_type_id"] and len(data["exercise_type_id"]) == 0:
+            data["exercise_type_id"] = None
+
         if data["planned_exercise_id"]:
             track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
             scheduled_exercise = ScheduledExercise.query.get(int(data["planned_exercise_id"]))
@@ -635,7 +642,27 @@ class CompletedExercises(Resource):
                                     exercise_datetime=datetime.utcnow(),
                                     reps=scheduled_exercise.reps,
                                     seconds=scheduled_exercise.seconds)
-        else: # adhoc exercise
+        else:
+            if not data["exercise_type_id"]:
+                track_event(category="Exercises", action="New Exercise created for adhoc logging", userId = str(current_user.id))
+
+                # Ensure that seconds and reps are none if the other is selected
+                if data["measured_by"] == "reps":
+                    data["seconds"] = None
+                elif data["measured_by"] == "seconds":
+                    data["reps"] = None
+
+                exercise_type = ExerciseType(name=data["exercise_name"],
+                                            owner=current_user,
+                                            measured_by=data["measured_by"],
+                                            default_reps=int(data["reps"]) if data["reps"] else None,
+                                            default_seconds=int(data["seconds"]) if data["seconds"] else None,
+                                            exercise_category_id=int(data["exercise_category_id"]) if data["exercise_category_id"] else None)
+                db.session.add(exercise_type)
+                db.session.commit()
+                data["exercise_type_id"] = exercise_type.id
+            
+            # Now crack on with logging the exercise regardless of it existed before if it's just been created (and the id put into the dictionary element)
             track_event(category="Exercises", action="Exercise (adhoc) logged", userId = str(current_user.id))
             exercise_type = ExerciseType.query.get(int(data["exercise_type_id"]))
             
@@ -643,7 +670,7 @@ class CompletedExercises(Resource):
                                     exercise_datetime=datetime.utcnow(),
                                     reps=exercise_type.default_reps,
                                     seconds=exercise_type.default_seconds)
-
+                                    
         db.session.add(completed_exercise)
         db.session.commit()
         return {
@@ -806,7 +833,6 @@ class PlannedExercises(Resource):
                 data["planned_seconds"] = None
 
             if (not data["exercise_type_id"]):
-                # TODO: we should move this into an exercise types function for reuse
                 track_event(category="Exercises", action="New Exercise created for scheduling", userId = str(current_user.id))
 
                 # Ensure that seconds and reps are none if the other is selected
