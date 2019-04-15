@@ -130,61 +130,62 @@ def home():
 @login_required
 def index():
 	track_event(category="Main", action="Home page opened or refreshed", userId = str(current_user.id))
-	page = request.args.get("page", 1, type=int)
-	recent_activities = current_user.recent_activities().order_by(desc("created_datetime"), desc("activity_datetime")).paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
-	next_url = url_for("index", page=recent_activities.next_num) if recent_activities.has_next else None
-	prev_url = url_for("index", page=recent_activities.prev_num) if recent_activities.has_prev else None
+	return render_template("hub.html", title="Home")
+	# page = request.args.get("page", 1, type=int)
+	# recent_activities = current_user.recent_activities().order_by(desc("created_datetime"), desc("activity_datetime")).paginate(page, app.config["EXERCISES_PER_PAGE"], False) # Pagination object
+	# next_url = url_for("index", page=recent_activities.next_num) if recent_activities.has_next else None
+	# prev_url = url_for("index", page=recent_activities.prev_num) if recent_activities.has_prev else None
 
-	today = date.today()
+	# today = date.today()
 
-	# Handle scenario of user not having had to log in since yesterday
-	if current_user.last_login_date != today:
-		training_plan_utils.refresh_plan_for_today(current_user)
-		current_user.last_login_datetime = datetime.utcnow() # Treat it as a fresh login for logic and tracking purposes
-		db.session.commit()
+	# # Handle scenario of user not having had to log in since yesterday
+	# if current_user.last_login_date != today:
+	# 	training_plan_utils.refresh_plan_for_today(current_user)
+	# 	current_user.last_login_datetime = datetime.utcnow() # Treat it as a fresh login for logic and tracking purposes
+	# 	db.session.commit()
 
-	current_day = calendar.day_abbr[today.weekday()]
-	activities_for_today_remaining = current_user.activities_for_today_remaining().all()
-	exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
-	original_activities_for_today = current_user.activities_for_today().all()
-	original_exercises_for_today = current_user.exercises_for_today().all()
+	# current_day = calendar.day_abbr[today.weekday()]
+	# activities_for_today_remaining = current_user.activities_for_today_remaining().all()
+	# exercises_for_today_remaining = current_user.exercises_for_today_remaining().all()
+	# original_activities_for_today = current_user.activities_for_today().all()
+	# original_exercises_for_today = current_user.exercises_for_today().all()
 
-	has_completed_schedule = False
+	# has_completed_schedule = False
 
-	if not (exercises_for_today_remaining or activities_for_today_remaining):
-		if (original_exercises_for_today or original_activities_for_today):
-		   has_completed_schedule = True
+	# if not (exercises_for_today_remaining or activities_for_today_remaining):
+	# 	if (original_exercises_for_today or original_activities_for_today):
+	# 	   has_completed_schedule = True
 
-	# Get the exercise types that aren't available from Training Plan box
-	exercise_types = current_user.exercise_types_ordered().all()
-	scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
-	other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
+	# # Get the exercise types that aren't available from Training Plan box
+	# exercise_types = current_user.exercise_types_ordered().all()
+	# scheduled_exercises_remaining_type_ids = [scheduled_exercise.exercise_type_id for scheduled_exercise in exercises_for_today_remaining]
+	# other_exercise_types = [exercise_type for exercise_type in exercise_types if exercise_type.id not in scheduled_exercises_remaining_type_ids]
 
 	
-	# Check for the flags we're using to present modals for encouraging engagement
-	is_new_user = request.args.get("is_new_user")
-	if is_new_user and is_new_user == "True" and (current_user.id % 2) == 0: #It's coming from query param so is a string still
-		show_new_user_modal = True # Only showing this to 50% of users for now to see how it performs
-	else:
-		show_new_user_modal = False
+	# # Check for the flags we're using to present modals for encouraging engagement
+	# is_new_user = request.args.get("is_new_user")
+	# if is_new_user and is_new_user == "True" and (current_user.id % 2) == 0: #It's coming from query param so is a string still
+	# 	show_new_user_modal = True # Only showing this to 50% of users for now to see how it performs
+	# else:
+	# 	show_new_user_modal = False
 
-	show_post_import_modal = request.args.get("show_post_import_modal")
-	if show_post_import_modal and show_post_import_modal == "True": #It's coming from query param so is a string still
-		show_post_import_modal = True 
-	else:
-		show_post_import_modal = False
+	# show_post_import_modal = request.args.get("show_post_import_modal")
+	# if show_post_import_modal and show_post_import_modal == "True": #It's coming from query param so is a string still
+	# 	show_post_import_modal = True 
+	# else:
+	# 	show_post_import_modal = False
 
-	is_not_using_categories = request.args.get("is_not_using_categories")
-	if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
-		show_exercise_categories_modal = True
-	else:
-		show_exercise_categories_modal = False
+	# is_not_using_categories = request.args.get("is_not_using_categories")
+	# if is_not_using_categories and is_not_using_categories == "True": #It's coming from query param so is a string still
+	# 	show_exercise_categories_modal = True
+	# else:
+	# 	show_exercise_categories_modal = False
 
-	return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
-							exercise_types=other_exercise_types, has_completed_schedule=has_completed_schedule,
-							activities_for_today_remaining=activities_for_today_remaining, original_activities_for_today = original_activities_for_today,
-							exercises_for_today_remaining=exercises_for_today_remaining, original_exercises_for_today = original_exercises_for_today,
-							utils=utils, show_new_user_modal=show_new_user_modal, show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
+	# return render_template("index.html", title="Home", recent_activities=recent_activities.items, next_url=next_url, prev_url=prev_url, current_user=current_user,
+	# 						exercise_types=other_exercise_types, has_completed_schedule=has_completed_schedule,
+	# 						activities_for_today_remaining=activities_for_today_remaining, original_activities_for_today = original_activities_for_today,
+	# 						exercises_for_today_remaining=exercises_for_today_remaining, original_exercises_for_today = original_exercises_for_today,
+	# 						utils=utils, show_new_user_modal=show_new_user_modal, show_exercise_categories_modal=show_exercise_categories_modal, show_post_import_modal=show_post_import_modal)
 
 
 @app.route("/log_exercise/<scheduled>/<id>")
