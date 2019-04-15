@@ -619,20 +619,33 @@ class CompletedExercises(Resource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("planned_exercise_id", help="Unique ID for planned exercise if the completed exercise was planned")
-        # todo: separate argument for the type of an adhoc exercise
+        parser.add_argument("exercise_type_id", help="Unique ID for exercise type being completed if it was an adhoc exercise")
         data = parser.parse_args()
 
-        track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
-        scheduled_exercise = ScheduledExercise.query.get(int(data["planned_exercise_id"]))
+        if data["planned_exercise_id"] and len(data["planned_exercise_id"]) == 0:
+            data["planned_exercise_id"] = None
+
         
-        completed_exercise = Exercise(type=scheduled_exercise.type,
-                            scheduled_exercise=scheduled_exercise,
-                            exercise_datetime=datetime.utcnow(),
-                            reps=scheduled_exercise.reps,
-                            seconds=scheduled_exercise.seconds)
+        if data["planned_exercise_id"]:
+            track_event(category="Exercises", action="Exercise (scheduled) logged", userId = str(current_user.id))
+            scheduled_exercise = ScheduledExercise.query.get(int(data["planned_exercise_id"]))
+            
+            completed_exercise = Exercise(type=scheduled_exercise.type,
+                                    scheduled_exercise=scheduled_exercise,
+                                    exercise_datetime=datetime.utcnow(),
+                                    reps=scheduled_exercise.reps,
+                                    seconds=scheduled_exercise.seconds)
+        else: # adhoc exercise
+            track_event(category="Exercises", action="Exercise (adhoc) logged", userId = str(current_user.id))
+            exercise_type = ExerciseType.query.get(int(data["exercise_type_id"]))
+            
+            completed_exercise = Exercise(type=exercise_type,
+                                    exercise_datetime=datetime.utcnow(),
+                                    reps=exercise_type.default_reps,
+                                    seconds=exercise_type.default_seconds)
+
         db.session.add(completed_exercise)
         db.session.commit()
-        
         return {
             "id": completed_exercise.id,
             "exercise_name": completed_exercise.type.name,
