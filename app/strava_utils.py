@@ -1,3 +1,4 @@
+from flask import session
 from datetime import datetime, date, timedelta
 from stravalib.client import Client
 
@@ -9,6 +10,9 @@ def import_strava_activity(access_token, current_user):
 
     strava_client = Client()
     strava_client.access_token = access_token
+
+    # also set the session variable we use for the old school Flask app so user doesn't need to reauthenticate
+    session["strava_access_token"] = access_token
 
     try:
         athlete = strava_client.get_athlete()
