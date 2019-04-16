@@ -129,7 +129,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
 
-		has_planned_activity_for_day = True if planned_activities else False
+		has_planned_activity_for_day = True if planned_activities.count() > 0 else False
 
 		# only need to check planned races and exercises if no activities found
 		if not has_planned_activity_for_day:
@@ -140,7 +140,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledRace.is_removed == False
 				).filter(ScheduledRace.scheduled_date == selected_date)
 
-			has_planned_activity_for_day = True if planned_races else False
+			has_planned_activity_for_day = True if planned_races.count() > 0 else False
 
 		if not has_planned_activity_for_day:
 			planned_exercises = db.session.query(
@@ -154,7 +154,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledExerciseSkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
 
-			has_planned_activity_for_day = True if planned_exercises else False
+			has_planned_activity_for_day = True if planned_exercises.count() > 0 else False
 
 		return has_planned_activity_for_day
 
@@ -175,7 +175,7 @@ class User(UserMixin, db.Model):
 					).filter(ScheduledActivitySkippedDate.id == None
 					).filter(CalendarDay.calendar_date == selected_date)
 
-			has_planned_activity_for_week = True if planned_activities else False
+			has_planned_activity_for_week = True if planned_activities.count() > 0 else False
 
 			if not has_planned_activity_for_week:
 				planned_exercises = db.session.query(
@@ -191,7 +191,7 @@ class User(UserMixin, db.Model):
 					).filter(ScheduledExerciseSkippedDate.id == None
 					).filter(CalendarDay.calendar_date == selected_date)
 
-				has_planned_activity_for_week = True if planned_exercises else False
+				has_planned_activity_for_week = True if planned_exercises.count() > 0 else False
 
 		return has_planned_activity_for_week
 
