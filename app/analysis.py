@@ -108,9 +108,6 @@ def aggregate_stream_data(data_points_df, groupby_field, sort_order="DESC"):
 
 
 def parse_streams(activity, strava_access_token = None):
-	# Hack to handle parallel running of original approach and REST API
-	user = current_user if not user else user
-
 	if activity.activity_type != "Run":
 		return "Invalid activity type"
 

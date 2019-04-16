@@ -259,7 +259,8 @@ class UserInfo(Resource):
         current_user.has_weekly_flexible_planning_enabled = True if data["has_flexible_planning_enabled"] == "True" else False
 
         db.session.commit()
-        
+
+        today = date.today()        
         updated_user_info = {
             "distance_uom_preference": current_user.distance_uom_preference,
             "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled,

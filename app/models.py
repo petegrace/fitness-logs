@@ -128,9 +128,9 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
-
+		
 		has_planned_activity_for_day = True if planned_activities.count() > 0 else False
-
+		
 		# only need to check planned races and exercises if no activities found
 		if not has_planned_activity_for_day:
 			planned_races = db.session.query(
@@ -139,13 +139,14 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledRace.owner == self
 				).filter(ScheduledRace.is_removed == False
 				).filter(ScheduledRace.scheduled_date == selected_date)
-
+			
 			has_planned_activity_for_day = True if planned_races.count() > 0 else False
-
+			
 		if not has_planned_activity_for_day:
 			planned_exercises = db.session.query(
 											ScheduledExercise.id,
 											CalendarDay.calendar_date.label("planned_date")																											
+				).join(ExerciseType, ScheduledExercise.exercise_type_id == ExerciseType.id
 				).join(CalendarDay, or_(ScheduledExercise.scheduled_date==CalendarDay.calendar_date, ScheduledExercise.scheduled_day == CalendarDay.day_of_week)
 				).outerjoin(ScheduledExerciseSkippedDate, and_(ScheduledExercise.id==ScheduledExerciseSkippedDate.scheduled_exercise_id, CalendarDay.calendar_date==ScheduledExerciseSkippedDate.skipped_date)
 				).filter(ExerciseType.owner == self
@@ -153,9 +154,9 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledExercise.is_removed == False
 				).filter(ScheduledExerciseSkippedDate.id == None
 				).filter(CalendarDay.calendar_date == selected_date)
-
+			print(planned_exercises.count())
 			has_planned_activity_for_day = True if planned_exercises.count() > 0 else False
-
+		
 		return has_planned_activity_for_day
 
 	def has_planned_activity_for_week(self, selected_date):
@@ -181,6 +182,7 @@ class User(UserMixin, db.Model):
 				planned_exercises = db.session.query(
 												ScheduledExercise.id,
 												CalendarDay.calendar_date.label("planned_date")	
+					).join(ExerciseType, ScheduledExercise.exercise_type_id == ExerciseType.id
 					).join(CalendarDay, or_(and_(ScheduledExercise.scheduled_date >= CalendarDay.calendar_date - timedelta(days=6),
 												 ScheduledExercise.scheduled_date <= CalendarDay.calendar_date),
 											ScheduledExercise.scheduled_day=="Mon")
