@@ -61,7 +61,6 @@ def import_strava_activity(access_token, current_user):
                                                                           planningPeriod="week",
                                                                           activityType=strava_activity.type).first()  
 
-        print("{name} paired with {id}".format(name=strava_activity.name, id=scheduled_activity.id))
         activity = Activity(external_source = "Strava",
                             external_id = strava_activity.id,
                             owner = current_user,

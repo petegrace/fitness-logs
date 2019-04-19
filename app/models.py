@@ -342,8 +342,7 @@ class User(UserMixin, db.Model):
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).order_by(ScheduledActivity.id)
-		for activity in planned_activities_filtered.all():
-			print(activity.id)
+				
 		return planned_activities_filtered
 
 	def completed_activities_filtered(self, startDate, endDate):
