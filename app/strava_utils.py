@@ -4,7 +4,7 @@ from stravalib.client import Client
 
 from app import db, analysis
 from app.ga import track_event
-from app.models import Activity, ExerciseCategory
+from app.models import Activity, ExerciseCategory, CalendarDay
 
 def import_strava_activity(access_token, current_user):
 
@@ -41,14 +41,27 @@ def import_strava_activity(access_token, current_user):
 
     new_activity_count = 0
 
-    for strava_activity in activities_list:
-        # if the start_datetime is today then check if there's a scheduled activity in today's plan
-        if strava_activity.start_date.date() == date.today():
-            scheduled_activity = current_user.activities_for_today_remaining(activity_type=strava_activity.type).first()
-        else:
-            scheduled_activity = None
-        
+    current_date = date.today()
+    current_day = CalendarDay.query.filter(CalendarDay.calendar_date==current_date).first()
+    current_week_start_date = current_day.calendar_week_start_date
 
+    for strava_activity in activities_list:
+        # if the start_datetime is today or this week then check if there's a scheduled activity in today's or this week's plan
+        scheduled_activity = None
+
+        if strava_activity.start_date.date() == current_date:
+            scheduled_activity = current_user.planned_activities_filtered(startDate=current_date,
+                                                                          endDate=current_date,
+                                                                          planningPeriod="day",
+                                                                          activityType=strava_activity.type).first()
+
+        if scheduled_activity is None and strava_activity.start_date.date() >= current_week_start_date:
+            scheduled_activity = current_user.planned_activities_filtered(startDate=current_week_start_date,
+                                                                          endDate=current_date,
+                                                                          planningPeriod="week",
+                                                                          activityType=strava_activity.type).first()  
+
+        print("{name} paired with {id}".format(name=strava_activity.name, id=scheduled_activity.id))
         activity = Activity(external_source = "Strava",
                             external_id = strava_activity.id,
                             owner = current_user,

@@ -315,7 +315,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledActivity.scheduled_day==scheduled_day)
 		return scheduled_activities_filtered
 
-	def planned_activities_filtered(self, startDate, endDate):
+	def planned_activities_filtered(self, startDate, endDate, activityType=None, planningPeriod=None):
 		planned_activities_filtered = db.session.query(
 											ScheduledActivity.id,
 											ScheduledActivity.planning_period,
@@ -330,16 +330,20 @@ class User(UserMixin, db.Model):
 				).outerjoin(ExerciseCategory, and_(ScheduledActivity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==ScheduledActivity.user_id)
 				).outerjoin(ScheduledActivitySkippedDate, and_(ScheduledActivity.id==ScheduledActivitySkippedDate.scheduled_activity_id, CalendarDay.calendar_date==ScheduledActivitySkippedDate.skipped_date)
 				).outerjoin(Activity, and_((ScheduledActivity.id == Activity.scheduled_activity_id),
-										   Activity.start_datetime.cast(Date) == CalendarDay.calendar_date)
+										   or_(Activity.start_datetime.cast(Date) == CalendarDay.calendar_date,
+										   		and_(ScheduledActivity.planning_period=="week", Activity.start_datetime.cast(Date) >= CalendarDay.calendar_week_start_date)))
 				).filter(ScheduledActivity.owner == self
 				).filter(ScheduledActivity.is_removed == False
 				).filter(ScheduledActivitySkippedDate.id == None
+				).filter(or_(ScheduledActivity.planning_period == planningPeriod, planningPeriod == None)
+				).filter(or_(ScheduledActivity.activity_type == activityType, activityType == None)
 				).filter(Activity.id == None
 				).filter(or_(CalendarDay.calendar_date >= date.today(), and_(ScheduledActivity.planning_period=="week", CalendarDay.calendar_date >= (date.today() - timedelta(days=6))))
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).order_by(ScheduledActivity.id)
-
+		for activity in planned_activities_filtered.all():
+			print(activity.id)
 		return planned_activities_filtered
 
 	def completed_activities_filtered(self, startDate, endDate):
