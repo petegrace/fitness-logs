@@ -493,7 +493,7 @@ class PlannedRaces(Resource):
             db.session.commit()
 
         return {
-            "id": scheduled_activity.id
+            "id": scheduled_race.id
         }, 201
         
         
@@ -670,7 +670,7 @@ class CompletedExercises(Resource):
                                     exercise_datetime=datetime.utcnow(),
                                     reps=exercise_type.default_reps,
                                     seconds=exercise_type.default_seconds)
-                                    
+
         db.session.add(completed_exercise)
         db.session.commit()
         return {
