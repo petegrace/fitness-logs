@@ -852,17 +852,30 @@ class PlannedExercises(Resource):
                 db.session.commit()
                 data["exercise_type_id"] = exercise_type.id
             
-            # Schedule the exercise based on defaults
-            track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
-            scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
-                                                planning_period=data["planning_period"],
-                                                recurrence=data["recurrence"],
-                                                scheduled_date=planned_date,
-                                                scheduled_day=planned_day_of_week,
-                                                sets=1,
-                                                reps=data["planned_reps"],
-                                                seconds=data["planned_seconds"])
-            db.session.add(scheduled_exercise)
+            #  Check for same exercise already scheduled with weekly recurrence that we should update instead of create
+            scheduled_exercise = ScheduledExercise.query.join(ExerciseType, (ExerciseType.id == ScheduledExercise.exercise_type_id)
+                                                                        ).filter(ExerciseType.owner == current_user
+                                                                        ).filter(ScheduledExercise.exercise_type_id==data["exercise_type_id"]
+                                                                        ).filter(ScheduledExercise.planning_period==data["planning_period"]
+                                                                        ).filter(ScheduledExercise.recurrence==data["recurrence"]
+                                                                        ).filter(ScheduledExercise.scheduled_date==planned_date
+                                                                        ).filter(ScheduledExercise.scheduled_day==planned_day_of_week
+                                                                        ).first()
+
+            if scheduled_exercise:
+                scheduled_exercise.sets += 1
+            else:
+                # Schedule the exercise based on defaults
+                track_event(category="Schedule", action="Exercise scheduled", userId = str(current_user.id))
+                scheduled_exercise = ScheduledExercise(exercise_type_id=data["exercise_type_id"],
+                                                    planning_period=data["planning_period"],
+                                                    recurrence=data["recurrence"],
+                                                    scheduled_date=planned_date,
+                                                    scheduled_day=planned_day_of_week,
+                                                    sets=1,
+                                                    reps=data["planned_reps"],
+                                                    seconds=data["planned_seconds"])
+                db.session.add(scheduled_exercise)
             db.session.commit()
 
             if current_user.is_training_plan_user == False:
