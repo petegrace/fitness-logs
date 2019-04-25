@@ -87,4 +87,6 @@ api.add_resource(resources.CompletedExercise, "/api/completed_exercise/<complete
 api.add_resource(resources.PlannedExercises, "/api/planned_exercises")
 api.add_resource(resources.PlannedExercise, "/api/planned_exercise/<planned_exercise_id>")
 
+api.add_resource(resources.TrainingPlanGenerator, "/api/training_plan_generator")
+
 api.add_resource(resources.TrainingPlanTemplates, "/api/training_plan_templates")

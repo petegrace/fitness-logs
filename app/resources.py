@@ -1,12 +1,12 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta, date
-from sqlalchemy import desc, and_, or_, null
+from sqlalchemy import desc, and_, or_, null, func, distinct
 import logging
 
 from app import db, utils, analysis
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
-from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Exercise
+from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Activity, Exercise
 from app.ga import track_event
 from app.strava_utils import import_strava_activity
 from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
@@ -296,7 +296,7 @@ class PlannedActivities(Resource):
         return {
             "planned_activities": planned_activities,
             "planned_exercises": planned_exercises_json(current_user, start_date, end_date),
-            "planned_races": planned_races_json(current_user, start_date, end_date)
+            "planned_races": planned_races_json(current_user, start_date)
         }
 
     @jwt_required
@@ -435,10 +435,13 @@ def planned_race_json(planned_race, user):
         "race_website_url": planned_race.race_website_url,
         "notes": planned_race.notes,
         "distance": utils.format_distance_for_uom_preference(planned_race.distance, user, decimal_places=2, show_uom_suffix=False) if planned_race.distance else None,
+        "distance_formatted": utils.format_distance_for_uom_preference(planned_race.distance, user, decimal_places=2) if planned_race.distance else None,
         "category_key": planned_race.category_key
     }
 
-def planned_races_json(user, start_date, end_date):
+def planned_races_json(user, start_date):
+    # For planned races we'll return everything in the next year as longer context is useful for training plan generator and possibly other stuff
+    end_date = start_date + timedelta(days=365)
     planned_races = [planned_race_json(race, user) for race in user.planned_races_filtered(start_date, end_date).all()]
     return planned_races
 
@@ -982,3 +985,65 @@ class PlannedExercise(Resource):
         db.session.commit()
 
         return "", 204
+
+def last_4_weeks_inputs_json(query_results, user):
+    return {
+        "longest_distance": utils.format_distance_for_uom_preference(query_results.longest_distance, user, decimal_places=2, show_uom_suffix=False) if query_results.longest_distance else None,
+        "longest_distance_formatted": utils.format_distance_for_uom_preference(query_results.longest_distance, user, decimal_places=2) if query_results.longest_distance else None,
+        "runs_completed": query_results.runs_completed,
+        "runs_per_week": round((float(query_results.runs_completed) / 4), 2)
+    }
+
+class TrainingPlanGenerator(Resource):
+    @jwt_required
+    def get(self):
+        user_id = get_jwt_identity()
+        current_user = User.query.get(int(user_id))
+        track_event(category="Schedule", action="Selected race for Training Plan Generator", userId = str(user_id))
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("targetRaceDistance", help="Distance in meters that the race the user is targetting will be ran over")
+        parser.add_argument("targetRaceDate", help="Date of the race that the training plan is for (YYYY-MM-DD)")
+        data = parser.parse_args()
+
+        target_race_date = datetime.strptime(data["targetRaceDate"], "%Y-%m-%d")
+        target_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["targetRaceDistance"]), current_user) if data["targetRaceDistance"] else None
+
+        timedelta_to_target_race = target_race_date - datetime.today()
+        weeks_to_target_race = int(timedelta_to_target_race.days / 7)
+
+        last_4_weeks_inputs = db.session.query(
+                                        func.max(Activity.distance).label("longest_distance"),
+                                        func.count(distinct(Activity.start_datetime.cast(db.Date))).label("runs_completed")
+                                    ).filter(Activity.owner == current_user
+                                    ).filter(Activity.activity_type == "Run"
+                                    ).filter(Activity.start_datetime >= datetime.today() - timedelta(days=28)).first()
+
+        current_pb = db.session.query(
+                                    Activity.id,
+                                    Activity.name,
+                                    Activity.start_datetime.cast(db.Date).label("activity_date"),
+                                    Activity.average_speed
+                                ).filter(Activity.owner == current_user
+                                ).filter(Activity.activity_type == "Run"
+                                ).filter(Activity.distance >= target_distance_m
+                                ).order_by(Activity.average_speed.desc()).first()
+
+        # all-time runs >= distance
+
+        # equivalent_period_before_pb
+            # longest run
+            # runs >= 90% of target distance
+            # how far out did they get to >= 90%
+            # distance per week in 2 weeks before
+            # distance per week n-2 weeks
+            # runs per week
+
+
+        return {
+            "training_plan_generator_inputs": {
+                "last_4_weeks": last_4_weeks_inputs_json(last_4_weeks_inputs, current_user),
+                "current_pb": current_pb.name,
+                "weeks_to_target_race": weeks_to_target_race
+            } 
+        }

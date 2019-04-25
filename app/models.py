@@ -342,7 +342,7 @@ class User(UserMixin, db.Model):
 				).filter(CalendarDay.calendar_date >= startDate
 				).filter(CalendarDay.calendar_date <= endDate
 				).order_by(ScheduledActivity.id)
-				
+
 		return planned_activities_filtered
 
 	def completed_activities_filtered(self, startDate, endDate):
@@ -392,7 +392,7 @@ class User(UserMixin, db.Model):
 				).filter(ScheduledRace.scheduled_date >= date.today()
 				).filter(ScheduledRace.scheduled_date >= startDate
 				).filter(ScheduledRace.scheduled_date <= endDate
-				).order_by(ScheduledRace.id)
+				).order_by(ScheduledRace.scheduled_date)
 
 		return planned_races_filtered
 
