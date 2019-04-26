@@ -994,6 +994,14 @@ def last_4_weeks_inputs_json(query_results, user):
         "runs_per_week": round((float(query_results.runs_completed) / 4), 2)
     }
 
+def current_pb_json(activity, user):
+    return {
+        "activity_name": activity.name,
+        "average_pace_formatted": utils.format_pace_for_uom_preference(activity.average_speed, user),
+        "activity_date": datetime.strftime(activity.activity_date, "%Y-%m-%d")
+    }
+
+
 class TrainingPlanGenerator(Resource):
     @jwt_required
     def get(self):
@@ -1019,6 +1027,12 @@ class TrainingPlanGenerator(Resource):
                                     ).filter(Activity.activity_type == "Run"
                                     ).filter(Activity.start_datetime >= datetime.today() - timedelta(days=28)).first()
 
+        all_time_runs = db.session.query(
+                                    func.count(Activity.id).label("total_runs_above_target_distance")
+                                    ).filter(Activity.owner == current_user
+                                    ).filter(Activity.activity_type == "Run"
+                                    ).filter(Activity.distance >= target_distance_m).first()
+
         current_pb = db.session.query(
                                     Activity.id,
                                     Activity.name,
@@ -1043,7 +1057,8 @@ class TrainingPlanGenerator(Resource):
         return {
             "training_plan_generator_inputs": {
                 "last_4_weeks": last_4_weeks_inputs_json(last_4_weeks_inputs, current_user),
-                "current_pb": current_pb.name,
+                "total_runs_above_target_distance": all_time_runs.total_runs_above_target_distance,
+                "current_pb": current_pb_json(current_pb, current_user),
                 "weeks_to_target_race": weeks_to_target_race
             } 
         }
