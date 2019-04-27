@@ -1,7 +1,9 @@
 import calendar
-from datetime import date
+from datetime import date, datetime, timedelta
+from sqlalchemy import desc, and_, or_, null, func, distinct
+
 from app import app, db
-from app.models import User, ExerciseForToday, ActivityForToday, TrainingPlanTemplate, ExerciseCategory, ExerciseType, ScheduledExercise
+from app.models import User, ExerciseForToday, ActivityForToday, TrainingPlanTemplate, Activity, ExerciseCategory, ExerciseType, ScheduledExercise
 
 # Should only call this function in scenarios where we are happy to clear out today's plan:
 #   1) Logging in and the current date is different to last login date
@@ -41,6 +43,50 @@ def add_to_plan_for_today(user, day):
     		new_activity_for_today = ActivityForToday(scheduled_activity_id = scheduled_activity.id)
     		db.session.add(new_activity_for_today)
     db.session.commit()
+
+def get_training_plan_generator_inputs(user, target_distance_m, target_race_date):
+    timedelta_to_target_race = target_race_date - datetime.today()
+    weeks_to_target_race = int(timedelta_to_target_race.days / 7)
+
+    last_4_weeks_inputs = db.session.query(
+                                    func.max(Activity.distance).label("longest_distance"),
+                                    func.count(distinct(Activity.start_datetime.cast(db.Date))).label("runs_completed")
+                                ).filter(Activity.owner == user
+                                ).filter(Activity.activity_type == "Run"
+                                ).filter(Activity.start_datetime >= datetime.today() - timedelta(days=28)
+                                ).first()
+
+    all_time_runs = db.session.query(
+                                func.count(Activity.id).label("total_runs_above_target_distance")
+                                ).filter(Activity.owner == user
+                                ).filter(Activity.activity_type == "Run"
+                                ).filter(Activity.distance >= target_distance_m
+                                ).first()
+
+    current_pb = db.session.query(
+                                Activity.id,
+                                Activity.name,
+                                Activity.start_datetime.cast(db.Date).label("activity_date"),
+                                Activity.average_speed
+                            ).filter(Activity.owner == user
+                            ).filter(Activity.activity_type == "Run"
+                            ).filter(Activity.distance >= target_distance_m
+                            ).order_by(Activity.average_speed.desc()
+                            ).first()
+
+    pre_pb_long_runs = db.session.query(
+                                    func.count(Activity.id).label("runs_above_90pct_distance_count"),
+                                    func.max(Activity.distance).label("longest_distance"),
+                                    (current_pb.activity_date - func.min(Activity.start_datetime).cast(db.Date)).label("first_long_run_days_until_race"),
+                                    (current_pb.activity_date - func.max(Activity.start_datetime).cast(db.Date)).label("last_long_run_days_until_race")
+                                ).filter(Activity.owner == user
+                                ).filter(Activity.activity_type == "Run"
+                                ).filter(Activity.start_datetime >= current_pb.activity_date - timedelta_to_target_race
+                                ).filter(Activity.start_datetime < current_pb.activity_date
+                                ).filter(Activity.distance >= (target_distance_m * 0.9)
+                                ).first()
+
+    return last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race
 
 def copy_training_plan_template(template_id, user):
     template = TrainingPlanTemplate.query.get(int(template_id))

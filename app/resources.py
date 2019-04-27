@@ -6,10 +6,10 @@ import logging
 
 from app import db, utils, analysis
 from app.models import  User, ExerciseCategory, ExerciseType, TrainingPlanTemplate
-from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Activity, Exercise
+from app.models import ScheduledActivity, ScheduledActivitySkippedDate, ScheduledRace, ScheduledExercise, ScheduledExerciseSkippedDate, Activity, Exercise, CalendarDay
 from app.ga import track_event
 from app.strava_utils import import_strava_activity
-from app.training_plan_utils import copy_training_plan_template, refresh_plan_for_today
+from app.training_plan_utils import get_training_plan_generator_inputs, copy_training_plan_template, refresh_plan_for_today
 
 class Monitoring(Resource):
     def post(self):
@@ -311,42 +311,98 @@ class PlannedActivities(Resource):
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
         parser.add_argument("planned_distance", help="Planned distance for the activity in the user's preferred UOM")
+        parser.add_argument("target_race_distance", help="Distance of the planned race that a training plan is being generated for")
+        parser.add_argument("target_race_date", help="Date of the planned race that a training plan is being generated for")
+        parser.add_argument("long_run_planning_period", help="Specified by user when using training plan generator for how to plan the long run each week")
+        parser.add_argument("long_run_day", help="Specifed by user when using the training plan generator and if planning period is day")
         data = parser.parse_args()
 
-        planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
-        planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
-        planned_date = planned_date if data["recurrence"] == "once" else None
+        if (data["activity_type"]):
+            planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
+            planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
+            planned_date = planned_date if data["recurrence"] == "once" else None
 
-        if data["description"] and len(data["description"]) == 0:
-            data["description"] = None
+            if data["description"] and len(data["description"]) == 0:
+                data["description"] = None
 
-        if data["planned_distance"] and len(data["planned_distance"]) == 0:
-            data["planned_distance"] = None
+            if data["planned_distance"] and len(data["planned_distance"]) == 0:
+                data["planned_distance"] = None
 
-        planned_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["planned_distance"]), current_user) if data["planned_distance"] else None
+            planned_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["planned_distance"]), current_user) if data["planned_distance"] else None
 
-        track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
-        scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
-                                               owner=current_user,
-                                               planning_period=data["planning_period"],
-                                               recurrence=data["recurrence"],
-                                               scheduled_date=planned_date,
-                                               scheduled_day=planned_day_of_week,
-                                               description=data["description"],
-                                               planned_distance=planned_distance_m)
-        db.session.add(scheduled_activity)
-        db.session.commit()
+            track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
+            scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
+                                                owner=current_user,
+                                                planning_period=data["planning_period"],
+                                                recurrence=data["recurrence"],
+                                                scheduled_date=planned_date,
+                                                scheduled_day=planned_day_of_week,
+                                                description=data["description"],
+                                                planned_distance=planned_distance_m)
+            db.session.add(scheduled_activity)
+            db.session.commit()
 
-        if (planned_date and planned_date.date() == date.today()) or (data["recurrence"] == "weekly" and planned_day_of_week == date.today().strftime("%a")):
-            refresh_plan_for_today(current_user)
+            if (planned_date and planned_date.date() == date.today()) or (data["recurrence"] == "weekly" and planned_day_of_week == date.today().strftime("%a")):
+                refresh_plan_for_today(current_user)
+
+            message = "Added new planned activity"
+
+        # Separate path to follow if the training plan generator is being used and we've got to generate a few activities
+        elif (data["target_race_distance"]):
+            target_race_date = datetime.strptime(data["target_race_date"], "%Y-%m-%d")
+            target_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["target_race_distance"]), current_user) if data["target_race_distance"] else None
+
+            last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race = get_training_plan_generator_inputs(current_user, target_distance_m, target_race_date)
         
+            if (data["long_run_planning_period"] == "week"):
+                first_long_run_date = db.session.query(CalendarDay.calendar_week_start_date
+                                            ).filter(CalendarDay.calendar_date == datetime.today()
+                                            ).first().calendar_week_start_date
+            elif (data["long_run_planning_period"] == "day"):
+                first_long_run_date = db.session.query(CalendarDay.calendar_date
+                                            ).filter(CalendarDay.calendar_date >= datetime.today()
+                                            ).filter(CalendarDay.day_of_week == data["long_run_day"]
+                                            ).order_by(CalendarDay.calendar_date).first().calendar_date
+
+            planned_races_during_training_period = db.session.query(ScheduledRace.scheduled_date,
+                                                                    CalendarDay.calendar_week_start_date
+                                                        ).join(CalendarDay, ScheduledRace.scheduled_date == CalendarDay.calendar_date
+                                                        ).filter(ScheduledRace.owner == current_user
+                                                        ).filter(ScheduledRace.scheduled_date >= datetime.today()
+                                                        ).filter(ScheduledRace.scheduled_date < target_race_date
+                                                        ).all()
+
+            distance_to_add = 11000 #target_distance_m - float(last_4_weeks_inputs.longest_distance)
+            pct_to_add = (distance_to_add / last_4_weeks_inputs.longest_distance) if distance_to_add > 0 else 0
+
+            if (all_time_runs.total_runs_above_target_distance > 1):
+                # Aim to hit the target distance 2 weeks before
+                weeks_to_add_distance = weeks_to_target_race - 2 - len(planned_races_during_training_period)
+                min_distance_to_add_each_week = distance_to_add / weeks_to_add_distance
+
+            # Now countdown through the weeks to go and add a long run
+            this_week_date = first_long_run_date
+            this_week_distance = 10000 #float(last_4_weeks_inputs.longest_distance)
+
+            while weeks_to_target_race > 0:
+                races_this_week = [race for race in planned_races_during_training_period if ((this_week_date - race.calendar_week_start_date).days >= 0 and (this_week_date - race.calendar_week_start_date).days < 7)]
+                
+                # Only add a long run if no race this week
+                if len(races_this_week) == 0:
+                    this_week_distance = (this_week_distance * 1.1) if (this_week_distance * 1.1) > (this_week_distance + min_distance_to_add_each_week) else (this_week_distance + min_distance_to_add_each_week)
+
+                print(this_week_distance)
+                weeks_to_target_race -= 1
+                this_week_date += timedelta(days=7)
+
+            message = "Generated new activities for training plan"
+
         if current_user.is_training_plan_user == False:
             current_user.is_training_plan_user = True
-            db.session.commit()
-            
+            db.session.commit()            
 
         return {
-            "id": 1#scheduled_activity.id
+            "message": message
         }, 201
 
 
@@ -804,8 +860,6 @@ class PlannedExercises(Resource):
         parser.add_argument("template_id", help="Id for a template that the user wants to copy into their plan")
         data = parser.parse_args()
 
-        print(data["planning_period"])
-
         if data["template_id"]:
             track_event(category="Schedule", action="Attempting to copy training plan from template", userId = str(current_user.id))
             result = copy_training_plan_template(template_id=data["template_id"], user=current_user)
@@ -929,9 +983,7 @@ class PlannedExercise(Resource):
             scheduled_exercise.is_removed = True
             db.session.commit()
         else:
-            print(scope)
             skipped_date = datetime.strptime(scope, "%Y-%m-%d")
-            print(skipped_date)
             scheduled_exercise_skipped_date = ScheduledExerciseSkippedDate(scheduled_exercise=scheduled_exercise,
                                                                            skipped_date=skipped_date)
             db.session.add(scheduled_exercise_skipped_date)
@@ -1001,6 +1053,14 @@ def current_pb_json(activity, user):
         "activity_date": datetime.strftime(activity.activity_date, "%Y-%m-%d")
     }
 
+def pre_pb_long_runs_json(query_results, user):
+    return {
+        "runs_above_90pct_distance_count": query_results.runs_above_90pct_distance_count,
+        "longest_distance_formatted": utils.format_distance_for_uom_preference(query_results.longest_distance, user, decimal_places=2) if query_results.longest_distance else None,
+        "weeks_between_first_long_run_and_pb": int(query_results.first_long_run_days_until_race / 7),
+        "weeks_between_last_long_run_and_pb": int(query_results.last_long_run_days_until_race / 7)
+    }
+
 
 class TrainingPlanGenerator(Resource):
     @jwt_required
@@ -1017,38 +1077,11 @@ class TrainingPlanGenerator(Resource):
         target_race_date = datetime.strptime(data["targetRaceDate"], "%Y-%m-%d")
         target_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["targetRaceDistance"]), current_user) if data["targetRaceDistance"] else None
 
-        timedelta_to_target_race = target_race_date - datetime.today()
-        weeks_to_target_race = int(timedelta_to_target_race.days / 7)
-
-        last_4_weeks_inputs = db.session.query(
-                                        func.max(Activity.distance).label("longest_distance"),
-                                        func.count(distinct(Activity.start_datetime.cast(db.Date))).label("runs_completed")
-                                    ).filter(Activity.owner == current_user
-                                    ).filter(Activity.activity_type == "Run"
-                                    ).filter(Activity.start_datetime >= datetime.today() - timedelta(days=28)).first()
-
-        all_time_runs = db.session.query(
-                                    func.count(Activity.id).label("total_runs_above_target_distance")
-                                    ).filter(Activity.owner == current_user
-                                    ).filter(Activity.activity_type == "Run"
-                                    ).filter(Activity.distance >= target_distance_m).first()
-
-        current_pb = db.session.query(
-                                    Activity.id,
-                                    Activity.name,
-                                    Activity.start_datetime.cast(db.Date).label("activity_date"),
-                                    Activity.average_speed
-                                ).filter(Activity.owner == current_user
-                                ).filter(Activity.activity_type == "Run"
-                                ).filter(Activity.distance >= target_distance_m
-                                ).order_by(Activity.average_speed.desc()).first()
+        last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race = get_training_plan_generator_inputs(current_user, target_distance_m, target_race_date)
 
         # all-time runs >= distance
 
         # equivalent_period_before_pb
-            # longest run
-            # runs >= 90% of target distance
-            # how far out did they get to >= 90%
             # distance per week in 2 weeks before
             # distance per week n-2 weeks
             # runs per week
@@ -1059,6 +1092,7 @@ class TrainingPlanGenerator(Resource):
                 "last_4_weeks": last_4_weeks_inputs_json(last_4_weeks_inputs, current_user),
                 "total_runs_above_target_distance": all_time_runs.total_runs_above_target_distance,
                 "current_pb": current_pb_json(current_pb, current_user),
-                "weeks_to_target_race": weeks_to_target_race
+                "weeks_to_target_race": weeks_to_target_race,
+                "pre_pb_long_runs": pre_pb_long_runs_json(pre_pb_long_runs, current_user)
             } 
         }
