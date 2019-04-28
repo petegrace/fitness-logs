@@ -126,6 +126,7 @@ def planned_activity_json(planned_activity, user):
         "recurrence": planned_activity.recurrence,
         "planned_date": planned_activity.planned_date.strftime("%Y-%m-%d"),
         "activity_type": planned_activity.activity_type,
+        "activity_subtype": planned_activity.activity_subtype if planned_activity.activity_subtype else planned_activity.activity_type,
         "scheduled_day": planned_activity.scheduled_day,
         "description": planned_activity.description,
         "planned_distance": utils.format_distance_for_uom_preference(planned_activity.planned_distance, user, decimal_places=2, show_uom_suffix=False) if planned_activity.planned_distance else None,
@@ -306,6 +307,7 @@ class PlannedActivities(Resource):
 
         parser = reqparse.RequestParser()
         parser.add_argument("activity_type", help="Whether the activity is a Run, Ride or Swim")
+        parser.add_argument("activity_subtype", help="More granular classification of the activity e.g. Long Run")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("planning_period", help="Whether the activity is planned for a specific day or any time during the week (in which case planned_date should be the Monday of that week)")
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
@@ -322,6 +324,9 @@ class PlannedActivities(Resource):
             planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
             planned_date = planned_date if data["recurrence"] == "once" else None
 
+            if data["activity_subtype"] and len(data["activity_subtype"]) == 0:
+                data["activity_subtype"] = None
+
             if data["description"] and len(data["description"]) == 0:
                 data["description"] = None
 
@@ -333,6 +338,7 @@ class PlannedActivities(Resource):
             track_event(category="Schedule", action="Scheduled activity created", userId = str(current_user.id))
             scheduled_activity = ScheduledActivity(activity_type=data["activity_type"],
                                                 owner=current_user,
+                                                activity_subtype=data["activity_subtype"],
                                                 planning_period=data["planning_period"],
                                                 recurrence=data["recurrence"],
                                                 scheduled_date=planned_date,
@@ -483,6 +489,7 @@ class PlannedActivity(Resource):
         track_event(category="Schedule", action="Scheduled activity updated", userId = str(user_id))
 
         parser = reqparse.RequestParser()
+        parser.add_argument("activity_subtype", help="More granular classification of the activity e.g. Long Run")
         parser.add_argument("planned_date", help="Date that the activity is planned for")
         parser.add_argument("recurrence", help="Whether or not the planned activity will be repeated each week")
         parser.add_argument("description", help="More detail about the planned activity")
@@ -492,6 +499,9 @@ class PlannedActivity(Resource):
         planned_date = datetime.strptime(data["planned_date"], "%Y-%m-%d")
         planned_day_of_week = planned_date.strftime("%a") if data["recurrence"] == "weekly" else None
         planned_date = planned_date if data["recurrence"] == "once" else None
+
+        if data["activity_subtype"] and len(data["activity_subtype"]) == 0:
+            data["activity_subtype"] = None
 
         if data["description"] and len(data["description"]) == 0:
             data["description"] = None
@@ -508,6 +518,7 @@ class PlannedActivity(Resource):
                 "message": "activity belongs to a different user"
             }, 403
 
+        scheduled_activity.activity_subtype = data["activity_subtype"]
         scheduled_activity.recurrence = data["recurrence"]
         scheduled_activity.scheduled_date = planned_date
         scheduled_activity.scheduled_day = planned_day_of_week

@@ -322,6 +322,7 @@ class User(UserMixin, db.Model):
 											ScheduledActivity.recurrence,
 											CalendarDay.calendar_date.label("planned_date"),
 											ScheduledActivity.activity_type,
+											ScheduledActivity.activity_subtype,
 											ScheduledActivity.scheduled_day,
 											ScheduledActivity.description,
 											ScheduledActivity.planned_distance,
