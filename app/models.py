@@ -1040,6 +1040,7 @@ class ScheduledActivity(db.Model):
 	description = db.Column(db.String(500))
 	planned_distance = db.Column(db.Integer)
 	created_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+	source = db.Column(db.String(50))
 	is_removed = db.Column(db.Boolean, default=False)
 	activities = db.relationship("Activity", backref="scheduled_activity", lazy="dynamic")
 	activity_scheduled_today = db.relationship("ActivityForToday", backref="scheduled_activity", lazy="dynamic")

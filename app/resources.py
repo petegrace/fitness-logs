@@ -372,30 +372,67 @@ class PlannedActivities(Resource):
                                                         ).filter(ScheduledRace.scheduled_date < target_race_date
                                                         ).all()
 
-            distance_to_add = 11000 #target_distance_m - float(last_4_weeks_inputs.longest_distance)
+            distance_to_add = target_distance_m - float(last_4_weeks_inputs.longest_distance)
             pct_to_add = (distance_to_add / last_4_weeks_inputs.longest_distance) if distance_to_add > 0 else 0
 
-            if (all_time_runs.total_runs_above_target_distance > 1):
+            if (all_time_runs.total_runs_above_target_distance > 0):
                 # Aim to hit the target distance 2 weeks before
-                weeks_to_add_distance = weeks_to_target_race - 2 - len(planned_races_during_training_period)
-                min_distance_to_add_each_week = distance_to_add / weeks_to_add_distance
+                weeks_to_add_distance = weeks_to_target_race - 1 - len(planned_races_during_training_period)
+            #else:
+                # Hit distance 1 week out where the distance is being eased back anyway
+                weeks_to_add_distance = weeks_to_target_race - len(planned_races_during_training_period)
+            
+            min_distance_to_add_each_week = distance_to_add / weeks_to_add_distance
 
-            # Now countdown through the weeks to go and add a long run
-            this_week_date = first_long_run_date
-            this_week_distance = 10000 #float(last_4_weeks_inputs.longest_distance)
+            # Now countdown through the weeks to go and add a long run (if the race is at least 10k)
+            if target_distance_m > 10000:
+                this_week_date = first_long_run_date
+                this_week_distance = float(last_4_weeks_inputs.longest_distance)
+                runs_at_target_distance = 0
+                long_runs_added = 0
 
-            while weeks_to_target_race > 0:
-                races_this_week = [race for race in planned_races_during_training_period if ((this_week_date - race.calendar_week_start_date).days >= 0 and (this_week_date - race.calendar_week_start_date).days < 7)]
-                
-                # Only add a long run if no race this week
-                if len(races_this_week) == 0:
-                    this_week_distance = (this_week_distance * 1.1) if (this_week_distance * 1.1) > (this_week_distance + min_distance_to_add_each_week) else (this_week_distance + min_distance_to_add_each_week)
+                while weeks_to_target_race > 0:
+                    races_this_week = [race for race in planned_races_during_training_period if ((this_week_date - race.calendar_week_start_date).days >= 0 and (this_week_date - race.calendar_week_start_date).days < 7)]
+                    
+                    # Only add a long run if no race this week
+                    if len(races_this_week) == 0:
+                        this_week_distance = (this_week_distance * 1.1) if (this_week_distance * 1.1) > (this_week_distance + min_distance_to_add_each_week) else (this_week_distance + min_distance_to_add_each_week)
+                        description = "Increasing long run distance towards the target race distance"
 
-                print(this_week_distance)
-                weeks_to_target_race -= 1
-                this_week_date += timedelta(days=7)
+                        if this_week_distance >= target_distance_m:
+                            this_week_distance = target_distance_m
+                            description = "Get used to running the target race distance"
 
-            message = "Generated new activities for training plan"
+                            if runs_at_target_distance == 2 and pre_pb_long_runs.longest_distance > (target_distance_m * 1.05):
+                                this_week_distance = target_distance_m * 1.1
+                                description = "Try going a bit further than the target race distance, as in the lead up to {pb_race}".format(pb_race=current_pb.name)
+
+                            runs_at_target_distance += 1
+
+                        if weeks_to_target_race == 1:
+                            this_week_distance = (target_distance_m * 0.8)
+                            description = "Only 1 week to go so ease it back a little"
+
+                        scheduled_activity = ScheduledActivity(activity_type="Run",
+                                                    owner=current_user,
+                                                    planning_period=data["long_run_planning_period"],
+                                                    recurrence="once",
+                                                    scheduled_date=this_week_date,
+                                                    scheduled_day=None,
+                                                    activity_subtype="Long Run",
+                                                    description=description,
+                                                    planned_distance=this_week_distance,
+                                                    source="Training Plan Generator")
+
+                        db.session.add(scheduled_activity)
+                        long_runs_added += 1
+
+                    weeks_to_target_race -= 1
+                    this_week_date += timedelta(days=7)
+
+            db.session.commit()
+            track_event(category="Schedule", action="Added planned activities using Training Plan Generator", userId = str(user_id))
+            message = "Added {long_run_count} long runs to training plan".format(long_run_count=long_runs_added)
 
         if current_user.is_training_plan_user == False:
             current_user.is_training_plan_user = True
