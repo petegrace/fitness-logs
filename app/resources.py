@@ -358,11 +358,22 @@ class PlannedActivities(Resource):
             target_race_date = datetime.strptime(data["target_race_date"], "%Y-%m-%d")
             target_distance_m = utils.convert_distance_to_m_for_uom_preference(float(data["target_race_distance"]), current_user) if data["target_race_distance"] else None
 
+            track_event(category="Schedule", action="Attempted to generate training plan activities", userId = str(user_id))
+            
             last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race = get_training_plan_generator_inputs(current_user, target_distance_m, target_race_date)
         
+            # Clear any existing planned activities that have been created by the Training Plan Generator
+            existing_tpg_activities_during_training_period = current_user.scheduled_activities.filter(ScheduledActivity.scheduled_date >= datetime.today()
+                                                                                             ).filter(ScheduledActivity.scheduled_date < target_race_date
+                                                                                             ).filter(ScheduledActivity.source == "Training Plan Generator"
+                                                                                             ).all()
+
+            for planned_activity in existing_tpg_activities_during_training_period:
+                planned_activity.is_removed = True
+
             if (data["long_run_planning_period"] == "week"):
                 first_long_run_date = db.session.query(CalendarDay.calendar_week_start_date
-                                            ).filter(CalendarDay.calendar_date == datetime.today()
+                                            ).filter(CalendarDay.calendar_date == datetime.today().date()
                                             ).first().calendar_week_start_date
             elif (data["long_run_planning_period"] == "day"):
                 first_long_run_date = db.session.query(CalendarDay.calendar_date
@@ -391,7 +402,7 @@ class PlannedActivities(Resource):
             min_distance_to_add_each_week = distance_to_add / weeks_to_add_distance
 
             # Now countdown through the weeks to go and add a long run (if the race is at least 10k)
-            if target_distance_m > 10000:
+            if target_distance_m >= 10000:
                 this_week_date = first_long_run_date
                 this_week_distance = float(last_4_weeks_inputs.longest_distance)
                 runs_at_target_distance = 0
