@@ -2,6 +2,7 @@ from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta, date
 from sqlalchemy import desc, and_, or_, null, func, distinct
+from itertools import cycle
 import logging
 import json
 
@@ -371,6 +372,7 @@ class PlannedActivities(Resource):
             existing_tpg_activities_during_training_period = current_user.scheduled_activities.filter(ScheduledActivity.scheduled_date >= datetime.today()
                                                                                              ).filter(ScheduledActivity.scheduled_date < target_race_date
                                                                                              ).filter(ScheduledActivity.source == "Training Plan Generator"
+                                                                                             ).filter(ScheduledActivity.is_removed == False
                                                                                              ).all()
 
             for planned_activity in existing_tpg_activities_during_training_period:
@@ -400,15 +402,47 @@ class PlannedActivities(Resource):
             if (all_time_runs.total_runs_above_target_distance > 0):
                 # Aim to hit the target distance 2 weeks before
                 weeks_to_add_distance = weeks_to_target_race - 1 - len(planned_races_during_training_period)
-            #else:
+            else:
                 # Hit distance 1 week out where the distance is being eased back anyway
                 weeks_to_add_distance = weeks_to_target_race - len(planned_races_during_training_period)
             
             min_distance_to_add_each_week = distance_to_add / weeks_to_add_distance
 
+            # Restructure the data for runs that's in format of e.g. {'day4': True, 'day5': True, 'day3': True}
+            available_run_days = []
+            if data["other_run_days"]:
+                other_run_days_dict = json.loads(data["other_run_days"].replace("'", '"').replace("True", '"True"').replace("False", '"False"').replace("day", ""))
+                for key, value in other_run_days_dict.items():
+                    if value == "True":
+                        available_run_days.append(int(key))
+
+            other_run_types = []
+            if data["other_run_types"]:
+                other_run_types_dict = json.loads(data["other_run_types"].replace("'", '"').replace("True", '"True"').replace("False", '"False"'))
+                for key, value in other_run_types_dict.items():
+                    if value == "True":
+                        if key == "intervals":
+                            run_type = {
+                                "run_type": "Intervals / Fartlek",
+                                "description": "Incorporate some quicker paced efforts into your run, either as structured intervals with a period of recovery in between, or by picking points along your route to increase your pace."
+                            }
+                        elif key == "tempo":
+                            run_type = {
+                                "run_type": "Tempo Run",
+                                "description": "Try to keep up a decent pace for a good portion of your run, such that it feels slightly uncomfortable to maintain it."
+                            }
+                        elif key == "hills":
+                            run_type = {
+                                "run_type": "Hilly Run",
+                                "description": "Plan a route that includes a few hills of different lengths and gradients, or pick a local hill to do some repeats on."
+                            }
+                        other_run_types.append(run_type)
+
+            other_run_types_cycle = cycle(other_run_types)
+
             # Now countdown through the weeks to go and add a long run (if the race is at least 10k)
             if target_distance_m >= 10000:
-                this_week_date = first_long_run_date
+                this_week_long_run_date = first_long_run_date
                 this_week_distance = float(last_4_weeks_inputs.longest_distance)
                 this_week_other_run_count = int(last_4_weeks_inputs.runs_completed / 4) # e.g. someone who's been doing 2.5: start of with 3 runs - 1 long run = 2
                 runs_at_target_distance = 0
@@ -416,10 +450,13 @@ class PlannedActivities(Resource):
                 weeks_at_this_runs_per_week = 0
 
                 while weeks_to_target_race > 0:
-                    races_this_week = [race for race in planned_races_during_training_period if ((this_week_date - race.calendar_week_start_date).days >= 0 and (this_week_date - race.calendar_week_start_date).days < 7)]
+                    races_this_week = [race for race in planned_races_during_training_period if ((this_week_long_run_date - race.calendar_week_start_date).days >= 0 and (this_week_long_run_date - race.calendar_week_start_date).days < 7)]
                     
                     # Only add a long run if no race this week
                     if len(races_this_week) == 0:
+                        if weeks_at_this_runs_per_week >= 2:
+                            this_week_other_run_count += 1
+
                         this_week_distance = (this_week_distance * 1.1) if (this_week_distance * 1.1) > (this_week_distance + min_distance_to_add_each_week) else (this_week_distance + min_distance_to_add_each_week)
                         description = "Increasing long run distance towards the target race distance"
 
@@ -441,7 +478,7 @@ class PlannedActivities(Resource):
                                                     owner=current_user,
                                                     planning_period=data["long_run_planning_period"],
                                                     recurrence="once",
-                                                    scheduled_date=this_week_date,
+                                                    scheduled_date=this_week_long_run_date,
                                                     scheduled_day=None,
                                                     activity_subtype="Long Run",
                                                     description=description,
@@ -455,27 +492,50 @@ class PlannedActivities(Resource):
                     if this_week_other_run_count > int(data["other_runs_per_week"]):
                         this_week_other_run_count = int(data["other_runs_per_week"])
 
-                    # Restructure the data that's in format of e.g. {'day4': True, 'day5': True, 'day3': True}
-                    available_run_days = []
-                    other_run_days = json.loads(data["other_run_days"].replace("'", '"').replace("True", '"True"').replace("day", ""))
-                    for key in other_run_days:
-                        available_run_days.append(int(key))
+                    long_run_day_number = this_week_long_run_date.weekday() + 1
+                    available_days_distance_to_allocated_days = []                    
+                    runs_days_allocated = [long_run_day_number]
+                    new_run_days_to_plan = []
 
-                    print(available_run_days)
-                    
-                    other_runs_allocated = 0
+                    # Work out the optimum days to run given user's preferences and max rest in between
+                    if data["other_runs_planning_period"] == "day":
+                        while len(new_run_days_to_plan) < this_week_other_run_count:
+                            available_days_distance_to_allocated_days = []
+                            for available_day in available_run_days:
+                                smallest_distance_from_allocated_run_day = 7
+                                for allocated_day in runs_days_allocated:
+                                    distance_from_allocated_run_day = (available_day - allocated_day) % 7
+                                    distance_from_allocated_run_day = (7 - distance_from_allocated_run_day) if distance_from_allocated_run_day > 3 else distance_from_allocated_run_day
+                                    smallest_distance_from_allocated_run_day = distance_from_allocated_run_day if distance_from_allocated_run_day < smallest_distance_from_allocated_run_day else smallest_distance_from_allocated_run_day
+                                available_days_distance_to_allocated_days.append(smallest_distance_from_allocated_run_day)
+                            if len(available_days_distance_to_allocated_days) == 0 or max(available_days_distance_to_allocated_days) == 0:
+                                break
+                            else:
+                                next_day_to_allocate = available_run_days[available_days_distance_to_allocated_days.index(max(available_days_distance_to_allocated_days))]
+                                runs_days_allocated.append(next_day_to_allocate)
+                                new_run_days_to_plan.append(next_day_to_allocate)
 
-                    while other_runs_allocated < this_week_other_run_count:
-                        if data["other_runs_planning_period"] == "week":
-                            print("Run planned for week of {weeks_start_date}".format(week_start_date=this_week_date))
-                        elif data["other_runs_planning_period"] == "day":
-                            long_run_day_number = this_week_date.weekday() + 1
-                            next_day_to_try = (long_run_day_number - 4) % 7
-                            print("Run planned for day {day_no}".format(day_no={next_day_to_try}))
-                        other_runs_allocated += 1
+                        # Now we can plan the runs themselves
+                        this_week_start_date = this_week_long_run_date - timedelta(days=(long_run_day_number-1))
+                        for run_day in new_run_days_to_plan:
+                            planned_date = this_week_start_date + timedelta(days=(run_day-1))
+                            # For the days furthest apart, and not exceeding half the runs in the week, plan the most intense sessions
+                            if len(other_run_types) > 0 and (new_run_days_to_plan.index(run_day)+1) <= (len(new_run_days_to_plan)/2):
+                                print("Planning {run_type} run for {planned_date}".format(planned_date=planned_date, run_type=next(other_run_types_cycle)["run_type"]))
+                            else:
+                                print("Planning easy run for {planned_date}".format(planned_date=planned_date))
+                    elif data["other_runs_planning_period"] == "week":
+                        other_runs_planned = 0
+                        while other_runs_planned < this_week_other_run_count:
+                            if len(other_run_types) > 0 and (other_runs_planned + 1) <= (this_week_other_run_count / 2):
+                                print("Planning {run_type} run for week of {planned_date}".format(planned_date=this_week_long_run_date, run_type=next(other_run_types_cycle)["run_type"]))
+                            else:
+                                print("Planning easy run for {planned_date}".format(planned_date=this_week_long_run_date))
+                            other_runs_planned += 1
 
                     weeks_to_target_race -= 1
-                    this_week_date += timedelta(days=7)
+                    weeks_at_this_runs_per_week += 1
+                    this_week_long_run_date += timedelta(days=7)
 
             db.session.commit()
             track_event(category="Schedule", action="Added planned activities using Training Plan Generator", userId = str(user_id))
