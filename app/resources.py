@@ -369,7 +369,7 @@ class PlannedActivities(Resource):
             last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race = get_training_plan_generator_inputs(current_user, target_distance_m, target_race_date)
         
             # Clear any existing planned activities that have been created by the Training Plan Generator
-            existing_tpg_activities_during_training_period = current_user.scheduled_activities.filter(ScheduledActivity.scheduled_date >= datetime.today()
+            existing_tpg_activities_during_training_period = current_user.scheduled_activities.filter(ScheduledActivity.scheduled_date >= (datetime.today() - timedelta(days=1))
                                                                                              ).filter(ScheduledActivity.scheduled_date < target_race_date
                                                                                              ).filter(ScheduledActivity.source == "Training Plan Generator"
                                                                                              ).filter(ScheduledActivity.is_removed == False
@@ -447,6 +447,7 @@ class PlannedActivities(Resource):
                 this_week_other_run_count = int(last_4_weeks_inputs.runs_completed / 4) # e.g. someone who's been doing 2.5: start of with 3 runs - 1 long run = 2
                 runs_at_target_distance = 0
                 long_runs_added = 0
+                total_other_runs_added = 0
                 weeks_at_this_runs_per_week = 0
 
                 while weeks_to_target_race > 0:
@@ -521,17 +522,53 @@ class PlannedActivities(Resource):
                             planned_date = this_week_start_date + timedelta(days=(run_day-1))
                             # For the days furthest apart, and not exceeding half the runs in the week, plan the most intense sessions
                             if len(other_run_types) > 0 and (new_run_days_to_plan.index(run_day)+1) <= (len(new_run_days_to_plan)/2):
-                                print("Planning {run_type} run for {planned_date}".format(planned_date=planned_date, run_type=next(other_run_types_cycle)["run_type"]))
+                                run_type = next(other_run_types_cycle)
+                                scheduled_activity = ScheduledActivity(activity_type="Run",
+                                                            owner=current_user,
+                                                            planning_period="day",
+                                                            recurrence="once",
+                                                            scheduled_date=planned_date,
+                                                            activity_subtype=run_type["run_type"],
+                                                            description=run_type["description"],
+                                                            source="Training Plan Generator")
                             else:
-                                print("Planning easy run for {planned_date}".format(planned_date=planned_date))
+                                scheduled_activity = ScheduledActivity(activity_type="Run",
+                                                            owner=current_user,
+                                                            planning_period="day",
+                                                            recurrence="once",
+                                                            scheduled_date=planned_date,
+                                                            activity_subtype="Easy / Social Run",
+                                                            description="Include plenty of runs in your training plan that you're going to enjoy. Run with friends or take it nice and easy if you're running on your own.",
+                                                            source="Training Plan Generator")
+                            db.session.add(scheduled_activity)
+                            total_other_runs_added += 1
                     elif data["other_runs_planning_period"] == "week":
                         other_runs_planned = 0
                         while other_runs_planned < this_week_other_run_count:
                             if len(other_run_types) > 0 and (other_runs_planned + 1) <= (this_week_other_run_count / 2):
-                                print("Planning {run_type} run for week of {planned_date}".format(planned_date=this_week_long_run_date, run_type=next(other_run_types_cycle)["run_type"]))
+                                run_type = next(other_run_types_cycle)
+                                scheduled_activity = ScheduledActivity(activity_type="Run",
+                                                            owner=current_user,
+                                                            planning_period="week",
+                                                            recurrence="once",
+                                                            scheduled_date=this_week_long_run_date,
+                                                            activity_subtype=run_type["run_type"],
+                                                            description=run_type["description"],
+                                                            source="Training Plan Generator")
+                                #print("Planning {run_type} run for {planned_date}".format(planned_date=planned_date, run_type=next(other_run_types_cycle)["run_type"]))
                             else:
-                                print("Planning easy run for {planned_date}".format(planned_date=this_week_long_run_date))
+                                scheduled_activity = ScheduledActivity(activity_type="Run",
+                                                            owner=current_user,
+                                                            planning_period="week",
+                                                            recurrence="once",
+                                                            scheduled_date=this_week_long_run_date,
+                                                            activity_subtype="Easy / Social Run",
+                                                            description="Include plenty of runs in your training plan that you're going to enjoy. Run with friends or take it nice and easy if you're running on your own.",
+                                                            source="Training Plan Generator")
+                                #print("Planning easy run for {planned_date}".format(planned_date=planned_date))
+                            db.session.add(scheduled_activity)
                             other_runs_planned += 1
+                            total_other_runs_added += 1
 
                     weeks_to_target_race -= 1
                     weeks_at_this_runs_per_week += 1
@@ -539,7 +576,7 @@ class PlannedActivities(Resource):
 
             db.session.commit()
             track_event(category="Schedule", action="Added planned activities using Training Plan Generator", userId = str(user_id))
-            message = "Added {long_run_count} long runs to training plan".format(long_run_count=long_runs_added)
+            message = "Added {long_run_count} long runs and {other_run_count} other runs to training plan".format(long_run_count=long_runs_added, other_run_count=total_other_runs_added)
 
         if current_user.is_training_plan_user == False:
             current_user.is_training_plan_user = True
