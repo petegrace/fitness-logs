@@ -3,7 +3,7 @@ from time import time
 from flask import Markup
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct, cast, Date
+from sqlalchemy import func, literal, desc, and_, or_, null, extract, distinct, cast, Date, case
 from markdown import markdown
 from itertools import groupby
 from passlib.hash import pbkdf2_sha256 as sha256
@@ -623,6 +623,30 @@ class User(UserMixin, db.Model):
 				)
 
 		return weekly_activity_type_stats
+
+	def activity_summary_by_week(self, start_date, end_date):
+		activity_summary_by_week = db.session.query(
+						Activity.activity_type,
+						CalendarDay.calendar_week_start_date,
+						func.coalesce(ExerciseCategory.category_key, Activity.activity_type).label("category_key"),
+						func.count(Activity.id).label("activities_completed"),
+						func.sum(Activity.distance).label("total_distance"),
+						func.sum(Activity.moving_time).label("total_moving_time"),
+						func.sum(case([(Activity.is_bad_elevation_data == False, Activity.total_elevation_gain)])).label("total_elevation_gain"),
+						func.max(Activity.distance).label("longest_distance")
+				).join(CalendarDay, func.date(Activity.start_datetime)==CalendarDay.calendar_date
+				).outerjoin(ExerciseCategory, and_(Activity.activity_type==ExerciseCategory.category_name, ExerciseCategory.user_id==Activity.user_id)
+				).filter(Activity.owner == self
+				).filter(Activity.activity_type.in_(["Run", "Ride", "Swim"])
+				).filter(CalendarDay.calendar_week_start_date >= start_date
+				).filter(CalendarDay.calendar_week_start_date <= end_date
+				).group_by(
+						CalendarDay.calendar_week_start_date,
+						ExerciseCategory.category_key,
+						Activity.activity_type
+				)
+
+		return activity_summary_by_week
 
 
 	def weekly_cadence_stats(self, week=None):

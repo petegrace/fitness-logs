@@ -178,6 +178,23 @@ def completed_activity_json(completed_activity, user):
         "strava_url": "https://www.strava.com/activities/{strava_id}".format(strava_id = completed_activity.external_id)
     }
 
+def activity_summary_json(weekly_activity_record, user):
+    total_moving_time_components = utils.convert_timedelta_to_minutes_split(weekly_activity_record.total_moving_time)
+
+    return {
+        "period_start_date": weekly_activity_record.calendar_week_start_date.strftime("%Y-%m-%d"),
+		"activity_type": weekly_activity_record.activity_type,
+		"category_key": weekly_activity_record.category_key,
+		"activities_completed": weekly_activity_record.activities_completed,
+		"total_distance": utils.format_distance_for_uom_preference(weekly_activity_record.total_distance, user, show_uom_suffix=False),
+		"total_distance_formatted": utils.format_distance_for_uom_preference(weekly_activity_record.total_distance, user),
+		"total_moving_time": "{minutes}:{seconds}".format(minutes=total_moving_time_components["minutes"], seconds=total_moving_time_components["seconds"]),
+		"total_elevation_gain": utils.format_elevation_for_uom_preference(weekly_activity_record.total_elevation_gain, user, show_uom_suffix=False),
+		"total_elevation_gain_formatted": utils.format_elevation_for_uom_preference(weekly_activity_record.total_elevation_gain, user),
+		"longest_distance": utils.format_distance_for_uom_preference(weekly_activity_record.longest_distance, user, show_uom_suffix=False),
+		"longest_distance_formatted": utils.format_distance_for_uom_preference(weekly_activity_record.longest_distance, user)
+    }
+
 
 class CompletedActivities(Resource):
 
@@ -187,14 +204,25 @@ class CompletedActivities(Resource):
         current_user = User.query.get(int(user_id))
 
         parser = reqparse.RequestParser()
+        parser.add_argument("resultType", help="Whether the results should be returned in summary or detail (default) form")
         parser.add_argument("startDate", help="Start date for the period that we're returning completed activities for")
         parser.add_argument("endDate", help="Optional end date for the period that we're returning completed activities for. If left blank it will be the same as the start date")
         parser.add_argument("pageNo", help="Page number for when paging through recent activities in descending order")
         parser.add_argument("pageSize", help="Number of activities to return for the repquested page")
         parser.add_argument("combineExercises", help="When true, exercises will be unioned into the results with activities")
         args = parser.parse_args()
-        
+
         if args["startDate"]:
+            start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
+            end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
+        
+        if args["resultType"] and args["resultType"] == "summary":
+            # Currently only supports weekly aggregation but can change in due course
+            activity_summary = [activity_summary_json(activity_for_week, current_user) for activity_for_week in current_user.activity_summary_by_week(start_date=start_date, end_date=end_date).all()]
+            result = {
+                "activity_summary": activity_summary
+            }
+        elif args["startDate"]: # 
             start_date = datetime.strptime(args["startDate"], "%Y-%m-%d")
             end_date = datetime.strptime(args["endDate"], "%Y-%m-%d") if args["endDate"] else start_date
 

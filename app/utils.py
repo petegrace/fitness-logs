@@ -67,10 +67,10 @@ def convert_mps_to_mile_pace(mps):
 def format_elevation_for_uom_preference(m, user, show_uom_suffix=True):
 	if user.elevation_uom_preference == "feet":
 		uom_suffix = " feet" if show_uom_suffix else ""
-		elevation_formatted ="{value}{uom_suffix}".format(value=int(float(m) * 3.28084), uom_suffix=uom_suffix)
+		elevation_formatted ="{value}{uom_suffix}".format(value=int(float(m) * 3.28084), uom_suffix=uom_suffix) if m else None
 	else:
 		uom_suffix = " m" if show_uom_suffix else ""
-		elevation_formatted ="{value}{uom_suffix}".format(value=int(m), uom_suffix=uom_suffix)
+		elevation_formatted ="{value}{uom_suffix}".format(value=int(m), uom_suffix=uom_suffix) if m else None
 	return elevation_formatted
 
 def format_distance(m):
