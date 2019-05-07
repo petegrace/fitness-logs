@@ -232,6 +232,7 @@ class UserInfo(Resource):
 
         user_info = {
             "distance_uom_preference": current_user.distance_uom_preference if current_user.distance_uom_preference else "km",
+            "elevation_uom_preference": current_user.elevation_uom_preference if current_user.elevation_uom_preference else "m",
             "has_flexible_planning_enabled": current_user.has_weekly_flexible_planning_enabled,
             "has_planned_activity_for_today": current_user.has_planned_activity_for_day(today),
             "has_planned_activity_for_this_week": current_user.has_planned_activity_for_week(today),
