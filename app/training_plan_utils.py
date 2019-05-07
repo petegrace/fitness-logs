@@ -73,18 +73,21 @@ def get_training_plan_generator_inputs(user, target_distance_m, target_race_date
                             ).filter(Activity.distance >= target_distance_m
                             ).order_by(Activity.average_speed.desc()
                             ).first()
-
-    pre_pb_long_runs = db.session.query(
-                                    func.count(Activity.id).label("runs_above_90pct_distance_count"),
-                                    func.max(Activity.distance).label("longest_distance"),
-                                    (current_pb.activity_date - func.min(Activity.start_datetime).cast(db.Date)).label("first_long_run_days_until_race"),
-                                    (current_pb.activity_date - func.max(Activity.start_datetime).cast(db.Date)).label("last_long_run_days_until_race")
-                                ).filter(Activity.owner == user
-                                ).filter(Activity.activity_type == "Run"
-                                ).filter(Activity.start_datetime >= current_pb.activity_date - timedelta_to_target_race
-                                ).filter(Activity.start_datetime < current_pb.activity_date
-                                ).filter(Activity.distance >= (target_distance_m * 0.9)
-                                ).first()
+                            
+    if current_pb:
+        pre_pb_long_runs = db.session.query(
+                                        func.count(Activity.id).label("runs_above_90pct_distance_count"),
+                                        func.max(Activity.distance).label("longest_distance"),
+                                        (current_pb.activity_date - func.min(Activity.start_datetime).cast(db.Date)).label("first_long_run_days_until_race"),
+                                        (current_pb.activity_date - func.max(Activity.start_datetime).cast(db.Date)).label("last_long_run_days_until_race")
+                                    ).filter(Activity.owner == user
+                                    ).filter(Activity.activity_type == "Run"
+                                    ).filter(Activity.start_datetime >= current_pb.activity_date - timedelta_to_target_race
+                                    ).filter(Activity.start_datetime < current_pb.activity_date
+                                    ).filter(Activity.distance >= (target_distance_m * 0.9)
+                                    ).first()
+    else:
+        pre_pb_long_runs = None
 
     return last_4_weeks_inputs, all_time_runs, current_pb, pre_pb_long_runs, weeks_to_target_race
 

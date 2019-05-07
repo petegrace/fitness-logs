@@ -424,8 +424,8 @@ class PlannedActivities(Resource):
                                                         ).filter(ScheduledRace.scheduled_date < target_race_date
                                                         ).all()
 
-            distance_to_add = target_distance_m - float(last_4_weeks_inputs.longest_distance)
-            pct_to_add = (distance_to_add / last_4_weeks_inputs.longest_distance) if distance_to_add > 0 else 0
+            distance_to_add = target_distance_m - float((last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 0))
+            pct_to_add = (distance_to_add / (last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 1)) if distance_to_add > 0 else 0
 
             if (all_time_runs.total_runs_above_target_distance > 0):
                 # Aim to hit the target distance 2 weeks before
@@ -471,8 +471,8 @@ class PlannedActivities(Resource):
             # Now countdown through the weeks to go and add a long run (if the race is at least 10k)
             if target_distance_m >= 10000:
                 this_week_long_run_date = first_long_run_date
-                this_week_distance = float(last_4_weeks_inputs.longest_distance)
-                this_week_other_run_count = int(last_4_weeks_inputs.runs_completed / 4) # e.g. someone who's been doing 2.5: start of with 3 runs - 1 long run = 2
+                this_week_distance = float((last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 0))
+                this_week_other_run_count = int((last_4_weeks_inputs.runs_completed if last_4_weeks_inputs.runs_completed else 1) / 4) # e.g. someone who's been doing 2.5: start of with 3 runs - 1 long run = 2
                 runs_at_target_distance = 0
                 long_runs_added = 0
                 total_other_runs_added = 0
@@ -1305,8 +1305,8 @@ class TrainingPlanGenerator(Resource):
             "training_plan_generator_inputs": {
                 "last_4_weeks": last_4_weeks_inputs_json(last_4_weeks_inputs, current_user),
                 "total_runs_above_target_distance": all_time_runs.total_runs_above_target_distance,
-                "current_pb": current_pb_json(current_pb, current_user),
+                "current_pb": current_pb_json(current_pb, current_user) if current_pb else None,
                 "weeks_to_target_race": weeks_to_target_race,
-                "pre_pb_long_runs": pre_pb_long_runs_json(pre_pb_long_runs, current_user)
+                "pre_pb_long_runs": pre_pb_long_runs_json(pre_pb_long_runs, current_user) if pre_pb_long_runs else None
             } 
         }
