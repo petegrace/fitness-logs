@@ -425,7 +425,7 @@ class PlannedActivities(Resource):
                                                         ).all()
 
             distance_to_add = target_distance_m - float((last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 0))
-            pct_to_add = (distance_to_add / (last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 1)) if distance_to_add > 0 else 0
+            pct_to_add = (distance_to_add / float(last_4_weeks_inputs.longest_distance if last_4_weeks_inputs.longest_distance else 1)) if distance_to_add > 0 else 0
 
             if (all_time_runs.total_runs_above_target_distance > 0):
                 # Aim to hit the target distance 2 weeks before
@@ -1271,8 +1271,8 @@ def pre_pb_long_runs_json(query_results, user):
     return {
         "runs_above_90pct_distance_count": query_results.runs_above_90pct_distance_count,
         "longest_distance_formatted": utils.format_distance_for_uom_preference(query_results.longest_distance, user, decimal_places=2) if query_results.longest_distance else None,
-        "weeks_between_first_long_run_and_pb": int(query_results.first_long_run_days_until_race / 7),
-        "weeks_between_last_long_run_and_pb": int(query_results.last_long_run_days_until_race / 7)
+        "weeks_between_first_long_run_and_pb": int(query_results.first_long_run_days_until_race / 7) if query_results.first_long_run_days_until_race else None,
+        "weeks_between_last_long_run_and_pb": int(query_results.last_long_run_days_until_race / 7) if query_results.last_long_run_days_until_race else None
     }
 
 
