@@ -51,7 +51,7 @@ class AnnualStats(Resource):
             })
 
         return {
-            "heading": "Your 2019 Stats",
+            "heading": "Your {current_year} Stats".format(current_year=str(datetime.today().year)),
             "counters": counters
         }
 
